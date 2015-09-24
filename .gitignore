@@ -1,0 +1,6 @@
+*.sdf
+*.opensdf
+/bin/
+/output/
+*.suo
+*.user
