@@ -10,15 +10,18 @@ namespace taolang {
             binary_minus,
             binary_mul,
             binary_div,
+            binary_mod,
             unary_plus,
             unary_minus,
             value,
+            call,
         };
 
         class ast_node {
         public:
             ast_type    type;
             double      value;
+            std::string fn;
             ast_node*   left;
             ast_node*   right;
 

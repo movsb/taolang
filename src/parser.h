@@ -3,6 +3,58 @@
 #include "ast.h"
 #include "tokenizer.h"
 
+/* Àà BNF ·¶Ê½
+£¨º¬×óµİ¹é£©
+expr
+    : expr + term
+    | expr - term
+    | term
+    ;
+
+term
+    : term * factor
+    | term / factor
+    | term % factor
+    |: factor
+    ;
+
+factor
+    : (exp)
+    | - exp
+    | number
+    | fn ( exp )
+    ;
+
+£¨²»º¬×óµİ¹é£©
+expr
+    : term expr1
+    ;
+
+expr1
+    : + term expr1
+    | - term expr1
+    | epsilon
+    ;
+
+term
+    : factor term1
+    ;
+
+term1
+    : * factor term1
+    | / factor term1
+    | % factor term1
+    | epsilon
+    ;
+
+factor
+    : ( exp )
+    | - exp
+    | number
+    | fn ( exp )
+    ;
+*/
+
 namespace taolang {
     namespace parser {
         class parser_error : public std::exception {
@@ -92,6 +144,11 @@ namespace taolang {
                     t1node = term1();
                     root = new_ast_node(ast_type::binary_div, t1node, fnode);
                     break;
+                case tokenizer::type_t::mod:
+                    fnode = factor();
+                    t1node = term1();
+                    root = new_ast_node(ast_type::binary_mod, t1node, fnode);
+                    break;
                 }
 
                 if(root != nullptr)
@@ -118,6 +175,12 @@ namespace taolang {
                 case tokenizer::type_t::number:
                     node = new_ast_node(tk.value);
                     break;
+                case tokenizer::type_t::fn:
+                    node = new_ast_node(tk.fn);
+                    _tkr.expect(tokenizer::type_t::left_parenthesis);
+                    node = new_ast_node(ast_type::call, node, factor());
+                    _tkr.expect(tokenizer::type_t::right_parenthesis);
+                    break;
                 }
 
                 if(node) {
@@ -139,6 +202,13 @@ namespace taolang {
                 ast_node* node = new ast_node;
                 node->type  = ast_type::value;
                 node->value = value;
+                return node;
+            }
+
+            ast_node* new_ast_node(const std::string& fn) {
+                ast_node* node = new ast_node;
+                node->type = ast_type::call;
+                node->fn = fn;
                 return node;
             }
         };

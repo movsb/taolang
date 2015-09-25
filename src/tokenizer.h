@@ -24,16 +24,19 @@ namespace taolang {
             minus,
             mul,
             div,
+            mod,
             eof,
             left_parenthesis,
             right_parenthesis,
             number,
+            fn,
         };
 
         struct token_t {
-            type_t  type;
-            double  value;
-            char    symbol;
+            type_t          type;
+            double          value;
+            char            symbol;
+            std::string     fn;
 
             token_t()
                 : type(type_t::error)
@@ -84,9 +87,15 @@ namespace taolang {
                 if(_input() == '\0') {
                     _tk.type = type_t::eof;
                     goto _exit;
-                } else if(::isdigit(_input())) {
+                }
+                else if(::isdigit(_input())) {
                     _tk.type = type_t::number;
                     _tk.value = _number();
+                    goto _exit;
+                } 
+                else if (::isalpha(_input())) {
+                    _tk.type = type_t::fn;
+                    _tk.fn = _ident();
                     goto _exit;
                 }
 
@@ -109,6 +118,9 @@ namespace taolang {
                     break;
                 case ')':
                     _tk.type = type_t::right_parenthesis;
+                    break;
+                case '%':
+                    _tk.type = type_t::mod;
                     break;
                 default:
                     is_symbol = false;
@@ -163,6 +175,13 @@ namespace taolang {
                 return ::atof(buf.c_str());
             }
 
+            std::string _ident() {
+                auto p = _p;
+                while (::isalpha(_input()))
+                    _char_next();
+
+                return std::string(p, _p - p);
+            }
         };
     }
 }
