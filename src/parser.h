@@ -89,7 +89,10 @@ namespace taolang {
                 auto tnode = term();
                 auto e1node = expr1();
 
-                return new_ast_node(ast_type::binary_plus, tnode, e1node);
+                if(e1node)
+                    return new_ast_node(ast_type::binary_plus, tnode, e1node);
+                else
+                    return tnode;
             }
 
             ast_node* expr1() {
@@ -103,19 +106,31 @@ namespace taolang {
                 case tokenizer::type_t::plus:
                     tnode = term();
                     e1node = expr1();
-                    root = new_ast_node(ast_type::binary_plus, e1node, tnode);
+                    if(e1node)
+                        root = new_ast_node(ast_type::binary_plus, e1node, tnode);
+                    else
+                        root = tnode;
                     break;
                 case tokenizer::type_t::minus:
                     tnode = term();
                     e1node = expr1();
-                    root = new_ast_node(ast_type::binary_minus, e1node, tnode);
+                    if(e1node)
+                        root = new_ast_node(ast_type::binary_minus, e1node, tnode);
+                    else
+                        root = new_ast_node(ast_type::unary_minus, tnode);
                     break;
                 }
 
                 if(root != nullptr)
                     return root;
 
+                if(tk.type == tokenizer::type_t::eof) {
+                    _tkr.reuse();
+                    return nullptr;
+                }
+
                 _tkr.reuse();
+                return nullptr;
                 return new_ast_node(0);
             }
 
@@ -123,7 +138,10 @@ namespace taolang {
                 auto fnode = factor();
                 auto t1node = term1();
 
-                return new_ast_node(ast_type::binary_mul, fnode, t1node);
+                if(t1node)
+                    return new_ast_node(ast_type::binary_mul, fnode, t1node);
+                else
+                    return fnode;
             }
 
             ast_node* term1() {
@@ -137,24 +155,39 @@ namespace taolang {
                 case tokenizer::type_t::mul:
                     fnode = factor();
                     t1node = term1();
-                    root = new_ast_node(ast_type::binary_mul, t1node, fnode);
+                    if(t1node)
+                        root = new_ast_node(ast_type::binary_mul, t1node, fnode);
+                    else
+                        root = fnode;
                     break;
                 case tokenizer::type_t::div:
                     fnode = factor();
                     t1node = term1();
-                    root = new_ast_node(ast_type::binary_div, t1node, fnode);
+                    if(t1node)
+                        root = new_ast_node(ast_type::binary_div, t1node, fnode);
+                    else
+                        root = fnode;
                     break;
                 case tokenizer::type_t::mod:
                     fnode = factor();
                     t1node = term1();
-                    root = new_ast_node(ast_type::binary_mod, t1node, fnode);
+                    if(t1node)
+                        root = new_ast_node(ast_type::binary_mod, t1node, fnode);
+                    else
+                        root = fnode;
                     break;
                 }
 
                 if(root != nullptr)
                     return root;
 
+                if(tk.type == tokenizer::type_t::eof) {
+                    _tkr.reuse();
+                    return nullptr;
+                }
+
                 _tkr.reuse();
+                return nullptr;
                 return new_ast_node(1);
             }
 

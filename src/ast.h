@@ -6,6 +6,7 @@ namespace taolang {
     namespace ast {
         enum class ast_type {
             undefined,
+            only_node,
             binary_plus,
             binary_minus,
             binary_mul,

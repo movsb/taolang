@@ -56,7 +56,7 @@ int main()
         run("*1 / 2.5");
     };
 
-    //test();
+    test();
 
     std::string program;
     do {
