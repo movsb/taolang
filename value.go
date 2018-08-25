@@ -146,3 +146,17 @@ func (v *Value) String() string {
 	}
 	return fmt.Sprintf("unknown(%p)", v)
 }
+
+type Values []*Value
+
+func (v *Values) Len() int {
+	return len(*v)
+}
+
+func (v *Values) ToInterfaces() []interface{} {
+	var i []interface{}
+	for _, value := range *v {
+		i = append(i, value)
+	}
+	return i
+}

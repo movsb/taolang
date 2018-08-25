@@ -4,7 +4,7 @@ import (
 	"fmt"
 )
 
-type Builtin func(ctx *Context, args []*Value) *Value
+type Builtin func(ctx *Context, args Values) *Value
 
 func InitBuiltins(ctx *Context) {
 	pairs := [...]struct {
@@ -18,7 +18,7 @@ func InitBuiltins(ctx *Context) {
 	}
 }
 
-func print(ctx *Context, args []*Value) *Value {
-	fmt.Print(args)
+func print(ctx *Context, args Values) *Value {
+	fmt.Print(args.ToInterfaces()...)
 	return ValueFromNil()
 }

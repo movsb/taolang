@@ -169,39 +169,22 @@ func (f *FunctionDefinitionExpression) Evaluate(ctx *Context) *Value {
 
 type Arguments struct {
 	exprs []Expression
-	Args  []*Value
 }
 
 func (a *Arguments) Len() int {
-	return len(a.Args)
-}
-
-func (a *Arguments) GetAt(index int) Expression {
-	if index > a.Len()-1 {
-		panic("argument index out of range")
-	}
-	return a.Args[index]
+	return len(a.exprs)
 }
 
 func (a *Arguments) PutArgument(expr Expression) {
 	a.exprs = append(a.exprs, expr)
 }
 
-func (a *Arguments) EvaluateAll(ctx *Context) []*Value {
+func (a *Arguments) EvaluateAll(ctx *Context) Values {
 	args := []*Value{}
 	for _, expr := range a.exprs {
 		args = append(args, expr.Evaluate(ctx))
 	}
-	a.Args = args
-	return a.Args
-}
-
-func (a *Arguments) ToInterfaces() []interface{} {
-	var v []interface{}
-	for _, arg := range a.Args {
-		v = append(v, arg)
-	}
-	return v
+	return args
 }
 
 type CallExpression struct {
@@ -235,14 +218,14 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 	switch callable.Type {
 	case vtFunction:
 		fn := callable.Func.(*FunctionDefinitionExpression)
-		if f.Args.Len() != fn.params.Len() {
+		if len(f.Args.exprs) != fn.params.Len() {
 			panic("parameters and arguments don't match")
 		}
 		newCtx := NewContext(ctx)
 		for i := 0; i < f.Args.Len(); i++ {
 			newCtx.AddValue(
 				fn.params.GetAt(i),
-				f.Args.GetAt(i).Evaluate(ctx),
+				f.Args.exprs[i].Evaluate(ctx),
 			)
 		}
 		for _, stmt := range fn.stmts {
