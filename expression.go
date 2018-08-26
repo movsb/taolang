@@ -37,9 +37,9 @@ func (u *UnaryExpression) Evaluate(ctx *Context) *Value {
 		default:
 			panic("!value is invalid")
 		}
-	default:
-		panic("unknown unary operator")
 	}
+	panicf("unknown unary operator: %v", u.tt) // TODO
+	return nil
 }
 
 type BinaryExpression struct {

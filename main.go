@@ -1,5 +1,9 @@
 package main
 
+import (
+	"fmt"
+)
+
 var source = `
 function main() {
 	let a;
@@ -19,6 +23,15 @@ function main() {
 func main() {
 	tokenizer := NewTokenizer(source)
 	parser := NewParser(tokenizer)
-	program := parser.Parse()
-	program.Execute()
+	program, err := parser.Parse()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	ret, err := program.Execute()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	fmt.Println(ret)
 }

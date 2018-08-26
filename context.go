@@ -1,9 +1,5 @@
 package main
 
-import (
-	"fmt"
-)
-
 type Symbol struct {
 	Name  string
 	Value *Value
@@ -34,7 +30,7 @@ func (c *Context) FindValue(name string, outer bool) *Value {
 
 func (c *Context) AddValue(name string, value *Value) {
 	if c.FindValue(name, false) != nil {
-		panic(fmt.Sprintf("name `%s' is already defined in this scope", name))
+		panicf("name `%s' is already defined in this scope", name)
 	}
 	c.symbols = append(c.symbols, &Symbol{
 		Name:  name,
@@ -45,7 +41,7 @@ func (c *Context) AddValue(name string, value *Value) {
 func (c *Context) SetValue(name string, value *Value) {
 	exist := c.FindValue(name, true)
 	if exist == nil {
-		panic(fmt.Sprintf("name `%s' is not defined", name))
+		panicf("name `%s' is not defined", name)
 	}
 	*exist = *value
 }

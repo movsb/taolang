@@ -10,8 +10,12 @@ func NewParser(tokenizer *Tokenizer) *Parser {
 	}
 }
 
-func (p *Parser) Parse() *Program {
-	program := Program{}
+func (p *Parser) Parse() (program *Program, err error) {
+	defer func() {
+		err = toErr(recover())
+	}()
+
+	program = &Program{}
 	for {
 		stmt := p.parseGlobalStatement()
 		if stmt == nil {
@@ -23,13 +27,14 @@ func (p *Parser) Parse() *Program {
 	if tk.typ != ttEOF {
 		panic("unexpected statement")
 	}
-	return &program
+
+	return program, nil
 }
 
 func (p *Parser) expect(tt TokenType) Token {
 	token := p.tokenizer.Next()
 	if token.typ != tt {
-		panic("unexpected token type")
+		panicf("unexpected token: %v", token)
 	}
 	return token
 }
@@ -133,7 +138,7 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 	}
 
 	if name.typ == ttBoolean || name.typ == ttNil {
-		panic("predeclared constants cannot be assigned")
+		panicf("predeclared constants cannot be assigned: %v", name)
 	}
 
 	return &as

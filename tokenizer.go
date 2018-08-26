@@ -69,21 +69,24 @@ func init() {
 }
 
 type Token struct {
-	typ TokenType
-	str string
-	num int
+	typ  TokenType
+	str  string
+	num  int
+	line int
 }
 
 type Tokenizer struct {
 	input  *strings.Reader
 	buf    *list.List
 	frames []*list.List
+	line   int
 }
 
 func NewTokenizer(input string) *Tokenizer {
 	return &Tokenizer{
 		input: strings.NewReader(input),
 		buf:   list.New(),
+		line:  1,
 	}
 }
 
@@ -141,7 +144,11 @@ func (t *Tokenizer) PopFrame(putBack bool) {
 	}
 }
 
-func (t *Tokenizer) next() Token {
+func (t *Tokenizer) next() (token Token) {
+	defer func() {
+		token.line = t.line
+	}()
+
 	for {
 		ch, err := t.input.ReadByte()
 		if err == io.EOF {
@@ -181,7 +188,10 @@ func (t *Tokenizer) next() Token {
 		}
 
 		switch ch {
-		case ' ', '\t', '\r', '\n':
+		case ' ', '\t', '\r':
+			continue
+		case '\n':
+			t.line++
 			continue
 		case '(':
 			return Token{typ: ttLeftParen}
@@ -211,6 +221,9 @@ func (t *Tokenizer) next() Token {
 				for {
 					c = t.read()
 					if c == '\n' || c == 0 {
+						if c == '\n' {
+							t.line++
+						}
 						break
 					}
 				}
