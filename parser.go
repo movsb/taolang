@@ -53,7 +53,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 	tk := p.tokenizer.Next()
 
 	switch tk.typ {
-	case ttVar:
+	case ttLet:
 		return p.parseVariableDefinitionStatement()
 	case ttFunction:
 		stmt := p.parseFunctionDefinitionStatement()

@@ -51,7 +51,7 @@ const (
 	ttIdentifier
 
 	// Keywords
-	ttVar
+	ttLet
 	ttFunction
 	ttReturn
 )
@@ -60,7 +60,7 @@ var keywords map[string]TokenType
 
 func init() {
 	keywords = make(map[string]TokenType)
-	keywords["var"] = ttVar
+	keywords["let"] = ttLet
 	keywords["function"] = ttFunction
 	keywords["return"] = ttReturn
 	keywords["nil"] = ttNil
