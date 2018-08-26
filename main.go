@@ -11,6 +11,8 @@ function main() {
 	let g = function() {return "test";}();
 
 	print(a,b,c,d,e,f,g);
+
+	nil = 0;
 }
 `
 

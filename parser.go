@@ -109,7 +109,9 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 
 	var as VariableAssignmentStatement
 	name := p.tokenizer.Next()
-	if name.typ != ttIdentifier {
+	if name.typ != ttIdentifier &&
+		name.typ != ttBoolean && // these two are predeclared constants
+		name.typ != ttNil {
 		p.tokenizer.Undo(name)
 		return nil
 	}
@@ -121,12 +123,19 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 		p.tokenizer.Undo(name)
 		return nil
 	}
+
 	as.Expr = p.parseExpression()
+
 	semi := p.tokenizer.Next()
 	if semi.typ != ttSemicolon {
 		p.tokenizer.Undo(semi)
 		return nil
 	}
+
+	if name.typ == ttBoolean || name.typ == ttNil {
+		panic("predeclared constants cannot be assigned")
+	}
+
 	return &as
 }
 
