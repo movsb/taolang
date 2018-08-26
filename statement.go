@@ -14,7 +14,11 @@ type VariableDefinitionStatement struct {
 }
 
 func (v *VariableDefinitionStatement) Execute(ctx *Context) {
-	ctx.AddValue(v.Name, v.Expr.Evaluate(ctx))
+	value := ValueFromNil()
+	if v.Expr != nil {
+		value = v.Expr.Evaluate(ctx)
+	}
+	ctx.AddValue(v.Name, value)
 }
 
 type VariableAssignmentStatement struct {

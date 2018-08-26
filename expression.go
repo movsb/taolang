@@ -165,7 +165,9 @@ func NewFunctionDefinitionExpression(name string, params *Parameters, stmts []St
 
 func (f *FunctionDefinitionExpression) Evaluate(ctx *Context) *Value {
 	value := ValueFromFunction(f.name, f)
-	ctx.AddValue(f.name, value)
+	if f.name != "" {
+		ctx.AddValue(f.name, value)
+	}
 	return value
 }
 

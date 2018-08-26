@@ -130,17 +130,18 @@ func (v *Value) String() string {
 	case vtNil:
 		return "nil"
 	case vtBoolean:
-		// return fmt.Sprintf("bool(%t)", v.Bool)
 		return fmt.Sprint(v.Bool)
 	case vtNumber:
-		// return fmt.Sprintf("number(%d)", v.Number)
 		return fmt.Sprint(v.Number)
 	case vtString:
-		// return fmt.Sprintf(`string("%s")`, v.Str)
 		return v.Str
 	case vtFunction:
 		expr := v.Func.(*FunctionDefinitionExpression)
-		return fmt.Sprintf("function(%s)", expr.name)
+		name := expr.name
+		if name == "" {
+			name = "<anonymous>"
+		}
+		return fmt.Sprintf("function(%s)", name)
 	case vtBuiltin:
 		return fmt.Sprintf("builtin(%s)", v.Str)
 	}

@@ -56,7 +56,12 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttVar:
 		return p.parseVariableDefinitionStatement()
 	case ttFunction:
-		return p.parseFunctionDefinitionStatement()
+		stmt := p.parseFunctionDefinitionStatement()
+		fn := stmt.(*FunctionDefinitionStatement)
+		if fn.name == "" {
+			panic("function statement must have function name")
+		}
+		return stmt
 	}
 
 	if global {
@@ -283,9 +288,13 @@ func (p *Parser) parseCallExpression() Expression {
 }
 
 func (p *Parser) parseFunctionDefinitionExpression() Expression {
-	name := p.expect(ttIdentifier).str
+	var name string
 	params := &Parameters{}
 	stmts := []Statement{}
+
+	if p.tokenizer.Peek().typ == ttIdentifier {
+		name = p.tokenizer.Next().str
+	}
 
 	p.expect(ttLeftParen)
 	for {
@@ -300,6 +309,7 @@ func (p *Parser) parseFunctionDefinitionExpression() Expression {
 		}
 	}
 	p.expect(ttRightParen)
+
 	p.expect(ttLeftBrace)
 	for {
 		stmt := p.parseStatement(false)
