@@ -1,0 +1,11 @@
+function main() {
+	let a;
+	let b = nil;
+	let c = true;
+	let d = 123;
+	let e = "str";
+	let f = function(x,y,z) {return x+y*z;};
+	let g = function() {return "test"+"str";}();
+
+	print(a,b,c,d,e,f,g);
+}

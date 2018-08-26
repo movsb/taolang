@@ -2,36 +2,34 @@ package main
 
 import (
 	"fmt"
+	"os"
 )
 
 var source = `
-function main() {
-	let a;
-	let b = nil;
-	let c = true;
-	let d = 123;
-	let e = "str";
-	let f = function(x,y,z) {return x+y*z;};
-	let g = function() {return "test";}();
-
-	print(a,b,c,d,e,f,g);
-
-	nil = 0;
-}
 `
 
 func main() {
-	tokenizer := NewTokenizer(source)
+	input, err := os.Open("tests/callback.tao")
+	if err != nil {
+		panic(err)
+	}
+	defer input.Close()
+
+	tokenizer := NewTokenizer(input)
+
 	parser := NewParser(tokenizer)
+
 	program, err := parser.Parse()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	ret, err := program.Execute()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	fmt.Println(ret)
 }

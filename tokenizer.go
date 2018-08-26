@@ -1,10 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"bytes"
 	"container/list"
 	"io"
-	"strings"
 )
 
 type TokenType uint
@@ -76,15 +76,15 @@ type Token struct {
 }
 
 type Tokenizer struct {
-	input  *strings.Reader
+	input  *bufio.Reader
 	buf    *list.List
 	frames []*list.List
 	line   int
 }
 
-func NewTokenizer(input string) *Tokenizer {
+func NewTokenizer(input io.Reader) *Tokenizer {
 	return &Tokenizer{
-		input: strings.NewReader(input),
+		input: bufio.NewReader(input),
 		buf:   list.New(),
 		line:  1,
 	}

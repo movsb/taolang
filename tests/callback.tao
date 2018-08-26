@@ -1,0 +1,14 @@
+function sync(callback,a,b,c) {
+    return callback(a,b,c);
+}
+
+function main() {
+    print(
+        sync(
+            function(x,y,z) {
+                return x+y*z;
+            },
+            2,3,4
+        )
+    );
+}
