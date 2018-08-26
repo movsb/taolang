@@ -127,33 +127,9 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 
 func (p *Parser) parseFunctionDefinitionStatement() Statement {
 	var fn FunctionDefinitionStatement
-	fn.name = p.expect(ttIdentifier).str
-	params := &Parameters{}
-	stmts := []Statement{}
-
-	p.expect(ttLeftParen)
-	for {
-		tk := p.tokenizer.Next()
-		if tk.typ == ttIdentifier {
-			params.PutParam(tk.str)
-		} else if tk.typ == ttComma {
-			continue
-		} else if tk.typ == ttRightParen {
-			p.tokenizer.Undo(tk)
-			break
-		}
-	}
-	p.expect(ttRightParen)
-	p.expect(ttLeftBrace)
-	for {
-		stmt := p.parseStatement(false)
-		if stmt == nil {
-			break
-		}
-		stmts = append(stmts, stmt)
-	}
-	p.expect(ttRightBrace)
-	fn.expr = NewFunctionDefinitionExpression(fn.name, params, stmts)
+	expr := p.parseFunctionDefinitionExpression().(*FunctionDefinitionExpression)
+	fn.name = expr.name
+	fn.expr = expr
 	return &fn
 }
 
@@ -264,6 +240,8 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		p.expect(ttRightParen)
 	case ttIdentifier:
 		expr = ValueFromVariable(next.str)
+	case ttFunction:
+		expr = p.parseFunctionDefinitionExpression()
 	default:
 		p.tokenizer.Undo(next)
 		return nil
@@ -302,4 +280,39 @@ func (p *Parser) parseCallExpression() Expression {
 	p.expect(ttRightParen)
 
 	return &call
+}
+
+func (p *Parser) parseFunctionDefinitionExpression() Expression {
+	name := p.expect(ttIdentifier).str
+	params := &Parameters{}
+	stmts := []Statement{}
+
+	p.expect(ttLeftParen)
+	for {
+		tk := p.tokenizer.Next()
+		if tk.typ == ttIdentifier {
+			params.PutParam(tk.str)
+		} else if tk.typ == ttComma {
+			continue
+		} else if tk.typ == ttRightParen {
+			p.tokenizer.Undo(tk)
+			break
+		}
+	}
+	p.expect(ttRightParen)
+	p.expect(ttLeftBrace)
+	for {
+		stmt := p.parseStatement(false)
+		if stmt == nil {
+			break
+		}
+		stmts = append(stmts, stmt)
+	}
+	p.expect(ttRightBrace)
+
+	return &FunctionDefinitionExpression{
+		name:   name,
+		params: params,
+		stmts:  stmts,
+	}
 }

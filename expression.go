@@ -164,7 +164,9 @@ func NewFunctionDefinitionExpression(name string, params *Parameters, stmts []St
 }
 
 func (f *FunctionDefinitionExpression) Evaluate(ctx *Context) *Value {
-	return ValueFromFunction(f.name, f)
+	value := ValueFromFunction(f.name, f)
+	ctx.AddValue(f.name, value)
+	return value
 }
 
 type Arguments struct {
