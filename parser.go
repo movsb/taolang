@@ -77,6 +77,9 @@ func (p *Parser) parseStatement(global bool) Statement {
 	switch tk.typ {
 	case ttReturn:
 		return p.parseReturnStatement()
+	case ttLeftBrace:
+		p.tokenizer.Undo(tk)
+		return p.parseBlockStatement()
 	}
 
 	p.tokenizer.Undo(tk)
@@ -146,7 +149,7 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 
 func (p *Parser) parseFunctionDefinitionStatement() Statement {
 	var fn FunctionDefinitionStatement
-	expr := p.parseFunctionDefinitionExpression().(*FunctionDefinitionExpression)
+	expr := p.parseFunctionExpression().(*FunctionExpression)
 	fn.name = expr.name
 	fn.expr = expr
 	return &fn
@@ -179,6 +182,25 @@ func (p *Parser) parseExpressionStatement() (stmt Statement) {
 	}
 	p.tokenizer.Undo(semi)
 	return nil
+}
+
+func (p *Parser) parseBlockStatement() (stmt Statement) {
+	if p.tokenizer.Peek().typ != ttLeftBrace {
+		return nil
+	}
+
+	block := &BlockStatement{}
+	p.expect(ttLeftBrace)
+	for {
+		stmt := p.parseStatement(false)
+		if stmt == nil {
+			break
+		}
+		block.stmts = append(block.stmts, stmt)
+	}
+	p.expect(ttRightBrace)
+
+	return block
 }
 
 func (p *Parser) parseEqualityExpression() Expression {
@@ -260,7 +282,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	case ttIdentifier:
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
-		expr = p.parseFunctionDefinitionExpression()
+		expr = p.parseFunctionExpression()
 	default:
 		p.tokenizer.Undo(next)
 		return nil
@@ -301,10 +323,10 @@ func (p *Parser) parseCallExpression() Expression {
 	return &call
 }
 
-func (p *Parser) parseFunctionDefinitionExpression() Expression {
+func (p *Parser) parseFunctionExpression() Expression {
 	var name string
+	var block *BlockStatement
 	params := &Parameters{}
-	stmts := []Statement{}
 
 	if p.tokenizer.Peek().typ == ttIdentifier {
 		name = p.tokenizer.Next().str
@@ -324,19 +346,15 @@ func (p *Parser) parseFunctionDefinitionExpression() Expression {
 	}
 	p.expect(ttRightParen)
 
-	p.expect(ttLeftBrace)
-	for {
-		stmt := p.parseStatement(false)
-		if stmt == nil {
-			break
-		}
-		stmts = append(stmts, stmt)
+	if p.tokenizer.Peek().typ != ttLeftBrace {
+		panic("function needs a body")
 	}
-	p.expect(ttRightBrace)
 
-	return &FunctionDefinitionExpression{
+	block = p.parseBlockStatement().(*BlockStatement)
+
+	return &FunctionExpression{
 		name:   name,
 		params: params,
-		stmts:  stmts,
+		block:  block,
 	}
 }

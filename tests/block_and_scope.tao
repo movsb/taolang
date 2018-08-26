@@ -1,0 +1,9 @@
+function main() {
+    let a = 1;
+    {
+        let a = 2;
+        println("inner a: ", a);
+        // return a;
+    }
+    println("outer a: ", a);
+}

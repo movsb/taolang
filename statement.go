@@ -36,7 +36,7 @@ func (v *VariableAssignmentStatement) Execute(ctx *Context) {
 
 type FunctionDefinitionStatement struct {
 	name string
-	expr *FunctionDefinitionExpression
+	expr *FunctionExpression
 }
 
 func (f *FunctionDefinitionStatement) Execute(ctx *Context) {
@@ -50,6 +50,35 @@ type ReturnStatement struct {
 
 func (r *ReturnStatement) Execute(ctx *Context) {
 	r.value = r.expr.Evaluate(ctx)
+}
+
+type BlockStatement struct {
+	retValue *Value
+	stmts    []Statement
+}
+
+func (b *BlockStatement) Returned() (value *Value, hasReturned bool) {
+	return b.retValue, b.retValue != nil
+}
+
+func (b *BlockStatement) Execute(ctx *Context) {
+	for _, stmt := range b.stmts {
+		switch typed := stmt.(type) {
+		case *BlockStatement:
+			newCtx := NewContext(ctx)
+			typed.Execute(newCtx)
+			if ret, ok := typed.Returned(); ok {
+				b.retValue = ret
+				return
+			}
+		case *ReturnStatement:
+			typed.Execute(ctx)
+			b.retValue = typed.value
+			return
+		default:
+			typed.Execute(ctx)
+		}
+	}
 }
 
 type ExpressionStatement struct {

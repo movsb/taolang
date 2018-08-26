@@ -149,21 +149,21 @@ func (p *Parameters) PutParam(name string) {
 	p.names = append(p.names, name)
 }
 
-type FunctionDefinitionExpression struct {
+type FunctionExpression struct {
 	name   string
 	params *Parameters
-	stmts  []Statement
+	block  *BlockStatement
 }
 
-func NewFunctionDefinitionExpression(name string, params *Parameters, stmts []Statement) *FunctionDefinitionExpression {
-	return &FunctionDefinitionExpression{
+func NewFunctionExpression(name string, params *Parameters, block *BlockStatement) *FunctionExpression {
+	return &FunctionExpression{
 		name:   name,
 		params: params,
-		stmts:  stmts,
+		block:  block,
 	}
 }
 
-func (f *FunctionDefinitionExpression) Evaluate(ctx *Context) *Value {
+func (f *FunctionExpression) Evaluate(ctx *Context) *Value {
 	value := ValueFromFunction(f.name, f)
 	if f.name != "" {
 		ctx.AddValue(f.name, value)
@@ -221,7 +221,7 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 
 	switch callable.Type {
 	case vtFunction:
-		fn := callable.Func.(*FunctionDefinitionExpression)
+		fn := callable.Func.(*FunctionExpression)
 		if len(f.Args.exprs) != fn.params.Len() {
 			panic("parameters and arguments don't match")
 		}
@@ -232,11 +232,11 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 				f.Args.exprs[i].Evaluate(ctx),
 			)
 		}
-		for _, stmt := range fn.stmts {
-			stmt.Execute(newCtx)
-			if ret, ok := stmt.(*ReturnStatement); ok {
-				return ret.value
-			}
+		fn.block.Execute(newCtx)
+		if ret, ok := fn.block.Returned(); ok {
+			return ret
+		} else {
+			return ValueFromNil()
 		}
 	case vtBuiltin:
 		newCtx := NewContext(ctx)

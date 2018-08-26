@@ -136,7 +136,7 @@ func (v *Value) String() string {
 	case vtString:
 		return v.Str
 	case vtFunction:
-		expr := v.Func.(*FunctionDefinitionExpression)
+		expr := v.Func.(*FunctionExpression)
 		name := expr.name
 		if name == "" {
 			name = "<anonymous>"

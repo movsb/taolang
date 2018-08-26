@@ -56,3 +56,19 @@ function main() {
     );
 }
 ```
+
+### 代码块 & 作用域
+
+仅支持词法作用域，不支持 Javascript 的函数作用域。
+
+```js
+function main() {
+    let a = 1;
+    {
+        let a = 2;
+        println("inner a: ", a); // 2
+        // return a;
+    }
+    println("outer a: ", a); // 1
+}
+```
