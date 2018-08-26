@@ -1,5 +1,9 @@
 package main
 
+import (
+	"fmt"
+)
+
 type Statement interface {
 	Execute(ctx *Context)
 }
@@ -19,7 +23,11 @@ type VariableAssignmentStatement struct {
 }
 
 func (v *VariableAssignmentStatement) Execute(ctx *Context) {
-	// TODO
+	var value *Value
+	if value = ctx.FindValue(v.Name, true); value == nil {
+		panic(fmt.Sprintf("undefined variable: %s", v.Name))
+	}
+	*value = *v.Expr.Evaluate(ctx)
 }
 
 type FunctionDefinitionStatement struct {

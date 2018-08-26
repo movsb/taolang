@@ -75,8 +75,9 @@ type Token struct {
 }
 
 type Tokenizer struct {
-	input *strings.Reader
-	buf   *list.List
+	input  *strings.Reader
+	buf    *list.List
+	frames []*list.List
 }
 
 func NewTokenizer(input string) *Tokenizer {
@@ -86,23 +87,58 @@ func NewTokenizer(input string) *Tokenizer {
 	}
 }
 
-func (t *Tokenizer) Next() Token {
+func (t *Tokenizer) Next() (token Token) {
+	// use frame
+	defer func() {
+		if len(t.frames) > 0 {
+			frame := t.frames[len(t.frames)-1]
+			frame.PushBack(token)
+		}
+	}()
+
+	// use inner buffer
 	if t.buf.Len() > 0 {
-		token := t.buf.Front()
-		t.buf.Remove(token)
-		return token.Value.(Token)
+		tk := t.buf.Front()
+		t.buf.Remove(tk)
+		token = tk.Value.(Token)
+		return
 	}
-	return t.next()
+
+	// use new
+	token = t.next()
+	return
 }
 
 func (t *Tokenizer) Undo(token Token) {
 	t.buf.PushFront(token)
+	if len(t.frames) > 0 {
+		last := t.frames[len(t.frames)-1]
+		if last.Len() == 0 {
+			panic("cannot undo")
+		}
+		last.Remove(last.Back())
+	}
 }
 
 func (t *Tokenizer) Peek() Token {
 	token := t.Next()
 	t.Undo(token)
 	return token
+}
+
+func (t *Tokenizer) PushFrame() {
+	t.frames = append(t.frames, list.New())
+}
+
+func (t *Tokenizer) PopFrame(putBack bool) {
+	if len(t.frames) == 0 {
+		panic("bad PopFrame call")
+	}
+	last := t.frames[len(t.frames)-1]
+	t.frames = t.frames[0 : len(t.frames)-1]
+	if putBack && last.Len() > 0 {
+		t.buf.PushFrontList(last)
+	}
 }
 
 func (t *Tokenizer) next() Token {
@@ -223,7 +259,9 @@ func (t *Tokenizer) iif(ch byte, tt1 TokenType, tt2 TokenType) Token {
 	if c == ch {
 		return Token{typ: tt1}
 	}
-	t.unread()
+	if c != 0 {
+		t.unread()
+	}
 	return Token{typ: tt2}
 }
 
@@ -247,7 +285,9 @@ func (t *Tokenizer) readNumber() int {
 		if ch >= '0' && ch <= '9' {
 			num = num*10 + (int(ch) - '0')
 		} else {
-			t.unread()
+			if ch != 0 {
+				t.unread()
+			}
 			break
 		}
 	}
@@ -263,7 +303,9 @@ func (t *Tokenizer) readIdentifier() string {
 			ch >= '0' && ch <= '9' {
 			buf.WriteByte(ch)
 		} else {
-			t.unread()
+			if ch != 0 {
+				t.unread()
+			}
 			break
 		}
 	}

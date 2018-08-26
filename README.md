@@ -1,8 +1,7 @@
-## Romeo
+## taolang
 
-Romeo - The language.
+taolang - The language.
 
 ## Grammar
 
 ## Syntax
-

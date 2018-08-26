@@ -51,24 +51,33 @@ func (p *Parser) parseGlobalStatement() Statement {
 
 func (p *Parser) parseStatement(global bool) Statement {
 	tk := p.tokenizer.Next()
+
 	switch tk.typ {
 	case ttVar:
 		return p.parseVariableDefinitionStatement()
 	case ttFunction:
 		return p.parseFunctionDefinitionStatement()
 	}
+
 	if global {
 		p.tokenizer.Undo(tk)
 		return nil
 	}
+
 	switch tk.typ {
 	case ttReturn:
 		return p.parseReturnStatement()
 	}
+
 	p.tokenizer.Undo(tk)
+
 	if stmt := p.parseExpressionStatement(); stmt != nil {
 		return stmt
 	}
+	if stmt := p.parseAssignmentStatement(); stmt != nil {
+		return stmt
+	}
+
 	return nil
 }
 
@@ -87,13 +96,32 @@ func (p *Parser) parseVariableDefinitionStatement() Statement {
 	return &v
 }
 
-func (p *Parser) parseVariableAssignmentStatement() Statement {
+func (p *Parser) parseAssignmentStatement() (stmt Statement) {
+	p.tokenizer.PushFrame()
+	defer func() {
+		p.tokenizer.PopFrame(stmt == nil)
+	}()
+
 	var as VariableAssignmentStatement
-	as.Name = p.expect(ttIdentifier).str
-	if p.tokenizer.Peek().typ == ttAssign {
-		as.Expr = p.parseExpression()
+	name := p.tokenizer.Next()
+	if name.typ != ttIdentifier {
+		p.tokenizer.Undo(name)
+		return nil
 	}
-	p.expect(ttSemicolon)
+	as.Name = name.str
+
+	assign := p.tokenizer.Next()
+	if assign.typ != ttAssign {
+		p.tokenizer.Undo(assign)
+		p.tokenizer.Undo(name)
+		return nil
+	}
+	as.Expr = p.parseExpression()
+	semi := p.tokenizer.Next()
+	if semi.typ != ttSemicolon {
+		p.tokenizer.Undo(semi)
+		return nil
+	}
 	return &as
 }
 
@@ -137,16 +165,25 @@ func (p *Parser) parseReturnStatement() Statement {
 	}
 }
 
-func (p *Parser) parseExpressionStatement() Statement {
+func (p *Parser) parseExpressionStatement() (stmt Statement) {
+	p.tokenizer.PushFrame()
+	defer func() {
+		p.tokenizer.PopFrame(stmt == nil)
+	}()
+
 	expr := p.parseExpression()
 	if expr == nil {
 		return nil
 	}
-	stmt := &ExpressionStatement{
+	stmt = &ExpressionStatement{
 		expr: expr,
 	}
-	p.expect(ttSemicolon)
-	return stmt
+	semi := p.tokenizer.Next()
+	if semi.typ == ttSemicolon {
+		return stmt
+	}
+	p.tokenizer.Undo(semi)
+	return nil
 }
 
 func (p *Parser) parseEqualityExpression() Expression {
