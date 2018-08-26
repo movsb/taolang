@@ -72,3 +72,41 @@ function main() {
     println("outer a: ", a); // 1
 }
 ```
+
+### 控制语句
+
+#### while 控制语句
+
+表达式部分不用 `()` 括起来。
+
+```js
+function While() {
+    let n = 10;
+    while n > 0 {
+        print(n);
+        n = n - 1;
+    }
+}
+
+function Break() {
+    let n = 10;
+    while n > 0 {
+        print(n);
+        break;
+    }
+}
+
+function Return() {
+    let n = 10;
+    while n > 0 {
+        print(n);
+        return nil;
+    }
+}
+
+function main() {
+    While();
+    Break();
+    Return();
+}
+```

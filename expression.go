@@ -233,7 +233,7 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 			)
 		}
 		fn.block.Execute(newCtx)
-		if ret, ok := fn.block.Returned(); ok {
+		if ret, ok := fn.block.Return(); ok {
 			return ret
 		} else {
 			return ValueFromNil()

@@ -148,6 +148,29 @@ func (v *Value) String() string {
 	return fmt.Sprintf("unknown(%p)", v)
 }
 
+func (v *Value) Truthy(ctx *Context) bool {
+	switch v.Type {
+	case vtNil:
+		return false
+	case vtNumber:
+		return v.Number != 0
+	case vtString:
+		return v.Str != ""
+	case vtBoolean:
+		return v.Bool
+	case vtFunction, vtBuiltin:
+		return true
+	case vtVariable:
+		value := ctx.FindValue(v.Variable, true)
+		if value == nil {
+			panicf("variable is not defined: %s", v.Variable)
+		}
+		return value.Truthy(ctx)
+	}
+	panicf("unknown truthy type")
+	return false
+}
+
 type Values []*Value
 
 func (v *Values) Len() int {

@@ -54,6 +54,8 @@ const (
 	ttLet
 	ttFunction
 	ttReturn
+	ttWhile
+	ttBreak
 )
 
 var keywords map[string]TokenType
@@ -63,6 +65,8 @@ func init() {
 	keywords["let"] = ttLet
 	keywords["function"] = ttFunction
 	keywords["return"] = ttReturn
+	keywords["while"] = ttWhile
+	keywords["break"] = ttBreak
 	keywords["nil"] = ttNil
 	keywords["true"] = ttBoolean
 	keywords["false"] = ttBoolean

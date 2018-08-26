@@ -55,14 +55,14 @@ func (p *Parser) parseGlobalStatement() Statement {
 }
 
 func (p *Parser) parseStatement(global bool) Statement {
-	tk := p.tokenizer.Next()
+	tk := p.tokenizer.Peek()
 
 	switch tk.typ {
 	case ttLet:
-		return p.parseVariableDefinitionStatement()
+		return p.parseVariableStatement()
 	case ttFunction:
-		stmt := p.parseFunctionDefinitionStatement()
-		fn := stmt.(*FunctionDefinitionStatement)
+		stmt := p.parseFunctionStatement()
+		fn := stmt.(*FunctionStatement)
 		if fn.name == "" {
 			panic("function statement must have function name")
 		}
@@ -70,7 +70,6 @@ func (p *Parser) parseStatement(global bool) Statement {
 	}
 
 	if global {
-		p.tokenizer.Undo(tk)
 		return nil
 	}
 
@@ -78,11 +77,12 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttReturn:
 		return p.parseReturnStatement()
 	case ttLeftBrace:
-		p.tokenizer.Undo(tk)
 		return p.parseBlockStatement()
+	case ttWhile:
+		return p.parseWhileStatement()
+	case ttBreak:
+		return p.parseBreakStatement()
 	}
-
-	p.tokenizer.Undo(tk)
 
 	if stmt := p.parseExpressionStatement(); stmt != nil {
 		return stmt
@@ -98,8 +98,9 @@ func (p *Parser) parseExpression() Expression {
 	return p.parseEqualityExpression()
 }
 
-func (p *Parser) parseVariableDefinitionStatement() Statement {
-	var v VariableDefinitionStatement
+func (p *Parser) parseVariableStatement() Statement {
+	var v VariableStatement
+	p.expect(ttLet)
 	v.Name = p.expect(ttIdentifier).str
 	if p.tokenizer.Peek().typ == ttAssign {
 		p.tokenizer.Next()
@@ -147,8 +148,9 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 	return &as
 }
 
-func (p *Parser) parseFunctionDefinitionStatement() Statement {
-	var fn FunctionDefinitionStatement
+func (p *Parser) parseFunctionStatement() Statement {
+	var fn FunctionStatement
+	p.expect(ttFunction)
 	expr := p.parseFunctionExpression().(*FunctionExpression)
 	fn.name = expr.name
 	fn.expr = expr
@@ -156,6 +158,7 @@ func (p *Parser) parseFunctionDefinitionStatement() Statement {
 }
 
 func (p *Parser) parseReturnStatement() Statement {
+	p.expect(ttReturn)
 	expr := p.parseExpression()
 	p.expect(ttSemicolon)
 	return &ReturnStatement{
@@ -201,6 +204,22 @@ func (p *Parser) parseBlockStatement() (stmt Statement) {
 	p.expect(ttRightBrace)
 
 	return block
+}
+
+func (p *Parser) parseWhileStatement() Statement {
+	p.expect(ttWhile)
+	expr := p.parseExpression()
+	stmt := p.parseBlockStatement()
+	return &WhileStatement{
+		expr:  expr,
+		block: stmt.(*BlockStatement),
+	}
+}
+
+func (p *Parser) parseBreakStatement() Statement {
+	p.expect(ttBreak)
+	p.expect(ttSemicolon)
+	return &BreakStatement{}
 }
 
 func (p *Parser) parseEqualityExpression() Expression {
