@@ -5,11 +5,8 @@ import (
 	"os"
 )
 
-var source = `
-`
-
 func main() {
-	input, err := os.Open("tests/callback.tao")
+	input, err := os.Open("main.tao")
 	if err != nil {
 		panic(err)
 	}

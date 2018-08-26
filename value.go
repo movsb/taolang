@@ -115,7 +115,7 @@ func (v *Value) Evaluate(ctx *Context) *Value {
 	case vtVariable:
 		value := ctx.FindValue(v.Variable, true)
 		if value == nil {
-			panic(fmt.Sprintf("undefined variable: %s", v.Variable))
+			panic(fmt.Sprintf("undefined symbol: %s", v.Variable))
 		}
 		return value
 	case vtBuiltin:
