@@ -123,7 +123,8 @@ func (w *WhileStatement) Return() (*Value, bool) {
 
 func (w *WhileStatement) Execute(ctx *Context) {
 	for {
-		if value := w.expr.Evaluate(ctx); !value.Truthy(ctx) {
+		cond := w.expr.Evaluate(ctx)
+		if !cond.Truthy(ctx) {
 			break
 		}
 		newCtx := NewContext(ctx)
@@ -147,4 +148,63 @@ func (b *BreakStatement) Break() bool {
 
 func (b *BreakStatement) Execute(ctx *Context) {
 
+}
+
+type IfStatement struct {
+	cond      Expression
+	ifBlock   *BlockStatement
+	elseBlock Statement // if or block
+	retValue  *Value
+	broke     bool
+}
+
+func (i *IfStatement) Return() (*Value, bool) {
+	return i.retValue, i.retValue != nil
+}
+
+func (i *IfStatement) Break() bool {
+	return i.broke
+}
+
+func (i *IfStatement) Execute(ctx *Context) {
+	cond := i.cond.Evaluate(ctx).Truthy(ctx)
+	if cond {
+		newCtx := NewContext(ctx)
+		i.ifBlock.Execute(newCtx)
+		if ret, ok := i.ifBlock.Return(); ok {
+			i.retValue = ret
+			return
+		}
+		if broke := i.ifBlock.Break(); broke {
+			i.broke = true
+			return
+		}
+	} else {
+		var stmt Statement
+		switch typed := i.elseBlock.(type) {
+		case nil:
+			return
+		case *IfStatement:
+			stmt = typed
+			typed.Execute(ctx)
+		case *BlockStatement:
+			stmt = typed
+			newCtx := NewContext(ctx)
+			typed.Execute(newCtx)
+		default:
+			panic("bad else stmt")
+		}
+		if ret, ok := stmt.(Returner); ok {
+			if value, ok := ret.Return(); ok {
+				i.retValue = value
+				return
+			}
+		}
+		if brk, ok := stmt.(Breaker); ok {
+			if brk.Break() {
+				i.broke = true
+				return
+			}
+		}
+	}
 }

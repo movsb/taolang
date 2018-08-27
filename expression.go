@@ -75,9 +75,9 @@ func (b *BinaryExpression) Evaluate(ctx *Context) *Value {
 	if lt == vtBoolean && rt == vtBoolean {
 		switch op {
 		case ttEqual:
-			return ValueFromBoolean(lv.Bool == lv.Bool)
+			return ValueFromBoolean(lv.Bool == rv.Bool)
 		case ttNotEqual:
-			return ValueFromBoolean(lv.Bool != lv.Bool)
+			return ValueFromBoolean(lv.Bool != rv.Bool)
 		default:
 			panic("not supported operator on two booleans")
 		}
@@ -104,6 +104,10 @@ func (b *BinaryExpression) Evaluate(ctx *Context) *Value {
 			return ValueFromBoolean(lv.Number < rv.Number)
 		case ttLessThanOrEqual:
 			return ValueFromBoolean(lv.Number <= rv.Number)
+		case ttEqual:
+			return ValueFromBoolean(lv.Number == rv.Number)
+		case ttNotEqual:
+			return ValueFromBoolean(lv.Number != rv.Number)
 		default:
 			panic("not supported operator on two numbers")
 		}

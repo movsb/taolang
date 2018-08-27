@@ -110,3 +110,54 @@ function main() {
     Return();
 }
 ```
+
+### if-else 控制语句
+
+```js
+function If() {
+    if 1 > 0 {
+        println("1 > 0");
+    }
+
+    if 1 > 2 {
+        println("1 > 2");
+    } else {
+        println("else 1 > 2");
+    }
+
+    if 1 > 2 {
+        println("1 > 2");
+    } else if 2 > 3 {
+        println("2 > 3");
+    } else {
+        println("else");
+    }
+}
+
+function Break() {
+    let a = 10;
+    while a > 0 {
+        if a == 5 {
+            break;
+        }
+        a= a-5;
+    }
+    print(a);
+}
+
+function Return() {
+    let a = 10;
+    while a > 0 {
+        if a == 8 {
+            return a;
+        }
+        a = a- 1;
+    }
+}
+
+function main() {
+    If();
+    Break();
+    println(Return());
+}
+```

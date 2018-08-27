@@ -82,6 +82,8 @@ func (p *Parser) parseStatement(global bool) Statement {
 		return p.parseWhileStatement()
 	case ttBreak:
 		return p.parseBreakStatement()
+	case ttIf:
+		return p.parseIfStatement()
 	}
 
 	if stmt := p.parseExpressionStatement(); stmt != nil {
@@ -220,6 +222,30 @@ func (p *Parser) parseBreakStatement() Statement {
 	p.expect(ttBreak)
 	p.expect(ttSemicolon)
 	return &BreakStatement{}
+}
+
+func (p *Parser) parseIfStatement() Statement {
+	p.expect(ttIf)
+	expr := p.parseExpression()
+	ifBlock := p.parseBlockStatement()
+	var elseBlock Statement
+	switch p.tokenizer.Peek().typ {
+	case ttElse:
+		p.expect(ttElse)
+		switch p.tokenizer.Peek().typ {
+		case ttIf:
+			elseBlock = p.parseIfStatement()
+		case ttLeftBrace:
+			elseBlock = p.parseBlockStatement()
+		default:
+			panic("else expect if or block to follow")
+		}
+	}
+	return &IfStatement{
+		cond:      expr,
+		ifBlock:   ifBlock.(*BlockStatement),
+		elseBlock: elseBlock,
+	}
 }
 
 func (p *Parser) parseEqualityExpression() Expression {
