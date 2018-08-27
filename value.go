@@ -7,24 +7,26 @@ import (
 type ValueType int
 
 const (
-	_ ValueType = iota
-	vtNil
+	vtNil ValueType = iota
 	vtNumber
 	vtString
 	vtBoolean
 	vtFunction
 	vtVariable
 	vtBuiltin
+	vtObject
 )
 
+// how to make this a c-like union struct ?
 type Value struct {
+	Type     ValueType
 	Bool     bool
 	Number   int
 	Str      string
 	Func     Expression
 	Variable string
 	Builtin  Builtin
-	Type     ValueType
+	Object   *Object
 }
 
 func ValueFromNil() *Value {
@@ -71,6 +73,12 @@ func ValueFromBuiltin(name string, builtin Builtin) *Value {
 	return &v
 }
 
+func ValueFromObject(obj *Object) *Value {
+	v := Value{}
+	v.SetObject(obj)
+	return &v
+}
+
 func (v *Value) SetNil() {
 	v.Type = vtNil
 }
@@ -105,6 +113,11 @@ func (v *Value) SetBuiltin(builtin Builtin) {
 	v.Builtin = builtin
 }
 
+func (v *Value) SetObject(obj *Object) {
+	v.Type = vtObject
+	v.Object = obj
+}
+
 func (v *Value) Evaluate(ctx *Context) *Value {
 	switch v.Type {
 	case vtNil, vtBoolean, vtNumber, vtString:
@@ -119,6 +132,8 @@ func (v *Value) Evaluate(ctx *Context) *Value {
 		}
 		return value
 	case vtBuiltin:
+		return v
+	case vtObject:
 		return v
 	default:
 		panic("cannot evaluate value on type")
@@ -144,8 +159,33 @@ func (v *Value) String() string {
 		return fmt.Sprintf("function(%s)", name)
 	case vtBuiltin:
 		return fmt.Sprintf("builtin(%s)", v.Str)
+	case vtObject:
+		return fmt.Sprintf("object(%p)", v.Object)
 	}
 	return fmt.Sprintf("unknown(%p)", v)
+}
+
+func (v *Value) Interface() interface{} {
+	switch v.Type {
+	case vtNil:
+		return nil
+	case vtNumber:
+		return v.Number
+	case vtString:
+		return v.Str
+	case vtBoolean:
+		return v.Bool
+	case vtFunction:
+		return v.Func
+	case vtVariable:
+		return v.Variable
+	case vtBuiltin:
+		return v.Builtin
+	case vtObject:
+		return v.Object
+	default:
+		return nil
+	}
 }
 
 func (v *Value) Truthy(ctx *Context) bool {
@@ -158,7 +198,7 @@ func (v *Value) Truthy(ctx *Context) bool {
 		return v.Str != ""
 	case vtBoolean:
 		return v.Bool
-	case vtFunction, vtBuiltin:
+	case vtFunction, vtBuiltin, vtObject:
 		return true
 	case vtVariable:
 		value := ctx.FindValue(v.Variable, true)

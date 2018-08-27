@@ -195,6 +195,29 @@ func (a *Arguments) EvaluateAll(ctx *Context) Values {
 	return args
 }
 
+// IndexExpression is
+// obj.key    -> key: identifier whose name is "key"
+// obj[key]   -> key: expression that returns string
+// formally: obj should be `indexable', which supports
+// syntaxes like: "str".len(), or: 123.str()
+type IndexExpression struct {
+	indexable Expression
+	key       Expression
+}
+
+func (i *IndexExpression) Evaluate(ctx *Context) *Value {
+	value := i.indexable.Evaluate(ctx)
+	indexer, ok := value.Interface().(Indexer)
+	if !ok {
+		panic("value of expr is not indexable")
+	}
+	key := i.key.Evaluate(ctx)
+	if key.Type != vtString {
+		panic("key is not string")
+	}
+	return indexer.Index(key.Str)
+}
+
 type CallExpression struct {
 	Callable Expression
 	Args     *Arguments
@@ -219,6 +242,8 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 		panic("cannot call on number value")
 	case vtString:
 		panic("cannot call on string value")
+	case vtObject:
+		panic("cannot call on object literal")
 	default:
 		panic("cannot call on unknown expr")
 	}
@@ -250,4 +275,22 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 		panic("bad call")
 	}
 	return ValueFromNil()
+}
+
+type ObjectExpression struct {
+	props map[string]Expression
+}
+
+func NewObjectExpression() *ObjectExpression {
+	return &ObjectExpression{
+		props: make(map[string]Expression),
+	}
+}
+
+func (o *ObjectExpression) Evaluate(ctx *Context) *Value {
+	obj := NewObject()
+	for k, v := range o.props {
+		obj.props[k] = *v.Evaluate(ctx)
+	}
+	return ValueFromObject(obj)
 }

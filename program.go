@@ -10,6 +10,7 @@ func (p *Program) Execute() (ret *Value, err error) {
 	}()
 
 	global := NewContext(nil)
+
 	InitBuiltins(global)
 
 	for _, stmt := range p.stmts {

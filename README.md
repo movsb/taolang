@@ -16,6 +16,26 @@ let d = 123;    // 数值类型，内部类型为 int
 let e = "str";  // 字符串类型（原始字符串）
 let f = function(x,y,z) {return x+y*z;};        // 函数类型，可以直接当表达式使用
 let g = function() {return "test"+"str";}();    // 函数作为表达式，定义后可以直接调用
+let h = {       // 定义一个对象
+    a: nil,
+    b: 1,
+    c: "cc",
+    d: true,
+    e: function() {print("e");},
+    f: {
+        xxx: "this is xxx",
+    },
+    g: function () {
+        return "d";
+    },
+    h: function() {
+        return {
+            what: "what",
+            when: "when",
+            "who?": "who?",
+        };
+    },
+};
 ```
 
 ### 函数定义
@@ -70,6 +90,43 @@ function main() {
         // return a;
     }
     println("outer a: ", a); // 1
+}
+```
+
+### 对象定义与访问
+
+```js
+function main() {
+    let x = {
+        a: nil,
+        b: 1,
+        c: "cc",
+        d: true,
+        e: function() {print("e");},
+        f: {
+            xxx: "this is xxx",
+        },
+        g: function () {
+            return "d";
+        },
+        h: function() {
+            return {
+                what: "what",
+                when: "when",
+                "who?": "who?",
+            };
+        },
+    };
+    println(x);
+    println(x.a);
+    println(x.b);
+    println(x["c"]);
+    println(x[x.g()]);
+    println(x.e);
+    println(x.f.xxx);
+    println(x.h().what);
+    println(x.h()["who?"]);
+    println(x.y);
 }
 ```
 

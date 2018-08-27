@@ -50,6 +50,22 @@ func (p *Parser) match(tts ...TokenType) (Token, bool) {
 	return Token{}, false
 }
 
+func (p *Parser) next() Token {
+	return p.tokenizer.Next()
+}
+
+func (p *Parser) skip(tt TokenType) bool {
+	if p.tokenizer.Peek().typ == tt {
+		p.tokenizer.Next()
+		return true
+	}
+	return false
+}
+
+func (p *Parser) peek() Token {
+	return p.tokenizer.Peek()
+}
+
 func (p *Parser) parseGlobalStatement() Statement {
 	return p.parseStatement(true)
 }
@@ -77,6 +93,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttReturn:
 		return p.parseReturnStatement()
 	case ttLeftBrace:
+		// Notice: block statement skips parsing {} as object literal.
 		return p.parseBlockStatement()
 	case ttWhile:
 		return p.parseWhileStatement()
@@ -328,16 +345,20 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
 		expr = p.parseFunctionExpression()
+	case ttLeftBrace:
+		p.tokenizer.Undo(next)
+		expr = p.parseObjectExpression()
 	default:
 		p.tokenizer.Undo(next)
 		return nil
 	}
 
 	for {
-		call := p.parseCallExpression()
-		if call != nil {
-			callExpr := call.(*CallExpression)
-			callExpr.Callable = expr
+		if index := p.parseIndexExpression(expr); index != nil {
+			expr = index
+			continue
+		}
+		if call := p.parseCallExpression(expr); call != nil {
 			expr = call
 			continue
 		}
@@ -347,14 +368,47 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	return expr
 }
 
-func (p *Parser) parseCallExpression() Expression {
+func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
+	p.tokenizer.PushFrame()
+	defer func() {
+		p.tokenizer.PopFrame(expr == nil)
+	}()
+
+	switch token := p.next(); token.typ {
+	case ttDot:
+		if ident := p.next(); ident.typ == ttIdentifier {
+			return &IndexExpression{
+				indexable: left,
+				key:       ValueFromString(ident.str),
+			}
+		}
+		// panic("unknown token after expr")
+	case ttLeftBracket:
+		keyExpr := p.parseExpression()
+		if keyExpr == nil {
+			return nil
+		}
+		if bracket := p.next(); bracket.typ != ttRightBracket {
+			return nil
+		}
+		return &IndexExpression{
+			indexable: left,
+			key:       keyExpr,
+		}
+	}
+	return nil
+}
+
+func (p *Parser) parseCallExpression(left Expression) Expression {
 	if paren := p.tokenizer.Next(); paren.typ != ttLeftParen {
 		p.tokenizer.Undo(paren)
 		return nil
 	}
 
-	call := CallExpression{}
-	call.Args = &Arguments{}
+	call := CallExpression{
+		Callable: left,
+		Args:     &Arguments{},
+	}
 
 	for {
 		arg := p.parseExpression()
@@ -407,4 +461,39 @@ func (p *Parser) parseFunctionExpression() Expression {
 		params: params,
 		block:  block,
 	}
+}
+
+func (p *Parser) parseObjectExpression() Expression {
+	objexpr := NewObjectExpression()
+
+	var key string
+	var expr Expression
+
+	p.expect(ttLeftBrace)
+
+	for {
+		token := p.next()
+
+		switch token.typ {
+		case ttString:
+			key = token.str
+		case ttIdentifier:
+			key = token.str
+		default:
+			panic("unsupported key type")
+		}
+
+		p.expect(ttColon)
+
+		expr = p.parseExpression()
+		objexpr.props[key] = expr
+
+		p.skip(ttComma)
+
+		if p.skip(ttRightBrace) {
+			break
+		}
+	}
+
+	return objexpr
 }
