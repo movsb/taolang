@@ -1,3 +1,10 @@
 function main() {
-
+    let x = {
+        a: nil,
+        b: 1,
+        c: "2",
+        d: true,
+        e: function() {print("e");},
+    };
+    println(x);
 }

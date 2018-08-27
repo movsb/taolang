@@ -28,5 +28,5 @@ func main() {
 		return
 	}
 
-	fmt.Println(ret)
+	fmt.Println("main exit:", ret)
 }

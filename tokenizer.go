@@ -22,6 +22,7 @@ const (
 	ttRightBracket
 	ttComma
 	ttSemicolon
+	ttColon
 
 	// arithmetic
 	ttAssign
@@ -215,6 +216,8 @@ func (t *Tokenizer) next() (token Token) {
 			return Token{typ: ttRightBrace}
 		case ',':
 			return Token{typ: ttComma}
+		case ':':
+			return Token{typ: ttColon}
 		case ';':
 			return Token{typ: ttSemicolon}
 		case '+':

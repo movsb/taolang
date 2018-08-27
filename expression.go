@@ -219,6 +219,8 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 		panic("cannot call on number value")
 	case vtString:
 		panic("cannot call on string value")
+	case vtObject:
+		panic("cannot call on object literal")
 	default:
 		panic("cannot call on unknown expr")
 	}
@@ -250,4 +252,22 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 		panic("bad call")
 	}
 	return ValueFromNil()
+}
+
+type ObjectExpression struct {
+	props map[string]Expression
+}
+
+func NewObjectExpression() *ObjectExpression {
+	return &ObjectExpression{
+		props: make(map[string]Expression),
+	}
+}
+
+func (o *ObjectExpression) Evaluate(ctx *Context) *Value {
+	obj := NewObject()
+	for k, v := range o.props {
+		obj.props[k] = *v.Evaluate(ctx)
+	}
+	return ValueFromObject(obj)
 }

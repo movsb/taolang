@@ -50,6 +50,22 @@ func (p *Parser) match(tts ...TokenType) (Token, bool) {
 	return Token{}, false
 }
 
+func (p *Parser) next() Token {
+	return p.tokenizer.Next()
+}
+
+func (p *Parser) skip(tt TokenType) bool {
+	if p.tokenizer.Peek().typ == tt {
+		p.tokenizer.Next()
+		return true
+	}
+	return false
+}
+
+func (p *Parser) peek() Token {
+	return p.tokenizer.Peek()
+}
+
 func (p *Parser) parseGlobalStatement() Statement {
 	return p.parseStatement(true)
 }
@@ -77,6 +93,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttReturn:
 		return p.parseReturnStatement()
 	case ttLeftBrace:
+		// Notice: block statement skips parsing {} as object literal.
 		return p.parseBlockStatement()
 	case ttWhile:
 		return p.parseWhileStatement()
@@ -328,6 +345,9 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
 		expr = p.parseFunctionExpression()
+	case ttLeftBrace:
+		p.tokenizer.Undo(next)
+		expr = p.parseObjectExpression()
 	default:
 		p.tokenizer.Undo(next)
 		return nil
@@ -407,4 +427,39 @@ func (p *Parser) parseFunctionExpression() Expression {
 		params: params,
 		block:  block,
 	}
+}
+
+func (p *Parser) parseObjectExpression() Expression {
+	objexpr := NewObjectExpression()
+
+	var key string
+	var expr Expression
+
+	p.expect(ttLeftBrace)
+
+	for {
+		token := p.next()
+
+		switch token.typ {
+		case ttString:
+			key = token.str
+		case ttIdentifier:
+			key = token.str
+		default:
+			panic("unsupported key type")
+		}
+
+		p.expect(ttColon)
+
+		expr = p.parseExpression()
+		objexpr.props[key] = expr
+
+		p.skip(ttComma)
+
+		if p.skip(ttRightBrace) {
+			break
+		}
+	}
+
+	return objexpr
 }
