@@ -1,0 +1,9 @@
+function x() {
+    return function() {
+        print("str");
+    };
+}
+
+function main() {
+    x()();
+}

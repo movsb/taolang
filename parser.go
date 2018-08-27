@@ -333,10 +333,15 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		return nil
 	}
 
-	if call := p.parseCallExpression(); call != nil {
-		callExpr := call.(*CallExpression)
-		callExpr.Callable = expr
-		return call
+	for {
+		call := p.parseCallExpression()
+		if call != nil {
+			callExpr := call.(*CallExpression)
+			callExpr.Callable = expr
+			expr = call
+			continue
+		}
+		break
 	}
 
 	return expr
