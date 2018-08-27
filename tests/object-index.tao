@@ -1,0 +1,32 @@
+function main() {
+    let x = {
+        a: nil,
+        b: 1,
+        c: "cc",
+        d: true,
+        e: function() {print("e");},
+        f: {
+            xxx: "this is xxx",
+        },
+        g: function () {
+            return "d";
+        },
+        h: function() {
+            return {
+                what: "what",
+                when: "when",
+                "who?": "who?",
+            };
+        },
+    };
+    println(x);
+    println(x.a);
+    println(x.b);
+    println(x["c"]);
+    println(x[x.g()]);
+    println(x.e);
+    println(x.f.xxx);
+    println(x.h().what);
+    println(x.h()["who?"]);
+    println(x.y);
+}

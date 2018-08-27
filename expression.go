@@ -195,6 +195,29 @@ func (a *Arguments) EvaluateAll(ctx *Context) Values {
 	return args
 }
 
+// IndexExpression is
+// obj.key    -> key: identifier whose name is "key"
+// obj[key]   -> key: expression that returns string
+// formally: obj should be `indexable', which supports
+// syntaxes like: "str".len(), or: 123.str()
+type IndexExpression struct {
+	indexable Expression
+	key       Expression
+}
+
+func (i *IndexExpression) Evaluate(ctx *Context) *Value {
+	value := i.indexable.Evaluate(ctx)
+	indexer, ok := value.Interface().(Indexer)
+	if !ok {
+		panic("value of expr is not indexable")
+	}
+	key := i.key.Evaluate(ctx)
+	if key.Type != vtString {
+		panic("key is not string")
+	}
+	return indexer.Index(key.Str)
+}
+
 type CallExpression struct {
 	Callable Expression
 	Args     *Arguments

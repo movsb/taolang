@@ -1,5 +1,9 @@
 package main
 
+type Indexer interface {
+	Index(key string) *Value
+}
+
 // Object is an object.
 type Object struct {
 	props map[string]Value
@@ -23,4 +27,9 @@ func (o *Object) Get(key string) Value {
 // Set sets a value by key.
 func (o *Object) Set(key string, val Value) {
 	o.props[key] = val
+}
+
+func (o *Object) Index(key string) *Value {
+	v := o.Get(key)
+	return &v
 }

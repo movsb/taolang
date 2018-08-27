@@ -354,10 +354,11 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	}
 
 	for {
-		call := p.parseCallExpression()
-		if call != nil {
-			callExpr := call.(*CallExpression)
-			callExpr.Callable = expr
+		if index := p.parseIndexExpression(expr); index != nil {
+			expr = index
+			continue
+		}
+		if call := p.parseCallExpression(expr); call != nil {
 			expr = call
 			continue
 		}
@@ -367,14 +368,47 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	return expr
 }
 
-func (p *Parser) parseCallExpression() Expression {
+func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
+	p.tokenizer.PushFrame()
+	defer func() {
+		p.tokenizer.PopFrame(expr == nil)
+	}()
+
+	switch token := p.next(); token.typ {
+	case ttDot:
+		if ident := p.next(); ident.typ == ttIdentifier {
+			return &IndexExpression{
+				indexable: left,
+				key:       ValueFromString(ident.str),
+			}
+		}
+		// panic("unknown token after expr")
+	case ttLeftBracket:
+		keyExpr := p.parseExpression()
+		if keyExpr == nil {
+			return nil
+		}
+		if bracket := p.next(); bracket.typ != ttRightBracket {
+			return nil
+		}
+		return &IndexExpression{
+			indexable: left,
+			key:       keyExpr,
+		}
+	}
+	return nil
+}
+
+func (p *Parser) parseCallExpression(left Expression) Expression {
 	if paren := p.tokenizer.Next(); paren.typ != ttLeftParen {
 		p.tokenizer.Undo(paren)
 		return nil
 	}
 
-	call := CallExpression{}
-	call.Args = &Arguments{}
+	call := CallExpression{
+		Callable: left,
+		Args:     &Arguments{},
+	}
 
 	for {
 		arg := p.parseExpression()

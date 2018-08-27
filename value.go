@@ -165,6 +165,29 @@ func (v *Value) String() string {
 	return fmt.Sprintf("unknown(%p)", v)
 }
 
+func (v *Value) Interface() interface{} {
+	switch v.Type {
+	case vtNil:
+		return nil
+	case vtNumber:
+		return v.Number
+	case vtString:
+		return v.Str
+	case vtBoolean:
+		return v.Bool
+	case vtFunction:
+		return v.Func
+	case vtVariable:
+		return v.Variable
+	case vtBuiltin:
+		return v.Builtin
+	case vtObject:
+		return v.Object
+	default:
+		return nil
+	}
+}
+
 func (v *Value) Truthy(ctx *Context) bool {
 	switch v.Type {
 	case vtNil:
