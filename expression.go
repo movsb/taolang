@@ -129,17 +129,16 @@ type Parameters struct {
 	names []string
 }
 
-func (p *Parameters) Len() int {
-	return len(p.names)
+func NewParameters(names ...string) *Parameters {
+	p := &Parameters{}
+	for _, name := range names {
+		p.names = append(p.names, name)
+	}
+	return p
 }
 
-func (p *Parameters) GetParam(name string) string {
-	for _, param := range p.names {
-		if param == name {
-			return param
-		}
-	}
-	return ""
+func (p *Parameters) Len() int {
+	return len(p.names)
 }
 
 func (p *Parameters) GetAt(index int) string {
@@ -313,4 +312,21 @@ func (a *ArrayExpression) Evaluate(ctx *Context) *Value {
 		arr.PushElem(*element.Evaluate(ctx))
 	}
 	return ValueFromObject(arr)
+}
+
+type LambdaExpression struct {
+	name string
+	expr Expression
+}
+
+// Wrap wraps Lambda Expression as an Anonymous function.
+func (l *LambdaExpression) Wrap() *FunctionExpression {
+	params := NewParameters(l.name)
+	stmt := NewReturnStatement(l.expr)
+	block := NewBlockStatement(stmt)
+	return NewFunctionExpression("", params, block)
+}
+
+func (l *LambdaExpression) Evaluate(ctx *Context) *Value {
+	return ValueFromFunction("", l.Wrap())
 }

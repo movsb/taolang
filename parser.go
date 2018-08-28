@@ -375,6 +375,22 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	return expr
 }
 
+func (p *Parser) parseLambdaExpression() (expr Expression) {
+	p.tokenizer.PushFrame()
+	defer func() {
+		recover()
+		p.tokenizer.PopFrame(expr == nil)
+	}()
+
+	name := p.expect(ttIdentifier).str
+	p.expect(ttLambda)
+	body := p.parseExpression()
+	return &LambdaExpression{
+		name: name,
+		expr: body,
+	}
+}
+
 func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
 	p.tokenizer.PushFrame()
 	defer func() {
@@ -417,15 +433,18 @@ func (p *Parser) parseCallExpression(left Expression) Expression {
 		Args:     &Arguments{},
 	}
 
-	for {
-		arg := p.parseExpression()
-		if arg == nil {
-			break
-		}
-		call.Args.PutArgument(arg)
-		if comma := p.tokenizer.Next(); comma.typ != ttComma {
-			p.tokenizer.Undo(comma)
-			break
+	if lambda := p.parseLambdaExpression(); lambda != nil {
+		call.Args.PutArgument(lambda)
+	} else {
+		for {
+			arg := p.parseExpression()
+			if arg == nil {
+				break
+			}
+			call.Args.PutArgument(arg)
+			if !p.skip(ttComma) {
+				break
+			}
 		}
 	}
 

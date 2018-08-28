@@ -56,6 +56,12 @@ type ReturnStatement struct {
 	value *Value
 }
 
+func NewReturnStatement(expr Expression) *ReturnStatement {
+	return &ReturnStatement{
+		expr: expr,
+	}
+}
+
 func (r *ReturnStatement) Execute(ctx *Context) {
 	r.value = r.expr.Evaluate(ctx)
 }
@@ -68,6 +74,14 @@ type BlockStatement struct {
 	retValue *Value
 	broke    bool
 	stmts    []Statement
+}
+
+func NewBlockStatement(stmts ...Statement) *BlockStatement {
+	b := &BlockStatement{}
+	for _, stmt := range stmts {
+		b.stmts = append(b.stmts, stmt)
+	}
+	return b
 }
 
 func (b *BlockStatement) Return() (*Value, bool) {
@@ -104,6 +118,12 @@ func (b *BlockStatement) Execute(ctx *Context) {
 
 type ExpressionStatement struct {
 	expr Expression
+}
+
+func NewExpressionStatement(expr Expression) *ExpressionStatement {
+	return &ExpressionStatement{
+		expr: expr,
+	}
 }
 
 func (r *ExpressionStatement) Execute(ctx *Context) {
