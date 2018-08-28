@@ -206,16 +206,20 @@ type IndexExpression struct {
 }
 
 func (i *IndexExpression) Evaluate(ctx *Context) *Value {
-	value := i.indexable.Evaluate(ctx)
-	indexer, ok := value.Interface().(Indexer)
-	if !ok {
+	value := i.indexable.Evaluate(ctx).Interface()
+	keyer, ok1 := value.(KeyIndexer)
+	elemer, ok2 := value.(ElemIndexer)
+	if !ok1 && !ok2 {
 		panic("value of expr is not indexable")
 	}
 	key := i.key.Evaluate(ctx)
-	if key.Type != vtString {
-		panic("key is not string")
+	if key.Type == vtString && keyer != nil {
+		return keyer.Key(key.Str)
 	}
-	return indexer.Index(key.Str)
+	if key.Type == vtNumber && elemer != nil {
+		return elemer.Elem(key.Number)
+	}
+	panic("not indexable")
 }
 
 type CallExpression struct {
@@ -293,4 +297,20 @@ func (o *ObjectExpression) Evaluate(ctx *Context) *Value {
 		obj.props[k] = *v.Evaluate(ctx)
 	}
 	return ValueFromObject(obj)
+}
+
+type ArrayExpression struct {
+	elements []Expression
+}
+
+func NewArrayExpression() *ArrayExpression {
+	return &ArrayExpression{}
+}
+
+func (a *ArrayExpression) Evaluate(ctx *Context) *Value {
+	arr := NewArray()
+	for _, element := range a.elements {
+		arr.PushElem(*element.Evaluate(ctx))
+	}
+	return ValueFromObject(arr)
 }

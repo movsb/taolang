@@ -352,6 +352,9 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	case ttLeftBrace:
 		p.tokenizer.Undo(next)
 		expr = p.parseObjectExpression()
+	case ttLeftBracket:
+		p.tokenizer.Undo(next)
+		expr = p.parseArrayExpression()
 	default:
 		p.tokenizer.Undo(next)
 		return nil
@@ -506,4 +509,26 @@ func (p *Parser) parseObjectExpression() Expression {
 	p.expect(ttRightBrace)
 
 	return objexpr
+}
+
+func (p *Parser) parseArrayExpression() Expression {
+	arrExpr := NewArrayExpression()
+
+	p.expect(ttLeftBracket)
+
+	for {
+		elem := p.parseExpression()
+		if elem == nil {
+			break
+		}
+		arrExpr.elements = append(arrExpr.elements, elem)
+		p.skip(ttComma)
+		if p.follow(ttRightBracket) {
+			break
+		}
+	}
+
+	p.expect(ttRightBracket)
+
+	return arrExpr
 }
