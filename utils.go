@@ -6,7 +6,7 @@ import (
 )
 
 func panicf(f string, args ...interface{}) {
-	panic(fmt.Sprint(f, args))
+	panic(fmt.Sprintf(f, args...))
 }
 
 func toErr(except interface{}) (err error) {

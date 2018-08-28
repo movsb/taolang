@@ -130,6 +130,27 @@ function main() {
 }
 ```
 
+### 数组定义与访问
+
+```js
+function main() {
+    let a = [1,true,nil,"str",{},1+2*3,];
+    println(a);
+    println(a.length);
+    println(a[3]);
+    println([9][0]);
+}
+
+function main2() {
+    let a = [1,2,3,4,5,6,7,8];
+    let n = a.length-1;
+    while n >= 0 {
+        println(a[n]);
+        n = n - 1;
+    }
+}
+```
+
 ### 控制语句
 
 #### while 控制语句

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 )
 
@@ -160,7 +161,20 @@ func (v *Value) String() string {
 	case vtBuiltin:
 		return fmt.Sprintf("builtin(%s)", v.Str)
 	case vtObject:
-		return fmt.Sprintf("object(%p)", v.Object)
+		if !v.Object.IsArray() {
+			return fmt.Sprintf(`"[object]"`)
+		} else {
+			buf := bytes.NewBuffer(nil)
+			buf.WriteString("[")
+			for i, n := 0, v.Object.Len(); i < n; i++ {
+				buf.WriteString(v.Object.Elem(i).String())
+				if i != n-1 {
+					buf.WriteString(",")
+				}
+			}
+			buf.WriteString("]")
+			return buf.String()
+		}
 	}
 	return fmt.Sprintf("unknown(%p)", v)
 }

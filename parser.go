@@ -66,6 +66,10 @@ func (p *Parser) peek() Token {
 	return p.tokenizer.Peek()
 }
 
+func (p *Parser) follow(tt TokenType) bool {
+	return p.peek().typ == tt
+}
+
 func (p *Parser) parseGlobalStatement() Statement {
 	return p.parseStatement(true)
 }
@@ -348,6 +352,9 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	case ttLeftBrace:
 		p.tokenizer.Undo(next)
 		expr = p.parseObjectExpression()
+	case ttLeftBracket:
+		p.tokenizer.Undo(next)
+		expr = p.parseArrayExpression()
 	default:
 		p.tokenizer.Undo(next)
 		return nil
@@ -473,6 +480,10 @@ func (p *Parser) parseObjectExpression() Expression {
 
 	for {
 		token := p.next()
+		if token.typ == ttRightBrace {
+			p.tokenizer.Undo(token)
+			break
+		}
 
 		switch token.typ {
 		case ttString:
@@ -490,10 +501,34 @@ func (p *Parser) parseObjectExpression() Expression {
 
 		p.skip(ttComma)
 
-		if p.skip(ttRightBrace) {
+		if p.follow(ttRightBrace) {
 			break
 		}
 	}
 
+	p.expect(ttRightBrace)
+
 	return objexpr
+}
+
+func (p *Parser) parseArrayExpression() Expression {
+	arrExpr := NewArrayExpression()
+
+	p.expect(ttLeftBracket)
+
+	for {
+		elem := p.parseExpression()
+		if elem == nil {
+			break
+		}
+		arrExpr.elements = append(arrExpr.elements, elem)
+		p.skip(ttComma)
+		if p.follow(ttRightBracket) {
+			break
+		}
+	}
+
+	p.expect(ttRightBracket)
+
+	return arrExpr
 }
