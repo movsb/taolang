@@ -174,6 +174,17 @@ func (f *FunctionExpression) Evaluate(ctx *Context) *Value {
 	return value
 }
 
+// Execute executes function statements.
+// This is not a statement interface implementation.
+func (f *FunctionExpression) Execute(ctx *Context) *Value {
+	f.block.Execute(ctx)
+	if ret, ok := f.block.Return(); ok {
+		return ret
+	} else {
+		return ValueFromNil()
+	}
+}
+
 type Arguments struct {
 	exprs []Expression
 }
@@ -254,22 +265,14 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 	switch callable.Type {
 	case vtFunction:
 		fn := callable.Func.(*FunctionExpression)
-		if len(f.Args.exprs) != fn.params.Len() {
-			panic("parameters and arguments don't match")
-		}
 		newCtx := NewContext(ctx)
-		for i := 0; i < f.Args.Len(); i++ {
+		for i := 0; i < fn.params.Len() && i < f.Args.Len(); i++ {
 			newCtx.AddValue(
 				fn.params.GetAt(i),
 				f.Args.exprs[i].Evaluate(ctx),
 			)
 		}
-		fn.block.Execute(newCtx)
-		if ret, ok := fn.block.Return(); ok {
-			return ret
-		} else {
-			return ValueFromNil()
-		}
+		return fn.Execute(newCtx)
 	case vtBuiltin:
 		newCtx := NewContext(ctx)
 		args := f.Args.EvaluateAll(ctx)
@@ -324,9 +327,9 @@ func (l *LambdaExpression) Wrap() *FunctionExpression {
 	params := NewParameters(l.name)
 	stmt := NewReturnStatement(l.expr)
 	block := NewBlockStatement(stmt)
-	return NewFunctionExpression("", params, block)
+	return NewFunctionExpression("--lambda--", params, block)
 }
 
 func (l *LambdaExpression) Evaluate(ctx *Context) *Value {
-	return ValueFromFunction("", l.Wrap())
+	return ValueFromFunction("--lambda--", l.Wrap())
 }
