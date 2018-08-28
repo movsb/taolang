@@ -66,6 +66,10 @@ func (p *Parser) peek() Token {
 	return p.tokenizer.Peek()
 }
 
+func (p *Parser) follow(tt TokenType) bool {
+	return p.peek().typ == tt
+}
+
 func (p *Parser) parseGlobalStatement() Statement {
 	return p.parseStatement(true)
 }
@@ -473,6 +477,10 @@ func (p *Parser) parseObjectExpression() Expression {
 
 	for {
 		token := p.next()
+		if token.typ == ttRightBrace {
+			p.tokenizer.Undo(token)
+			break
+		}
 
 		switch token.typ {
 		case ttString:
@@ -490,10 +498,12 @@ func (p *Parser) parseObjectExpression() Expression {
 
 		p.skip(ttComma)
 
-		if p.skip(ttRightBrace) {
+		if p.follow(ttRightBrace) {
 			break
 		}
 	}
+
+	p.expect(ttRightBrace)
 
 	return objexpr
 }
