@@ -24,6 +24,7 @@ const (
 	ttComma
 	ttSemicolon
 	ttColon
+	ttLambda
 
 	// arithmetic
 	ttAssign
@@ -247,7 +248,16 @@ func (t *Tokenizer) next() (token Token) {
 				return Token{typ: ttDivision}
 			}
 		case '=':
-			return t.iif('=', ttEqual, ttAssign)
+			next := t.read()
+			switch next {
+			case '=':
+				return Token{typ: ttEqual}
+			case '>':
+				return Token{typ: ttLambda}
+			default:
+				t.unread()
+				return Token{typ: ttAssign}
+			}
 		case '>':
 			return t.iif('=', ttGreaterThanOrEqual, ttGreaterThan)
 		case '<':

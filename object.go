@@ -10,11 +10,13 @@ type ElemIndexer interface {
 	Elem(pos int) *Value
 	SetElem(pos int, val Value)
 	PushElem(val Value)
+
+	Each(ctx *Context, args Values) *Value
 }
 
 // Object is an object.
 type Object struct {
-	array interface{}
+	array *Array
 	props map[string]Value
 	ElemIndexer
 }
@@ -31,8 +33,8 @@ func NewObject() *Object {
 func NewArray() *Object {
 	o := &Object{}
 	o.props = make(map[string]Value)
-	o.array = &ValueArray{}
-	o.ElemIndexer = (o.array).(ElemIndexer)
+	o.array = &Array{}
+	o.ElemIndexer = o.array
 	return o
 }
 
@@ -41,6 +43,8 @@ func (o *Object) Key(key string) *Value {
 	if o.IsArray() {
 		if key == "length" {
 			return ValueFromNumber(o.Len())
+		} else if key == "each" {
+			return ValueFromBuiltin("each", o.Each)
 		}
 	}
 	if val, ok := o.props[key]; ok {
@@ -58,28 +62,65 @@ func (o *Object) IsArray() bool {
 	return o.ElemIndexer != nil
 }
 
-type ValueArray struct {
+type Array struct {
 	elems []Value
 }
 
-func (v *ValueArray) Len() int {
-	return len(v.elems)
+func (a *Array) Len() int {
+	return len(a.elems)
 }
 
-func (v *ValueArray) Elem(pos int) *Value {
-	if pos < 0 || pos > len(v.elems)-1 {
+func (a *Array) Elem(pos int) *Value {
+	if pos < 0 || pos > len(a.elems)-1 {
 		panic("array index out of range")
 	}
-	return &v.elems[pos]
+	return &a.elems[pos]
 }
 
-func (v *ValueArray) SetElem(pos int, val Value) {
-	if pos < 0 || pos > len(v.elems)-1 {
+func (a *Array) SetElem(pos int, val Value) {
+	if pos < 0 || pos > len(a.elems)-1 {
 		panic("array index out of range")
 	}
-	v.elems[pos] = val
+	a.elems[pos] = val
 }
 
-func (v *ValueArray) PushElem(val Value) {
-	v.elems = append(v.elems, val)
+func (a *Array) PushElem(val Value) {
+	a.elems = append(a.elems, val)
+}
+
+func (a *Array) Each(ctx *Context, args Values) *Value {
+	if args.Len() != 1 || args[0].Type != vtFunction {
+		panic("each accepts function or lambda only")
+	}
+	fn := args[0].Func.(*FunctionExpression)
+	if fn.params.Len() != 1 {
+		panic("one parameter only")
+	}
+	for i, n := 0, a.Len(); i < n; i++ {
+		newCtx := NewContext(ctx)
+		newCtx.AddValue(fn.params.names[0], &a.elems[i])
+		maybeVar := fn.Execute(newCtx)
+		switch maybeVar.Type {
+		case vtVariable:
+			value := newCtx.FindValue(maybeVar.Variable, true)
+			if value == nil {
+				panic("variable not defined")
+			}
+			_ = value // drop it because each doesn't need it
+		case vtFunction:
+			f := maybeVar.Func.(*FunctionExpression)
+			if f.params.Len() != 1 {
+				panic("one parameter only")
+			}
+			newCtx2 := NewContext(newCtx)
+			newCtx2.AddValue(f.params.names[0], &a.elems[i])
+			_ = f.Execute(newCtx2)
+		case vtBuiltin:
+			newCtx2 := NewContext(newCtx)
+			values := Values{&a.elems[i]}
+			_ = maybeVar.Builtin(newCtx2, values)
+		}
+
+	}
+	return ValueFromNil()
 }

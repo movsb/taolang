@@ -129,17 +129,16 @@ type Parameters struct {
 	names []string
 }
 
-func (p *Parameters) Len() int {
-	return len(p.names)
+func NewParameters(names ...string) *Parameters {
+	p := &Parameters{}
+	for _, name := range names {
+		p.names = append(p.names, name)
+	}
+	return p
 }
 
-func (p *Parameters) GetParam(name string) string {
-	for _, param := range p.names {
-		if param == name {
-			return param
-		}
-	}
-	return ""
+func (p *Parameters) Len() int {
+	return len(p.names)
 }
 
 func (p *Parameters) GetAt(index int) string {
@@ -173,6 +172,17 @@ func (f *FunctionExpression) Evaluate(ctx *Context) *Value {
 		ctx.AddValue(f.name, value)
 	}
 	return value
+}
+
+// Execute executes function statements.
+// This is not a statement interface implementation.
+func (f *FunctionExpression) Execute(ctx *Context) *Value {
+	f.block.Execute(ctx)
+	if ret, ok := f.block.Return(); ok {
+		return ret
+	} else {
+		return ValueFromNil()
+	}
 }
 
 type Arguments struct {
@@ -255,22 +265,14 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 	switch callable.Type {
 	case vtFunction:
 		fn := callable.Func.(*FunctionExpression)
-		if len(f.Args.exprs) != fn.params.Len() {
-			panic("parameters and arguments don't match")
-		}
 		newCtx := NewContext(ctx)
-		for i := 0; i < f.Args.Len(); i++ {
+		for i := 0; i < fn.params.Len() && i < f.Args.Len(); i++ {
 			newCtx.AddValue(
 				fn.params.GetAt(i),
 				f.Args.exprs[i].Evaluate(ctx),
 			)
 		}
-		fn.block.Execute(newCtx)
-		if ret, ok := fn.block.Return(); ok {
-			return ret
-		} else {
-			return ValueFromNil()
-		}
+		return fn.Execute(newCtx)
 	case vtBuiltin:
 		newCtx := NewContext(ctx)
 		args := f.Args.EvaluateAll(ctx)
@@ -313,4 +315,21 @@ func (a *ArrayExpression) Evaluate(ctx *Context) *Value {
 		arr.PushElem(*element.Evaluate(ctx))
 	}
 	return ValueFromObject(arr)
+}
+
+type LambdaExpression struct {
+	name string
+	expr Expression
+}
+
+// Wrap wraps Lambda Expression as an Anonymous function.
+func (l *LambdaExpression) Wrap() *FunctionExpression {
+	params := NewParameters(l.name)
+	stmt := NewReturnStatement(l.expr)
+	block := NewBlockStatement(stmt)
+	return NewFunctionExpression("--lambda--", params, block)
+}
+
+func (l *LambdaExpression) Evaluate(ctx *Context) *Value {
+	return ValueFromFunction("--lambda--", l.Wrap())
 }
