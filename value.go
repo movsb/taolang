@@ -211,7 +211,20 @@ func (v Value) String() string {
 		return fmt.Sprintf("builtin(%s)", v.str())
 	case vtObject:
 		if !v.object().IsArray() {
-			return fmt.Sprintf(`"[object]"`)
+			buf := bytes.NewBuffer(nil)
+			buf.WriteString("{")
+			n := len(v.object().props)
+			i := 0
+			for k, p := range v.object().props {
+				// TODO k may have invalid characters.
+				buf.WriteString(fmt.Sprintf(`%s:%v`, k, p))
+				if i != n-1 {
+					buf.WriteString(",")
+				}
+				i++
+			}
+			buf.WriteString("}")
+			return buf.String()
 		} else {
 			buf := bytes.NewBuffer(nil)
 			buf.WriteString("[")

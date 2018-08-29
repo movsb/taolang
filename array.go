@@ -19,6 +19,7 @@ func NewArray(elems ...Value) *Object {
 		"reduce": o.array.Reduce,
 		"find":   o.array.Find,
 		"filter": o.array.Filter,
+		"where":  o.array.Where,
 	}
 	return o
 }
@@ -134,7 +135,20 @@ func (a *Array) Find(ctx *Context, args *Values) Value {
 func (a *Array) Filter(ctx *Context, args *Values) Value {
 	values := make([]Value, 0, a.Len())
 	a._Each(func(elem Value, index Value) bool {
-		if data := a._Call(ctx, args.At(0), elem); data.Truth(ctx) {
+		if a._Call(ctx, args.At(0), elem).Truth(ctx) {
+			values = append(values, elem)
+		}
+		return true
+	})
+	return ValueFromObject(NewArray(values...))
+}
+
+// Where filters objects by column conditions.
+// save as Filter currently.
+func (a *Array) Where(ctx *Context, args *Values) Value {
+	values := make([]Value, 0, a.Len())
+	a._Each(func(elem Value, index Value) bool {
+		if a._Call(ctx, args.At(0), elem).Truth(ctx) {
 			values = append(values, elem)
 		}
 		return true
