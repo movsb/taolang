@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"container/list"
+	"fmt"
 	"io"
 )
 
@@ -79,11 +80,74 @@ func init() {
 	keywords["false"] = ttBoolean
 }
 
+var tokenNames map[TokenType]string
+
+func init() {
+	m := make(map[TokenType]string)
+	m[ttEOF] = "EOF"
+	m[ttLeftParen] = "("
+	m[ttRightParen] = ")"
+	m[ttLeftBracket] = "["
+	m[ttRightBracket] = "]"
+	m[ttLeftBrace] = "{"
+	m[ttRightBrace] = "}"
+	m[ttDot] = "."
+	m[ttComma] = ","
+	m[ttSemicolon] = ";"
+	m[ttColon] = ":"
+	m[ttLambda] = "=>"
+
+	m[ttAssign] = "="
+	m[ttAddition] = "+"
+	m[ttSubstraction] = "-"
+	m[ttMultiply] = "*"
+	m[ttDivision] = "/"
+
+	m[ttGreaterThan] = ">"
+	m[ttGreaterThanOrEqual] = ">="
+	m[ttEqual] = "=="
+	m[ttNotEqual] = "!="
+	m[ttLessThan] = "<"
+	m[ttLessThanOrEqual] = "<="
+
+	m[ttNot] = "!"
+	m[ttAndAnd] = "&&"
+	m[ttOrOr] = "||"
+
+	m[ttNil] = "nil"
+
+	m[ttLet] = "let"
+	m[ttFunction] = "function"
+	m[ttReturn] = "return"
+	m[ttWhile] = "while"
+	m[ttBreak] = "break"
+	m[ttIf] = "if"
+	m[ttElse] = "else"
+	tokenNames = m
+}
+
 type Token struct {
 	typ  TokenType
 	str  string
 	num  int
 	line int
+}
+
+func (t Token) String() string {
+	if s, ok := tokenNames[t.typ]; ok {
+		return s
+	}
+	switch t.typ {
+	case ttString:
+		return t.str
+	case ttNumber:
+		return fmt.Sprint(t.num)
+	case ttBoolean:
+		return t.str
+	case ttIdentifier:
+		return t.str
+	}
+	return "--unknown-token--"
 }
 
 type Tokenizer struct {

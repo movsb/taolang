@@ -37,7 +37,7 @@ func (c *Context) FindValue(name string, outer bool) (Value, bool) {
 func (c *Context) MustFind(name string, outer bool) Value {
 	value, ok := c.FindValue(name, outer)
 	if !ok {
-		panicf("name(%s) not found", name)
+		panicf("name `%s' not found", name)
 	}
 	return value
 }
