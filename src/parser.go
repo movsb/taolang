@@ -26,7 +26,7 @@ func (p *Parser) Parse() (program *Program, err error) {
 		}
 		program.stmts = append(program.stmts, stmt)
 	}
-	tk := p.tokenizer.Next()
+	tk := p.next()
 	if tk.typ != ttEOF {
 		panic("unexpected statement")
 	}
@@ -35,7 +35,7 @@ func (p *Parser) Parse() (program *Program, err error) {
 }
 
 func (p *Parser) expect(tt TokenType) Token {
-	token := p.tokenizer.Next()
+	token := p.next()
 	if token.typ != tt {
 		panicf("unexpected token: %v", token)
 	}
@@ -43,13 +43,13 @@ func (p *Parser) expect(tt TokenType) Token {
 }
 
 func (p *Parser) match(tts ...TokenType) (Token, bool) {
-	tk := p.tokenizer.Next()
+	tk := p.next()
 	for _, tt := range tts {
 		if tk.typ == tt {
 			return tk, true
 		}
 	}
-	p.tokenizer.Undo(tk)
+	p.undo(tk)
 	return Token{}, false
 }
 
@@ -57,9 +57,13 @@ func (p *Parser) next() Token {
 	return p.tokenizer.Next()
 }
 
+func (p *Parser) undo(tk Token) {
+	p.tokenizer.Undo(tk)
+}
+
 func (p *Parser) skip(tt TokenType) bool {
-	if p.tokenizer.Peek().typ == tt {
-		p.tokenizer.Next()
+	if p.follow(tt) {
+		p.next()
 		return true
 	}
 	return false
@@ -73,11 +77,11 @@ func (p *Parser) follow(tt TokenType) bool {
 	return p.peek().typ == tt
 }
 
-func (p *Parser) push() {
+func (p *Parser) enter() {
 	p.tokenizer.PushFrame()
 }
 
-func (p *Parser) pop(putback bool) {
+func (p *Parser) leave(putback bool) {
 	p.tokenizer.PopFrame(putback)
 }
 
@@ -86,7 +90,7 @@ func (p *Parser) parseGlobalStatement() Statement {
 }
 
 func (p *Parser) parseStatement(global bool) Statement {
-	tk := p.tokenizer.Peek()
+	tk := p.peek()
 
 	switch tk.typ {
 	case ttLet:
@@ -136,8 +140,8 @@ func (p *Parser) parseVariableStatement() Statement {
 	var v VariableStatement
 	p.expect(ttLet)
 	v.Name = p.expect(ttIdentifier).str
-	if p.tokenizer.Peek().typ == ttAssign {
-		p.tokenizer.Next()
+	if p.follow(ttAssign) {
+		p.next()
 		v.Expr = p.parseExpression()
 	}
 	p.expect(ttSemicolon)
@@ -145,34 +149,34 @@ func (p *Parser) parseVariableStatement() Statement {
 }
 
 func (p *Parser) parseAssignmentStatement() (stmt Statement) {
-	p.tokenizer.PushFrame()
+	p.enter()
 	defer func() {
-		p.tokenizer.PopFrame(stmt == nil)
+		p.leave(stmt == nil)
 	}()
 
 	var as VariableAssignmentStatement
-	name := p.tokenizer.Next()
+	name := p.next()
 	if name.typ != ttIdentifier &&
 		name.typ != ttBoolean && // these two are predeclared constants
 		name.typ != ttNil {
-		p.tokenizer.Undo(name)
+		p.undo(name)
 		return nil
 	}
 	as.Name = name.str
 
-	assign := p.tokenizer.Next()
+	assign := p.next()
 	if assign.typ != ttAssign {
-		p.tokenizer.Undo(assign)
-		p.tokenizer.Undo(name)
+		p.undo(assign)
+		p.undo(name)
 		return nil
 	}
 
 	as.Expr = p.parseExpression()
 
 	if !p.skipSemicolon {
-		semi := p.tokenizer.Next()
+		semi := p.next()
 		if semi.typ != ttSemicolon {
-			p.tokenizer.Undo(semi)
+			p.undo(semi)
 			return nil
 		}
 	} else {
@@ -205,9 +209,9 @@ func (p *Parser) parseReturnStatement() Statement {
 }
 
 func (p *Parser) parseExpressionStatement() (stmt Statement) {
-	p.tokenizer.PushFrame()
+	p.enter()
 	defer func() {
-		p.tokenizer.PopFrame(stmt == nil)
+		p.leave(stmt == nil)
 	}()
 
 	expr := p.parseExpression()
@@ -217,16 +221,16 @@ func (p *Parser) parseExpressionStatement() (stmt Statement) {
 	stmt = &ExpressionStatement{
 		expr: expr,
 	}
-	semi := p.tokenizer.Next()
+	semi := p.next()
 	if semi.typ == ttSemicolon {
 		return stmt
 	}
-	p.tokenizer.Undo(semi)
+	p.undo(semi)
 	return nil
 }
 
 func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
-	if p.tokenizer.Peek().typ != ttLeftBrace {
+	if !p.follow(ttLeftBrace) {
 		return nil
 	}
 
@@ -278,24 +282,24 @@ func (p *Parser) parseForStatement() *ForStatement {
 		// incr
 		if !p.follow(ttLeftBrace) {
 			// is expr?
-			p.push()
+			p.enter()
 			fs.incr = p.parseExpression()
 			if !p.follow(ttLeftBrace) {
-				p.pop(true)
+				p.leave(true)
 				fs.incr = nil
 			} else {
-				p.pop(false)
+				p.leave(false)
 			}
 			// is assignment?
 			if fs.incr == nil {
-				p.push()
+				p.enter()
 				p.skipSemicolon = true
 				fs.incr = p.parseAssignmentStatement()
 				if !p.follow(ttLeftBrace) {
-					p.pop(true)
+					p.leave(true)
 					fs.incr = nil
 				} else {
-					p.pop(false)
+					p.leave(false)
 				}
 			}
 			if fs.incr == nil {
@@ -329,10 +333,10 @@ func (p *Parser) parseIfStatement() Statement {
 	expr := p.parseExpression()
 	ifBlock := p.parseBlockStatement()
 	var elseBlock Statement
-	switch p.tokenizer.Peek().typ {
+	switch p.peek().typ {
 	case ttElse:
 		p.expect(ttElse)
-		switch p.tokenizer.Peek().typ {
+		switch p.peek().typ {
 		case ttIf:
 			elseBlock = p.parseIfStatement()
 		case ttLeftBrace:
@@ -424,7 +428,7 @@ func (p *Parser) parseUnaryExpression() Expression {
 func (p *Parser) parsePrimaryExpression() Expression {
 	var expr Expression
 
-	next := p.tokenizer.Next()
+	next := p.next()
 
 	switch next.typ {
 	case ttNil:
@@ -436,29 +440,29 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	case ttString:
 		expr = ValueFromString(next.str)
 	case ttLeftParen:
-		p.tokenizer.Undo(next)
+		p.undo(next)
 		if lambda := p.parseLambdaExpression(); lambda != nil {
 			return lambda
 		}
-		p.tokenizer.Next()
+		p.next()
 		expr = p.parseExpression()
 		p.expect(ttRightParen)
 	case ttIdentifier:
 		if p.peek().typ == ttLambda {
-			p.tokenizer.Undo(next)
+			p.undo(next)
 			return p.parseLambdaExpression()
 		}
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
 		expr = p.parseFunctionExpression()
 	case ttLeftBrace:
-		p.tokenizer.Undo(next)
+		p.undo(next)
 		expr = p.parseObjectExpression()
 	case ttLeftBracket:
-		p.tokenizer.Undo(next)
+		p.undo(next)
 		expr = p.parseArrayExpression()
 	default:
-		p.tokenizer.Undo(next)
+		p.undo(next)
 		return nil
 	}
 
@@ -478,10 +482,10 @@ func (p *Parser) parsePrimaryExpression() Expression {
 }
 
 func (p *Parser) parseLambdaExpression() (expr Expression) {
-	p.tokenizer.PushFrame()
+	p.enter()
 	defer func() {
 		recover()
-		p.tokenizer.PopFrame(expr == nil)
+		p.leave(expr == nil)
 	}()
 
 	params := &Parameters{}
@@ -523,9 +527,9 @@ func (p *Parser) parseLambdaExpression() (expr Expression) {
 }
 
 func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
-	p.tokenizer.PushFrame()
+	p.enter()
 	defer func() {
-		p.tokenizer.PopFrame(expr == nil)
+		p.leave(expr == nil)
 	}()
 
 	switch token := p.next(); token.typ {
@@ -554,8 +558,8 @@ func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
 }
 
 func (p *Parser) parseCallExpression(left Expression) Expression {
-	if paren := p.tokenizer.Next(); paren.typ != ttLeftParen {
-		p.tokenizer.Undo(paren)
+	if paren := p.next(); paren.typ != ttLeftParen {
+		p.undo(paren)
 		return nil
 	}
 
@@ -585,25 +589,25 @@ func (p *Parser) parseFunctionExpression() Expression {
 	var block *BlockStatement
 	params := &Parameters{}
 
-	if p.tokenizer.Peek().typ == ttIdentifier {
-		name = p.tokenizer.Next().str
+	if p.follow(ttIdentifier) {
+		name = p.next().str
 	}
 
 	p.expect(ttLeftParen)
 	for {
-		tk := p.tokenizer.Next()
+		tk := p.next()
 		if tk.typ == ttIdentifier {
 			params.PutParam(tk.str)
 		} else if tk.typ == ttComma {
 			continue
 		} else if tk.typ == ttRightParen {
-			p.tokenizer.Undo(tk)
+			p.undo(tk)
 			break
 		}
 	}
 	p.expect(ttRightParen)
 
-	if p.tokenizer.Peek().typ != ttLeftBrace {
+	if !p.follow(ttLeftBrace) {
 		panic("function needs a body")
 	}
 
@@ -627,7 +631,7 @@ func (p *Parser) parseObjectExpression() Expression {
 	for {
 		token := p.next()
 		if token.typ == ttRightBrace {
-			p.tokenizer.Undo(token)
+			p.undo(token)
 			break
 		}
 
