@@ -96,12 +96,11 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttLet:
 		return p.parseVariableStatement()
 	case ttFunction:
-		stmt := p.parseFunctionStatement()
-		fn := stmt.(*FunctionStatement)
+		fn := p.parseFunctionStatement()
 		if fn.name == "" {
 			panic("function statement must have function name")
 		}
-		return stmt
+		return fn
 	}
 
 	if global {
@@ -136,7 +135,7 @@ func (p *Parser) parseExpression() Expression {
 	return p.parseLogicalExpression()
 }
 
-func (p *Parser) parseVariableStatement() Statement {
+func (p *Parser) parseVariableStatement() *VariableStatement {
 	var v VariableStatement
 	p.expect(ttLet)
 	v.Name = p.expect(ttIdentifier).str
@@ -148,13 +147,13 @@ func (p *Parser) parseVariableStatement() Statement {
 	return &v
 }
 
-func (p *Parser) parseAssignmentStatement() (stmt Statement) {
+func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 	p.enter()
 	defer func() {
 		p.leave(stmt == nil)
 	}()
 
-	var as VariableAssignmentStatement
+	var as AssignmentStatement
 	name := p.next()
 	if name.typ != ttIdentifier &&
 		name.typ != ttBoolean && // these two are predeclared constants
@@ -190,16 +189,16 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 	return &as
 }
 
-func (p *Parser) parseFunctionStatement() Statement {
+func (p *Parser) parseFunctionStatement() *FunctionStatement {
 	var fn FunctionStatement
 	p.expect(ttFunction)
-	expr := p.parseFunctionExpression().(*FunctionExpression)
+	expr := p.parseFunctionExpression()
 	fn.name = expr.name
 	fn.expr = expr
 	return &fn
 }
 
-func (p *Parser) parseReturnStatement() Statement {
+func (p *Parser) parseReturnStatement() *ReturnStatement {
 	p.expect(ttReturn)
 	expr := p.parseExpression()
 	p.expect(ttSemicolon)
@@ -208,7 +207,7 @@ func (p *Parser) parseReturnStatement() Statement {
 	}
 }
 
-func (p *Parser) parseExpressionStatement() (stmt Statement) {
+func (p *Parser) parseExpressionStatement() (stmt *ExpressionStatement) {
 	p.enter()
 	defer func() {
 		p.leave(stmt == nil)
@@ -322,13 +321,13 @@ func (p *Parser) parseForStatement() *ForStatement {
 	return &fs
 }
 
-func (p *Parser) parseBreakStatement() Statement {
+func (p *Parser) parseBreakStatement() *BreakStatement {
 	p.expect(ttBreak)
 	p.expect(ttSemicolon)
 	return &BreakStatement{}
 }
 
-func (p *Parser) parseIfStatement() Statement {
+func (p *Parser) parseIfStatement() *IfStatement {
 	p.expect(ttIf)
 	expr := p.parseExpression()
 	ifBlock := p.parseBlockStatement()
@@ -481,7 +480,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	return expr
 }
 
-func (p *Parser) parseLambdaExpression() (expr Expression) {
+func (p *Parser) parseLambdaExpression() (expr *FunctionExpression) {
 	p.enter()
 	defer func() {
 		recover()
@@ -584,7 +583,7 @@ func (p *Parser) parseCallExpression(left Expression) Expression {
 	return &call
 }
 
-func (p *Parser) parseFunctionExpression() Expression {
+func (p *Parser) parseFunctionExpression() *FunctionExpression {
 	var name string
 	var block *BlockStatement
 	params := &Parameters{}

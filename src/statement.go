@@ -25,12 +25,12 @@ func (v *VariableStatement) Execute(ctx *Context) {
 	ctx.AddValue(v.Name, value)
 }
 
-type VariableAssignmentStatement struct {
+type AssignmentStatement struct {
 	Name string
 	Expr Expression
 }
 
-func (v *VariableAssignmentStatement) Execute(ctx *Context) {
+func (v *AssignmentStatement) Execute(ctx *Context) {
 	ctx.SetValue(v.Name, v.Expr.Evaluate(ctx))
 }
 
