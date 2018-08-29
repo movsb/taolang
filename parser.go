@@ -210,7 +210,7 @@ func (p *Parser) parseExpressionStatement() (stmt Statement) {
 	return nil
 }
 
-func (p *Parser) parseBlockStatement() (stmt Statement) {
+func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
 	if p.tokenizer.Peek().typ != ttLeftBrace {
 		return nil
 	}
@@ -232,10 +232,10 @@ func (p *Parser) parseBlockStatement() (stmt Statement) {
 func (p *Parser) parseWhileStatement() Statement {
 	p.expect(ttWhile)
 	expr := p.parseExpression()
-	stmt := p.parseBlockStatement()
+	block := p.parseBlockStatement()
 	return &WhileStatement{
 		expr:  expr,
-		block: stmt.(*BlockStatement),
+		block: block,
 	}
 }
 
@@ -264,7 +264,7 @@ func (p *Parser) parseIfStatement() Statement {
 	}
 	return &IfStatement{
 		cond:      expr,
-		ifBlock:   ifBlock.(*BlockStatement),
+		ifBlock:   ifBlock,
 		elseBlock: elseBlock,
 	}
 }
@@ -331,6 +331,7 @@ func (p *Parser) parseUnaryExpression() Expression {
 
 func (p *Parser) parsePrimaryExpression() Expression {
 	var expr Expression
+
 	next := p.tokenizer.Next()
 
 	switch next.typ {
@@ -343,9 +344,18 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	case ttString:
 		expr = ValueFromString(next.str)
 	case ttLeftParen:
+		p.tokenizer.Undo(next)
+		if lambda := p.parseLambdaExpression(); lambda != nil {
+			return lambda
+		}
+		p.tokenizer.Next()
 		expr = p.parseExpression()
 		p.expect(ttRightParen)
 	case ttIdentifier:
+		if p.peek().typ == ttLambda {
+			p.tokenizer.Undo(next)
+			return p.parseLambdaExpression()
+		}
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
 		expr = p.parseFunctionExpression()
@@ -382,12 +392,41 @@ func (p *Parser) parseLambdaExpression() (expr Expression) {
 		p.tokenizer.PopFrame(expr == nil)
 	}()
 
-	name := p.expect(ttIdentifier).str
+	params := &Parameters{}
+
+	if _, ok := p.match(ttLeftParen); ok {
+		for {
+			params.PutParam(p.expect(ttIdentifier).str)
+			if p.follow(ttRightParen) {
+				break
+			}
+			if !p.skip(ttComma) {
+				return nil
+			}
+		}
+		p.expect(ttRightParen)
+	} else {
+		params.PutParam(p.expect(ttIdentifier).str)
+	}
+
 	p.expect(ttLambda)
-	body := p.parseExpression()
-	return &LambdaExpression{
-		name: name,
-		expr: body,
+
+	var block *BlockStatement
+
+	if p.follow(ttLeftBrace) {
+		block = p.parseBlockStatement()
+	} else {
+		expr := p.parseExpression()
+		if expr == nil {
+			panic("cannot parse lambda body expr")
+		}
+		ret := NewReturnStatement(expr)
+		block = NewBlockStatement(ret)
+	}
+
+	return &FunctionExpression{
+		params: params,
+		block:  block,
 	}
 }
 
@@ -433,18 +472,14 @@ func (p *Parser) parseCallExpression(left Expression) Expression {
 		Args:     &Arguments{},
 	}
 
-	if lambda := p.parseLambdaExpression(); lambda != nil {
-		call.Args.PutArgument(lambda)
-	} else {
-		for {
-			arg := p.parseExpression()
-			if arg == nil {
-				break
-			}
-			call.Args.PutArgument(arg)
-			if !p.skip(ttComma) {
-				break
-			}
+	for {
+		arg := p.parseExpression()
+		if arg == nil {
+			break
+		}
+		call.Args.PutArgument(arg)
+		if !p.skip(ttComma) {
+			break
 		}
 	}
 
@@ -480,7 +515,7 @@ func (p *Parser) parseFunctionExpression() Expression {
 		panic("function needs a body")
 	}
 
-	block = p.parseBlockStatement().(*BlockStatement)
+	block = p.parseBlockStatement()
 
 	return &FunctionExpression{
 		name:   name,

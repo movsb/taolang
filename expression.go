@@ -333,20 +333,3 @@ func (a *ArrayExpression) Evaluate(ctx *Context) Value {
 	}
 	return ValueFromObject(arr)
 }
-
-type LambdaExpression struct {
-	name string
-	expr Expression
-}
-
-// Wrap wraps Lambda Expression as an Anonymous function.
-func (l *LambdaExpression) Wrap() *FunctionExpression {
-	params := NewParameters(l.name)
-	stmt := NewReturnStatement(l.expr)
-	block := NewBlockStatement(stmt)
-	return NewFunctionExpression("--lambda--", params, block)
-}
-
-func (l *LambdaExpression) Evaluate(ctx *Context) Value {
-	return ValueFromFunction(l.Wrap())
-}

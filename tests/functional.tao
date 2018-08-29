@@ -1,0 +1,7 @@
+function each() {
+    let a = [1,3,5,7,9];
+    a.each((x,y,z)=>{println(x,y,z);}, 0, 1);
+}
+function main() {
+    each();
+}
