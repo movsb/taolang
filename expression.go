@@ -58,18 +58,20 @@ func NewBinaryExpression(left Expression, op TokenType, right Expression) *Binar
 }
 
 func (b *BinaryExpression) Evaluate(ctx *Context) Value {
-	lv := b.left.Evaluate(ctx)
-	rv := b.right.Evaluate(ctx)
-	lt, rt := lv.Type, rv.Type
 	op := b.op
+	lv, rv := Value{}, Value{}
+	// Logical values are evaluated shortcutted
+	if op != ttAndAnd && op != ttOrOr {
+		lv = b.left.Evaluate(ctx)
+		rv = b.right.Evaluate(ctx)
+	}
+	lt, rt := lv.Type, rv.Type
 
 	if lt == vtNil && rt == vtNil {
 		if op == ttEqual {
 			return ValueFromBoolean(true)
 		} else if op == ttNotEqual {
 			return ValueFromBoolean(false)
-		} else {
-			panic("not supported operator on two nils")
 		}
 	}
 
@@ -79,8 +81,6 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromBoolean(lv.boolean() == rv.boolean())
 		case ttNotEqual:
 			return ValueFromBoolean(lv.boolean() != rv.boolean())
-		default:
-			panic("not supported operator on two booleans")
 		}
 	}
 
@@ -111,8 +111,6 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromBoolean(lv.number() != rv.number())
 		case ttPercent:
 			return ValueFromNumber(lv.number() % rv.number())
-		default:
-			panic("not supported operator on two numbers")
 		}
 	}
 
@@ -123,6 +121,19 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 		default:
 			panic("not supported operator on two strings")
 		}
+	}
+
+	if op == ttAndAnd {
+		return ValueFromBoolean(
+			b.left.Evaluate(ctx).Truth(ctx) &&
+				b.right.Evaluate(ctx).Truth(ctx),
+		)
+	} else if op == ttOrOr {
+		lv = b.left.Evaluate(ctx)
+		if lv.Truth(ctx) {
+			return lv
+		}
+		return b.right.Evaluate(ctx)
 	}
 
 	panic("unknown binary operator and operands")

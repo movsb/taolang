@@ -118,7 +118,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 }
 
 func (p *Parser) parseExpression() Expression {
-	return p.parseEqualityExpression()
+	return p.parseLogicalExpression()
 }
 
 func (p *Parser) parseVariableStatement() Statement {
@@ -267,6 +267,19 @@ func (p *Parser) parseIfStatement() Statement {
 		ifBlock:   ifBlock,
 		elseBlock: elseBlock,
 	}
+}
+
+func (p *Parser) parseLogicalExpression() Expression {
+	left := p.parseEqualityExpression()
+	for {
+		if op, ok := p.match(ttAndAnd, ttOrOr); ok {
+			right := p.parseEqualityExpression()
+			left = NewBinaryExpression(left, op.typ, right)
+		} else {
+			break
+		}
+	}
+	return left
 }
 
 func (p *Parser) parseEqualityExpression() Expression {

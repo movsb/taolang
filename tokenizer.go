@@ -48,6 +48,10 @@ const (
 	ttAndAnd
 	ttOrOr
 
+	// Bit
+	ttBitAnd
+	ttBitOr
+
 	// Literals
 	ttNil
 	ttString
@@ -330,7 +334,10 @@ func (t *Tokenizer) next() (token Token) {
 			return t.iif('=', ttGreaterThanOrEqual, ttGreaterThan)
 		case '<':
 			return t.iif('=', ttLessThanOrEqual, ttLessThan)
-
+		case '&':
+			return t.iif('&', ttAndAnd, ttBitAnd)
+		case '|':
+			return t.iif('|', ttOrOr, ttBitOr)
 		}
 
 		panic("unhandled character")
