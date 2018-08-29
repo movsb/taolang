@@ -239,7 +239,7 @@ func (v Value) String() string {
 			return buf.String()
 		}
 	}
-	return fmt.Sprintf("unknown(%p)", v)
+	return fmt.Sprintf("unknown value")
 }
 
 // Truth return true if value represents a true value.
