@@ -1,7 +1,8 @@
 package main
 
 type Array struct {
-	elems []Value
+	object *Object
+	elems  []Value
 }
 
 func (a *Array) Len() int {
@@ -28,7 +29,7 @@ func (a *Array) PushElem(val Value) {
 
 /// functional programming implementations below
 
-func (a *Array) _Call(ctx *Context, lambda *FunctionExpression, args ...Value) Value {
+func _Call(ctx *Context, lambda *FunctionExpression, args ...Value) Value {
 	lambda.BindArguments(ctx, args...)
 	switch data := lambda.Execute(ctx); data.Type {
 	case vtVariable:
@@ -47,18 +48,20 @@ func (a *Array) _Call(ctx *Context, lambda *FunctionExpression, args ...Value) V
 	}
 }
 
-func (a *Array) _Each(callback func(elem Value) bool) {
+func (a *Array) _Each(callback func(elem Value, i int) bool) {
 	for i, n, next := 0, a.Len(), true; i < n && next; i++ {
-		next = callback(a.elems[i])
+		next = callback(a.elems[i], i)
 	}
 }
 
 // Each iterates over a list of elements, yielding each in turn to an iteratee function.
 func (a *Array) Each(ctx *Context, args *Values) Value {
-	a._Each(func(elem Value) bool {
+	object := ValueFromObject(a.object)
+	a._Each(func(elem Value, i int) bool {
 		newCtx := NewContext(ctx)
 		lambda := args.values[0].function()
-		a._Call(newCtx, lambda, elem)
+		index := ValueFromNumber(i)
+		_Call(newCtx, lambda, elem, index, object)
 		return true
 	})
 	return ValueFromNil()

@@ -34,6 +34,7 @@ func NewArray() *Object {
 	o := &Object{}
 	o.props = make(map[string]Value)
 	o.array = &Array{}
+	o.array.object = o
 	o.ElemIndexer = o.array
 	return o
 }
