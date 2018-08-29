@@ -22,7 +22,7 @@ func InitBuiltins(ctx *Context) {
 		{"println", println},
 	}
 	for _, b := range builtins {
-		ctx.AddValue(b.name, ValueFromBuiltin(NewBuiltin(b.name, b.fn)))
+		ctx.AddValue(b.name, ValueFromBuiltin(b.name, b.fn))
 	}
 }
 

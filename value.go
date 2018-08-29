@@ -82,10 +82,13 @@ func ValueFromFunction(fn *FunctionExpression) Value {
 }
 
 // ValueFromBuiltin creates a builtin function value.
-func ValueFromBuiltin(builtin *Builtin) Value {
+func ValueFromBuiltin(name string, fn func(*Context, *Values) Value) Value {
 	return Value{
-		Type:  vtBuiltin,
-		value: builtin,
+		Type: vtBuiltin,
+		value: &Builtin{
+			name: name,
+			fn:   fn,
+		},
 	}
 }
 
@@ -259,6 +262,14 @@ func NewValues(values ...Value) *Values {
 		v.values = append(v.values, value)
 	}
 	return v
+}
+
+// At returns
+func (v *Values) At(i int) Value {
+	if i < 0 && i > v.Len()-1 {
+		panic("Values' index out of range")
+	}
+	return v.values[i]
 }
 
 // Len lens the values.

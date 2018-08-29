@@ -29,7 +29,9 @@ func (a *Array) PushElem(val Value) {
 
 /// functional programming implementations below
 
-func _Call(ctx *Context, lambda *FunctionExpression, args ...Value) Value {
+func (a *Array) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
+	ctx = NewContext(ctx)
+	lambda := lambdaValue.function()
 	lambda.BindArguments(ctx, args...)
 	switch data := lambda.Execute(ctx); data.Type {
 	case vtVariable:
@@ -58,11 +60,22 @@ func (a *Array) _Each(callback func(elem Value, i int) bool) {
 func (a *Array) Each(ctx *Context, args *Values) Value {
 	object := ValueFromObject(a.object)
 	a._Each(func(elem Value, i int) bool {
-		newCtx := NewContext(ctx)
-		lambda := args.values[0].function()
 		index := ValueFromNumber(i)
-		_Call(newCtx, lambda, elem, index, object)
+		a._Call(ctx, args.At(0), elem, index, object)
 		return true
 	})
 	return ValueFromNil()
+}
+
+// Map produces a new array of values by mapping each value.
+func (a *Array) Map(ctx *Context, args *Values) Value {
+	object := ValueFromObject(a.object)
+	values := make([]Value, 0, a.Len())
+	a._Each(func(elem Value, i int) bool {
+		index := ValueFromNumber(i)
+		data := a._Call(ctx, args.At(0), elem, index, object)
+		values = append(values, data)
+		return true
+	})
+	return ValueFromObject(NewArray(values...))
 }

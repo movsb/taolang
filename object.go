@@ -12,6 +12,7 @@ type ElemIndexer interface {
 	PushElem(val Value)
 
 	Each(ctx *Context, args *Values) Value
+	Map(ctx *Context, args *Values) Value
 }
 
 // Object is an object.
@@ -30,10 +31,10 @@ func NewObject() *Object {
 }
 
 // NewArray news an array.
-func NewArray() *Object {
+func NewArray(elems ...Value) *Object {
 	o := &Object{}
 	o.props = make(map[string]Value)
-	o.array = &Array{}
+	o.array = &Array{elems: elems}
 	o.array.object = o
 	o.ElemIndexer = o.array
 	return o
@@ -45,7 +46,9 @@ func (o *Object) Key(key string) Value {
 		if key == "length" {
 			return ValueFromNumber(o.Len())
 		} else if key == "each" {
-			return ValueFromBuiltin(NewBuiltin("each", o.Each))
+			return ValueFromBuiltin("each", o.Each)
+		} else if key == "map" {
+			return ValueFromBuiltin("map", o.Map)
 		}
 	}
 	if val, ok := o.props[key]; ok {
