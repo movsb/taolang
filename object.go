@@ -14,6 +14,7 @@ type ElemIndexer interface {
 	Each(ctx *Context, args *Values) Value
 	Map(ctx *Context, args *Values) Value
 	Reduce(ctx *Context, args *Values) Value
+	Find(ctx *Context, args *Values) Value
 }
 
 // Object is an object.
@@ -52,6 +53,8 @@ func (o *Object) Key(key string) Value {
 			return ValueFromBuiltin("map", o.Map)
 		} else if key == "reduce" {
 			return ValueFromBuiltin("reduce", o.Reduce)
+		} else if key == "find" {
+			return ValueFromBuiltin("find", o.Find)
 		}
 	}
 	if val, ok := o.props[key]; ok {

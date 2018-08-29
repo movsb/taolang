@@ -91,3 +91,16 @@ func (a *Array) Reduce(ctx *Context, args *Values) Value {
 	})
 	return memo
 }
+
+// Find finds the first value.
+func (a *Array) Find(ctx *Context, args *Values) Value {
+	found := Value{}
+	a._Each(func(elem Value, index Value) bool {
+		if a._Call(ctx, args.At(0), elem).Truth(ctx) {
+			found = elem
+			return false
+		}
+		return true
+	})
+	return found
+}
