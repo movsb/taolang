@@ -151,6 +151,20 @@ function main2() {
 }
 ```
 
+### Lambda表达式与函数式编程
+
+```js
+function main() {
+    let a = [1,3,5,7,9];
+
+    a.each(x=>x+x);
+
+    a.each(x=>println);
+
+    a.each(x=>println(x*x));
+}
+```
+
 ### 控制语句
 
 #### while 控制语句
