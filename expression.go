@@ -153,6 +153,18 @@ func (p *Parameters) PutParam(name string) {
 	p.names = append(p.names, name)
 }
 
+// BindArguments assigns actual arguments.
+// un-aligned parameters and arguments are set to nil.
+func (p *Parameters) BindArguments(ctx *Context, args ...Value) {
+	for index, name := range p.names {
+		var arg Value
+		if index < len(args) {
+			arg = args[index]
+		}
+		ctx.AddValue(name, arg)
+	}
+}
+
 type FunctionExpression struct {
 	name   string
 	params *Parameters
@@ -184,6 +196,10 @@ func (f *FunctionExpression) Execute(ctx *Context) Value {
 	} else {
 		return ValueFromNil()
 	}
+}
+
+func (f *FunctionExpression) BindArguments(ctx *Context, args ...Value) {
+	f.params.BindArguments(ctx, args...)
 }
 
 type Arguments struct {

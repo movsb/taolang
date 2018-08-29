@@ -9,8 +9,7 @@ import (
 type ValueType int
 
 const (
-	_ ValueType = iota
-	vtNil
+	vtNil ValueType = iota
 	vtBoolean
 	vtNumber
 	vtString
@@ -176,11 +175,7 @@ func (v Value) Evaluate(ctx *Context) Value {
 	case vtNil, vtBoolean, vtNumber, vtString:
 		return v
 	case vtVariable:
-		value, ok := ctx.FindValue(v.variable(), true)
-		if !ok {
-			panic(fmt.Sprintf("undefined symbol: %s", v.variable()))
-		}
-		return value
+		return ctx.MustFind(v.variable(), true)
 	case vtObject:
 		return v
 	case vtFunction:
@@ -233,7 +228,7 @@ func (v Value) String() string {
 
 // Truth return true if value represents a true value.
 // A value is considered true when:
-func (v *Value) Truth(ctx *Context) bool {
+func (v Value) Truth(ctx *Context) bool {
 	switch v.Type {
 	case vtNil:
 		return false
@@ -246,11 +241,7 @@ func (v *Value) Truth(ctx *Context) bool {
 	case vtFunction, vtBuiltin, vtObject:
 		return true
 	case vtVariable:
-		value, ok := ctx.FindValue(v.variable(), true)
-		if !ok {
-			panicf("variable is not defined: %s", v.variable())
-		}
-		return value.Truth(ctx)
+		return ctx.MustFind(v.variable(), true).Truth(ctx)
 	}
 	panicf("unknown truth type")
 	return false

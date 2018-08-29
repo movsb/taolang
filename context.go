@@ -32,6 +32,16 @@ func (c *Context) FindValue(name string, outer bool) (Value, bool) {
 	return Value{}, false
 }
 
+// MustFind must find a named value.
+// Upon failure, it panics.
+func (c *Context) MustFind(name string, outer bool) Value {
+	value, ok := c.FindValue(name, outer)
+	if !ok {
+		panicf("name(%s) not found", name)
+	}
+	return value
+}
+
 // AddValue adds a new value in current context.
 func (c *Context) AddValue(name string, value Value) {
 	if _, ok := c.FindValue(name, false); ok {
