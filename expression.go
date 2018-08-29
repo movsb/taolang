@@ -109,6 +109,8 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromBoolean(lv.number() == rv.number())
 		case ttNotEqual:
 			return ValueFromBoolean(lv.number() != rv.number())
+		case ttPercent:
+			return ValueFromNumber(lv.number() % rv.number())
 		default:
 			panic("not supported operator on two numbers")
 		}

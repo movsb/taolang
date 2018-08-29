@@ -311,7 +311,7 @@ func (p *Parser) parseAdditionExpression() Expression {
 func (p *Parser) parseMultiplicationExpression() Expression {
 	left := p.parseUnaryExpression()
 	for {
-		if op, ok := p.match(ttMultiply, ttDivision); ok {
+		if op, ok := p.match(ttMultiply, ttDivision, ttPercent); ok {
 			right := p.parseUnaryExpression()
 			left = NewBinaryExpression(left, op.typ, right)
 		} else {

@@ -33,6 +33,7 @@ const (
 	ttSubstraction
 	ttMultiply
 	ttDivision
+	ttPercent
 
 	// comparision
 	ttGreaterThan
@@ -102,6 +103,7 @@ func init() {
 	m[ttSubstraction] = "-"
 	m[ttMultiply] = "*"
 	m[ttDivision] = "/"
+	m[ttPercent] = "%"
 
 	m[ttGreaterThan] = ">"
 	m[ttGreaterThanOrEqual] = ">="
@@ -311,6 +313,8 @@ func (t *Tokenizer) next() (token Token) {
 				t.unread()
 				return Token{typ: ttDivision}
 			}
+		case '%':
+			return Token{typ: ttPercent}
 		case '=':
 			next := t.read()
 			switch next {

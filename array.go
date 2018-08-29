@@ -18,6 +18,7 @@ func NewArray(elems ...Value) *Object {
 		"map":    o.array.Map,
 		"reduce": o.array.Reduce,
 		"find":   o.array.Find,
+		"filter": o.array.Filter,
 	}
 	return o
 }
@@ -127,4 +128,16 @@ func (a *Array) Find(ctx *Context, args *Values) Value {
 		return true
 	})
 	return found
+}
+
+// Filter filters values.
+func (a *Array) Filter(ctx *Context, args *Values) Value {
+	values := make([]Value, 0, a.Len())
+	a._Each(func(elem Value, index Value) bool {
+		if data := a._Call(ctx, args.At(0), elem); data.Truth(ctx) {
+			values = append(values, elem)
+		}
+		return true
+	})
+	return ValueFromObject(NewArray(values...))
 }
