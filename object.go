@@ -10,8 +10,7 @@ type ElemIndexer interface {
 	Elem(pos int) Value
 	SetElem(pos int, val Value)
 	PushElem(val Value)
-
-	Each(ctx *Context, args *Values) Value
+	Functional(name string) *Builtin
 }
 
 // Object is an object.
@@ -29,23 +28,16 @@ func NewObject() *Object {
 	return o
 }
 
-// NewArray news an array.
-func NewArray() *Object {
-	o := &Object{}
-	o.props = make(map[string]Value)
-	o.array = &Array{}
-	o.ElemIndexer = o.array
-	return o
-}
-
 // Key gets a value by key.
 func (o *Object) Key(key string) Value {
 	if o.IsArray() {
 		if key == "length" {
 			return ValueFromNumber(o.Len())
-		} else if key == "each" {
-			return ValueFromBuiltin(NewBuiltin("each", o.Each))
 		}
+		if builtin := o.Functional(key); builtin != nil {
+			return ValueFromBuiltin(builtin.name, builtin.fn)
+		}
+		return Value{}
 	}
 	if val, ok := o.props[key]; ok {
 		return val

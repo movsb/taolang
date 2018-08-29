@@ -82,10 +82,13 @@ func ValueFromFunction(fn *FunctionExpression) Value {
 }
 
 // ValueFromBuiltin creates a builtin function value.
-func ValueFromBuiltin(builtin *Builtin) Value {
+func ValueFromBuiltin(name string, fn func(*Context, *Values) Value) Value {
 	return Value{
-		Type:  vtBuiltin,
-		value: builtin,
+		Type: vtBuiltin,
+		value: &Builtin{
+			name: name,
+			fn:   fn,
+		},
 	}
 }
 
@@ -208,7 +211,20 @@ func (v Value) String() string {
 		return fmt.Sprintf("builtin(%s)", v.str())
 	case vtObject:
 		if !v.object().IsArray() {
-			return fmt.Sprintf(`"[object]"`)
+			buf := bytes.NewBuffer(nil)
+			buf.WriteString("{")
+			n := len(v.object().props)
+			i := 0
+			for k, p := range v.object().props {
+				// TODO k may have invalid characters.
+				buf.WriteString(fmt.Sprintf(`%s:%v`, k, p))
+				if i != n-1 {
+					buf.WriteString(",")
+				}
+				i++
+			}
+			buf.WriteString("}")
+			return buf.String()
 		} else {
 			buf := bytes.NewBuffer(nil)
 			buf.WriteString("[")
@@ -259,6 +275,14 @@ func NewValues(values ...Value) *Values {
 		v.values = append(v.values, value)
 	}
 	return v
+}
+
+// At returns
+func (v *Values) At(i int) Value {
+	if i < 0 && i > v.Len()-1 {
+		panic("Values' index out of range")
+	}
+	return v.values[i]
 }
 
 // Len lens the values.

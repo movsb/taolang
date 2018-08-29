@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"container/list"
+	"fmt"
 	"io"
 )
 
@@ -32,6 +33,7 @@ const (
 	ttSubstraction
 	ttMultiply
 	ttDivision
+	ttPercent
 
 	// comparision
 	ttGreaterThan
@@ -45,6 +47,10 @@ const (
 	ttNot
 	ttAndAnd
 	ttOrOr
+
+	// Bit
+	ttBitAnd
+	ttBitOr
 
 	// Literals
 	ttNil
@@ -79,11 +85,75 @@ func init() {
 	keywords["false"] = ttBoolean
 }
 
+var tokenNames map[TokenType]string
+
+func init() {
+	m := make(map[TokenType]string)
+	m[ttEOF] = "EOF"
+	m[ttLeftParen] = "("
+	m[ttRightParen] = ")"
+	m[ttLeftBracket] = "["
+	m[ttRightBracket] = "]"
+	m[ttLeftBrace] = "{"
+	m[ttRightBrace] = "}"
+	m[ttDot] = "."
+	m[ttComma] = ","
+	m[ttSemicolon] = ";"
+	m[ttColon] = ":"
+	m[ttLambda] = "=>"
+
+	m[ttAssign] = "="
+	m[ttAddition] = "+"
+	m[ttSubstraction] = "-"
+	m[ttMultiply] = "*"
+	m[ttDivision] = "/"
+	m[ttPercent] = "%"
+
+	m[ttGreaterThan] = ">"
+	m[ttGreaterThanOrEqual] = ">="
+	m[ttEqual] = "=="
+	m[ttNotEqual] = "!="
+	m[ttLessThan] = "<"
+	m[ttLessThanOrEqual] = "<="
+
+	m[ttNot] = "!"
+	m[ttAndAnd] = "&&"
+	m[ttOrOr] = "||"
+
+	m[ttNil] = "nil"
+
+	m[ttLet] = "let"
+	m[ttFunction] = "function"
+	m[ttReturn] = "return"
+	m[ttWhile] = "while"
+	m[ttBreak] = "break"
+	m[ttIf] = "if"
+	m[ttElse] = "else"
+	tokenNames = m
+}
+
 type Token struct {
 	typ  TokenType
 	str  string
 	num  int
 	line int
+}
+
+func (t Token) String() string {
+	if s, ok := tokenNames[t.typ]; ok {
+		return s
+	}
+	switch t.typ {
+	case ttString:
+		return t.str
+	case ttNumber:
+		return fmt.Sprint(t.num)
+	case ttBoolean:
+		return t.str
+	case ttIdentifier:
+		return t.str
+	}
+	return "--unknown-token--"
 }
 
 type Tokenizer struct {
@@ -247,6 +317,8 @@ func (t *Tokenizer) next() (token Token) {
 				t.unread()
 				return Token{typ: ttDivision}
 			}
+		case '%':
+			return Token{typ: ttPercent}
 		case '=':
 			next := t.read()
 			switch next {
@@ -262,7 +334,10 @@ func (t *Tokenizer) next() (token Token) {
 			return t.iif('=', ttGreaterThanOrEqual, ttGreaterThan)
 		case '<':
 			return t.iif('=', ttLessThanOrEqual, ttLessThan)
-
+		case '&':
+			return t.iif('&', ttAndAnd, ttBitAnd)
+		case '|':
+			return t.iif('|', ttOrOr, ttBitOr)
 		}
 
 		panic("unhandled character")
