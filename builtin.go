@@ -4,28 +4,35 @@ import (
 	"fmt"
 )
 
-type Builtin func(ctx *Context, args Values) *Value
+type Builtin struct {
+	name string
+	fn   func(ctx *Context, args *Values) Value
+}
+
+func NewBuiltin(name string, fn func(*Context, *Values) Value) *Builtin {
+	return &Builtin{
+		name: name,
+		fn:   fn,
+	}
+}
 
 func InitBuiltins(ctx *Context) {
-	pairs := [...]struct {
-		name    string
-		builtin Builtin
-	}{
+	builtins := []Builtin{
 		{"print", print},
 		{"println", println},
 	}
-	for _, pair := range pairs {
-		ctx.AddValue(pair.name, ValueFromBuiltin(pair.name, pair.builtin))
+	for _, builtin := range builtins {
+		ctx.AddValue(builtin.name, ValueFromBuiltin(&builtin))
 	}
 }
 
-func print(ctx *Context, args Values) *Value {
-	fmt.Print(args.ToInterfaces()...)
+func print(ctx *Context, args *Values) Value {
+	fmt.Print(args.All()...)
 	return ValueFromNil()
 }
 
-func println(ctx *Context, args Values) *Value {
+func println(ctx *Context, args *Values) Value {
 	print(ctx, args)
-	print(ctx, []*Value{ValueFromString("\n")})
+	print(ctx, NewValues(ValueFromString("\n")))
 	return ValueFromNil()
 }

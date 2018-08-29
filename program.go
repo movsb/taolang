@@ -4,7 +4,7 @@ type Program struct {
 	stmts []Statement
 }
 
-func (p *Program) Execute() (ret *Value, err error) {
+func (p *Program) Execute() (ret Value, err error) {
 	defer func() {
 		err = toErr(recover())
 	}()

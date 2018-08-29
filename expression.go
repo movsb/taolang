@@ -1,7 +1,8 @@
 package main
 
+// Expression is the interface that is implemented by all expressions.
 type Expression interface {
-	Evaluate(ctx *Context) *Value
+	Evaluate(ctx *Context) Value
 }
 
 type UnaryExpression struct {
@@ -16,30 +17,30 @@ func NewUnaryExpression(tt TokenType, expr Expression) *UnaryExpression {
 	}
 }
 
-func (u *UnaryExpression) Evaluate(ctx *Context) *Value {
+func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	value := u.expr.Evaluate(ctx)
 	switch u.tt {
 	case ttSubstraction:
 		if value.Type != vtNumber {
 			panic("-value is invalid")
 		}
-		return ValueFromNumber(-value.Number)
+		return ValueFromNumber(-value.number())
 	case ttNot:
 		switch value.Type {
 		case vtNil:
 			return ValueFromBoolean(true)
 		case vtBoolean:
-			return ValueFromBoolean(!value.Bool)
+			return ValueFromBoolean(!value.boolean())
 		case vtNumber:
-			return ValueFromBoolean(!(value.Number != 0))
+			return ValueFromBoolean(!(value.number() != 0))
 		case vtString:
-			return ValueFromBoolean(!(len(value.Str) != 0))
+			return ValueFromBoolean(!(len(value.str()) != 0))
 		default:
 			panic("!value is invalid")
 		}
 	}
 	panicf("unknown unary operator: %v", u.tt) // TODO
-	return nil
+	return ValueFromNil()
 }
 
 type BinaryExpression struct {
@@ -56,7 +57,7 @@ func NewBinaryExpression(left Expression, op TokenType, right Expression) *Binar
 	}
 }
 
-func (b *BinaryExpression) Evaluate(ctx *Context) *Value {
+func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	lv := b.left.Evaluate(ctx)
 	rv := b.right.Evaluate(ctx)
 	lt, rt := lv.Type, rv.Type
@@ -75,9 +76,9 @@ func (b *BinaryExpression) Evaluate(ctx *Context) *Value {
 	if lt == vtBoolean && rt == vtBoolean {
 		switch op {
 		case ttEqual:
-			return ValueFromBoolean(lv.Bool == rv.Bool)
+			return ValueFromBoolean(lv.boolean() == rv.boolean())
 		case ttNotEqual:
-			return ValueFromBoolean(lv.Bool != rv.Bool)
+			return ValueFromBoolean(lv.boolean() != rv.boolean())
 		default:
 			panic("not supported operator on two booleans")
 		}
@@ -86,28 +87,28 @@ func (b *BinaryExpression) Evaluate(ctx *Context) *Value {
 	if lt == vtNumber && rt == vtNumber {
 		switch op {
 		case ttAddition:
-			return ValueFromNumber(lv.Number + rv.Number)
+			return ValueFromNumber(lv.number() + rv.number())
 		case ttSubstraction:
-			return ValueFromNumber(lv.Number - rv.Number)
+			return ValueFromNumber(lv.number() - rv.number())
 		case ttMultiply:
-			return ValueFromNumber(lv.Number * rv.Number)
+			return ValueFromNumber(lv.number() * rv.number())
 		case ttDivision:
-			if rv.Number == 0 {
+			if rv.number() == 0 {
 				panic("divide by zero")
 			}
-			return ValueFromNumber(lv.Number / rv.Number)
+			return ValueFromNumber(lv.number() / rv.number())
 		case ttGreaterThan:
-			return ValueFromBoolean(lv.Number > rv.Number)
+			return ValueFromBoolean(lv.number() > rv.number())
 		case ttGreaterThanOrEqual:
-			return ValueFromBoolean(lv.Number >= rv.Number)
+			return ValueFromBoolean(lv.number() >= rv.number())
 		case ttLessThan:
-			return ValueFromBoolean(lv.Number < rv.Number)
+			return ValueFromBoolean(lv.number() < rv.number())
 		case ttLessThanOrEqual:
-			return ValueFromBoolean(lv.Number <= rv.Number)
+			return ValueFromBoolean(lv.number() <= rv.number())
 		case ttEqual:
-			return ValueFromBoolean(lv.Number == rv.Number)
+			return ValueFromBoolean(lv.number() == rv.number())
 		case ttNotEqual:
-			return ValueFromBoolean(lv.Number != rv.Number)
+			return ValueFromBoolean(lv.number() != rv.number())
 		default:
 			panic("not supported operator on two numbers")
 		}
@@ -116,7 +117,7 @@ func (b *BinaryExpression) Evaluate(ctx *Context) *Value {
 	if lt == vtString && rt == vtString {
 		switch op {
 		case ttAddition:
-			return ValueFromString(lv.Str + rv.Str)
+			return ValueFromString(lv.str() + rv.str())
 		default:
 			panic("not supported operator on two strings")
 		}
@@ -166,8 +167,8 @@ func NewFunctionExpression(name string, params *Parameters, block *BlockStatemen
 	}
 }
 
-func (f *FunctionExpression) Evaluate(ctx *Context) *Value {
-	value := ValueFromFunction(f.name, f)
+func (f *FunctionExpression) Evaluate(ctx *Context) Value {
+	value := ValueFromFunction(f)
 	if f.name != "" {
 		ctx.AddValue(f.name, value)
 	}
@@ -176,7 +177,7 @@ func (f *FunctionExpression) Evaluate(ctx *Context) *Value {
 
 // Execute executes function statements.
 // This is not a statement interface implementation.
-func (f *FunctionExpression) Execute(ctx *Context) *Value {
+func (f *FunctionExpression) Execute(ctx *Context) Value {
 	f.block.Execute(ctx)
 	if ret, ok := f.block.Return(); ok {
 		return ret
@@ -198,9 +199,9 @@ func (a *Arguments) PutArgument(expr Expression) {
 }
 
 func (a *Arguments) EvaluateAll(ctx *Context) Values {
-	args := []*Value{}
+	args := Values{}
 	for _, expr := range a.exprs {
-		args = append(args, expr.Evaluate(ctx))
+		args.values = append(args.values, expr.Evaluate(ctx))
 	}
 	return args
 }
@@ -215,8 +216,8 @@ type IndexExpression struct {
 	key       Expression
 }
 
-func (i *IndexExpression) Evaluate(ctx *Context) *Value {
-	value := i.indexable.Evaluate(ctx).Interface()
+func (i *IndexExpression) Evaluate(ctx *Context) Value {
+	value := i.indexable.Evaluate(ctx).value
 	keyer, ok1 := value.(KeyIndexer)
 	elemer, ok2 := value.(ElemIndexer)
 	if !ok1 && !ok2 {
@@ -224,10 +225,10 @@ func (i *IndexExpression) Evaluate(ctx *Context) *Value {
 	}
 	key := i.key.Evaluate(ctx)
 	if key.Type == vtString && keyer != nil {
-		return keyer.Key(key.Str)
+		return keyer.Key(key.str())
 	}
 	if key.Type == vtNumber && elemer != nil {
-		return elemer.Elem(key.Number)
+		return elemer.Elem(key.number())
 	}
 	panic("not indexable")
 }
@@ -237,7 +238,7 @@ type CallExpression struct {
 	Args     *Arguments
 }
 
-func (f *CallExpression) Evaluate(ctx *Context) *Value {
+func (f *CallExpression) Evaluate(ctx *Context) Value {
 	callable := f.Callable.Evaluate(ctx)
 	if callable.Type == vtVariable {
 		callable = callable.Evaluate(ctx)
@@ -264,7 +265,7 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 
 	switch callable.Type {
 	case vtFunction:
-		fn := callable.Func.(*FunctionExpression)
+		fn := callable.function()
 		newCtx := NewContext(ctx)
 		for i := 0; i < fn.params.Len() && i < f.Args.Len(); i++ {
 			newCtx.AddValue(
@@ -276,7 +277,7 @@ func (f *CallExpression) Evaluate(ctx *Context) *Value {
 	case vtBuiltin:
 		newCtx := NewContext(ctx)
 		args := f.Args.EvaluateAll(ctx)
-		return callable.Builtin(newCtx, args)
+		return callable.builtin().fn(newCtx, &args)
 	default:
 		panic("bad call")
 	}
@@ -293,10 +294,10 @@ func NewObjectExpression() *ObjectExpression {
 	}
 }
 
-func (o *ObjectExpression) Evaluate(ctx *Context) *Value {
+func (o *ObjectExpression) Evaluate(ctx *Context) Value {
 	obj := NewObject()
 	for k, v := range o.props {
-		obj.props[k] = *v.Evaluate(ctx)
+		obj.props[k] = v.Evaluate(ctx)
 	}
 	return ValueFromObject(obj)
 }
@@ -309,10 +310,10 @@ func NewArrayExpression() *ArrayExpression {
 	return &ArrayExpression{}
 }
 
-func (a *ArrayExpression) Evaluate(ctx *Context) *Value {
+func (a *ArrayExpression) Evaluate(ctx *Context) Value {
 	arr := NewArray()
 	for _, element := range a.elements {
-		arr.PushElem(*element.Evaluate(ctx))
+		arr.PushElem(element.Evaluate(ctx))
 	}
 	return ValueFromObject(arr)
 }
@@ -330,6 +331,6 @@ func (l *LambdaExpression) Wrap() *FunctionExpression {
 	return NewFunctionExpression("--lambda--", params, block)
 }
 
-func (l *LambdaExpression) Evaluate(ctx *Context) *Value {
-	return ValueFromFunction("--lambda--", l.Wrap())
+func (l *LambdaExpression) Evaluate(ctx *Context) Value {
+	return ValueFromFunction(l.Wrap())
 }

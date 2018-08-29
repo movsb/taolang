@@ -1,35 +1,40 @@
 package main
 
+// Symbol is a name value in the context scopes.
 type Symbol struct {
 	Name  string
-	Value *Value
+	Value Value
 }
 
+// Context chains named values in call frames.
 type Context struct {
 	parent  *Context
 	symbols []*Symbol
 }
 
+// NewContext news a context from parent.
 func NewContext(parent *Context) *Context {
 	return &Context{
 		parent: parent,
 	}
 }
 
-func (c *Context) FindValue(name string, outer bool) *Value {
+// FindValue finds a value from context frames.
+func (c *Context) FindValue(name string, outer bool) (Value, bool) {
 	for _, symbol := range c.symbols {
 		if symbol.Name == name {
-			return symbol.Value
+			return symbol.Value, true
 		}
 	}
 	if outer && c.parent != nil {
 		return c.parent.FindValue(name, true)
 	}
-	return nil
+	return Value{}, false
 }
 
-func (c *Context) AddValue(name string, value *Value) {
-	if c.FindValue(name, false) != nil {
+// AddValue adds a new value in current context.
+func (c *Context) AddValue(name string, value Value) {
+	if _, ok := c.FindValue(name, false); ok {
 		panicf("name `%s' is already defined in this scope", name)
 	}
 	c.symbols = append(c.symbols, &Symbol{
@@ -38,10 +43,13 @@ func (c *Context) AddValue(name string, value *Value) {
 	})
 }
 
-func (c *Context) SetValue(name string, value *Value) {
-	exist := c.FindValue(name, true)
-	if exist == nil {
-		panicf("name `%s' is not defined", name)
+// SetValue sets value of an existed name.
+func (c *Context) SetValue(name string, value Value) {
+	for _, symbol := range c.symbols {
+		if symbol.Name == name {
+			symbol.Value = value
+			return
+		}
 	}
-	*exist = *value
+	panicf("name `%s' is not defined", name)
 }
