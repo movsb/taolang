@@ -3,6 +3,23 @@ package main
 type Array struct {
 	object *Object
 	elems  []Value
+	funcs  map[string]func(*Context, *Values) Value
+}
+
+// NewArray news an array.
+func NewArray(elems ...Value) *Object {
+	o := &Object{}
+	o.props = make(map[string]Value)
+	o.array = &Array{elems: elems}
+	o.ElemIndexer = o.array
+	o.array.object = o
+	o.array.funcs = map[string]func(*Context, *Values) Value{
+		"each":   o.array.Each,
+		"map":    o.array.Map,
+		"reduce": o.array.Reduce,
+		"find":   o.array.Find,
+	}
+	return o
 }
 
 func (a *Array) Len() int {
@@ -28,6 +45,13 @@ func (a *Array) PushElem(val Value) {
 }
 
 /// functional programming implementations below
+
+func (a *Array) Functional(name string) *Builtin {
+	if fn, ok := a.funcs[name]; ok {
+		return &Builtin{name: name, fn: fn}
+	}
+	return nil
+}
 
 func (a *Array) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
 	ctx = NewContext(ctx)
