@@ -1,6 +1,6 @@
 function each() {
     let a = [1,3,5,7,9];
-    a.each((e,i,l)=>println(e,i,l));
+    a.each(e=>println(e));
 }
 
 function map() {
@@ -9,7 +9,14 @@ function map() {
     println(b);
 }
 
+function reduce() {
+    let a = [1,2,3];
+    let b = a.reduce((memo,num)=>memo+num,0);
+    println(b);
+}
+
 function main() {
     each();
     map();
+    reduce();
 }

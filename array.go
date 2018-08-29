@@ -50,17 +50,16 @@ func (a *Array) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
 	}
 }
 
-func (a *Array) _Each(callback func(elem Value, i int) bool) {
+func (a *Array) _Each(callback func(elem Value, index Value) bool) {
 	for i, n, next := 0, a.Len(), true; i < n && next; i++ {
-		next = callback(a.elems[i], i)
+		next = callback(a.elems[i], ValueFromNumber(i))
 	}
 }
 
 // Each iterates over a list of elements, yielding each in turn to an iteratee function.
 func (a *Array) Each(ctx *Context, args *Values) Value {
 	object := ValueFromObject(a.object)
-	a._Each(func(elem Value, i int) bool {
-		index := ValueFromNumber(i)
+	a._Each(func(elem Value, index Value) bool {
 		a._Call(ctx, args.At(0), elem, index, object)
 		return true
 	})
@@ -71,11 +70,24 @@ func (a *Array) Each(ctx *Context, args *Values) Value {
 func (a *Array) Map(ctx *Context, args *Values) Value {
 	object := ValueFromObject(a.object)
 	values := make([]Value, 0, a.Len())
-	a._Each(func(elem Value, i int) bool {
-		index := ValueFromNumber(i)
+	a._Each(func(elem Value, index Value) bool {
 		data := a._Call(ctx, args.At(0), elem, index, object)
 		values = append(values, data)
 		return true
 	})
 	return ValueFromObject(NewArray(values...))
+}
+
+// Reduce boils down the array into a single value.
+func (a *Array) Reduce(ctx *Context, args *Values) Value {
+	if args.Len() < 2 {
+		panic("usage: reduce(lambda, init)")
+	}
+	object := ValueFromObject(a.object)
+	memo := args.At(1)
+	a._Each(func(elem Value, index Value) bool {
+		memo = a._Call(ctx, args.At(0), memo, elem, index, object)
+		return true
+	})
+	return memo
 }
