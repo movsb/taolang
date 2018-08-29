@@ -2,6 +2,9 @@ package main
 
 type Parser struct {
 	tokenizer *Tokenizer
+
+	// TODO find a better way to do this
+	skipSemicolon bool
 }
 
 func NewParser(tokenizer *Tokenizer) *Parser {
@@ -70,6 +73,14 @@ func (p *Parser) follow(tt TokenType) bool {
 	return p.peek().typ == tt
 }
 
+func (p *Parser) push() {
+	p.tokenizer.PushFrame()
+}
+
+func (p *Parser) pop(putback bool) {
+	p.tokenizer.PopFrame(putback)
+}
+
 func (p *Parser) parseGlobalStatement() Statement {
 	return p.parseStatement(true)
 }
@@ -99,8 +110,8 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttLeftBrace:
 		// Notice: block statement skips parsing {} as object literal.
 		return p.parseBlockStatement()
-	case ttWhile:
-		return p.parseWhileStatement()
+	case ttFor:
+		return p.parseForStatement()
 	case ttBreak:
 		return p.parseBreakStatement()
 	case ttIf:
@@ -158,10 +169,14 @@ func (p *Parser) parseAssignmentStatement() (stmt Statement) {
 
 	as.Expr = p.parseExpression()
 
-	semi := p.tokenizer.Next()
-	if semi.typ != ttSemicolon {
-		p.tokenizer.Undo(semi)
-		return nil
+	if !p.skipSemicolon {
+		semi := p.tokenizer.Next()
+		if semi.typ != ttSemicolon {
+			p.tokenizer.Undo(semi)
+			return nil
+		}
+	} else {
+		p.skipSemicolon = false
 	}
 
 	if name.typ == ttBoolean || name.typ == ttNil {
@@ -229,14 +244,78 @@ func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
 	return block
 }
 
-func (p *Parser) parseWhileStatement() Statement {
-	p.expect(ttWhile)
-	expr := p.parseExpression()
-	block := p.parseBlockStatement()
-	return &WhileStatement{
-		expr:  expr,
-		block: block,
+// All three parts of for-stmt (init, test, incr) can be omitted.
+// If any of them is not omitted, no semicolon can be omitted.
+func (p *Parser) parseForStatement() *ForStatement {
+	p.expect(ttFor)
+
+	var fs ForStatement
+
+	hasInit := false
+
+	if p.follow(ttLet) {
+		hasInit = true
+		// TODO init can be assignment
+		fs.init = p.parseVariableStatement()
+	} else if p.follow(ttSemicolon) {
+		hasInit = true
+		p.expect(ttSemicolon)
 	}
+
+	if hasInit {
+		// test
+		if !p.follow(ttSemicolon) {
+			fs.test = p.parseExpression()
+			if fs.test == nil {
+				panic("expr expected")
+			} else {
+				p.expect(ttSemicolon)
+			}
+		} else {
+			p.next()
+			// no test
+		}
+		// incr
+		if !p.follow(ttLeftBrace) {
+			// is expr?
+			p.push()
+			fs.incr = p.parseExpression()
+			if !p.follow(ttLeftBrace) {
+				p.pop(true)
+				fs.incr = nil
+			} else {
+				p.pop(false)
+			}
+			// is assignment?
+			if fs.incr == nil {
+				p.push()
+				p.skipSemicolon = true
+				fs.incr = p.parseAssignmentStatement()
+				if !p.follow(ttLeftBrace) {
+					p.pop(true)
+					fs.incr = nil
+				} else {
+					p.pop(false)
+				}
+			}
+			if fs.incr == nil {
+				panic("incr expected")
+			}
+		} else {
+			// no incr
+		}
+	} else {
+		if !p.follow(ttLeftBrace) {
+			panic("for needs body")
+		}
+	}
+
+	fs.block = p.parseBlockStatement()
+	if fs.block == nil {
+		panic("for needs body")
+	}
+
+	return &fs
 }
 
 func (p *Parser) parseBreakStatement() Statement {

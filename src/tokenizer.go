@@ -63,7 +63,7 @@ const (
 	ttLet
 	ttFunction
 	ttReturn
-	ttWhile
+	ttFor
 	ttBreak
 	ttIf
 	ttElse
@@ -76,7 +76,7 @@ func init() {
 	keywords["let"] = ttLet
 	keywords["function"] = ttFunction
 	keywords["return"] = ttReturn
-	keywords["while"] = ttWhile
+	keywords["for"] = ttFor
 	keywords["break"] = ttBreak
 	keywords["if"] = ttIf
 	keywords["else"] = ttElse
@@ -125,7 +125,7 @@ func init() {
 	m[ttLet] = "let"
 	m[ttFunction] = "function"
 	m[ttReturn] = "return"
-	m[ttWhile] = "while"
+	m[ttFor] = "for"
 	m[ttBreak] = "break"
 	m[ttIf] = "if"
 	m[ttElse] = "else"

@@ -123,30 +123,52 @@ func (r *ExpressionStatement) Execute(ctx *Context) {
 	_ = value // drop expr value
 }
 
-type WhileStatement struct {
-	expr     Expression
+// ForStatement simulates go-style for loop.
+//
+// for init; test; incr {
+//      block
+// }
+type ForStatement struct {
+	init     Statement
+	test     Expression
+	incr     interface{} // can be either Expression or Statement(without semicolon)
 	block    *BlockStatement
 	retValue Value
 }
 
-func (w *WhileStatement) Return() (Value, bool) {
-	return w.retValue, w.retValue.defined()
+// Return implements Returner.
+func (f *ForStatement) Return() (Value, bool) {
+	return f.retValue, f.retValue.defined()
 }
 
-func (w *WhileStatement) Execute(ctx *Context) {
+// Execute implements Statement.
+func (f *ForStatement) Execute(ctx *Context) {
+	if f.init != nil {
+		f.init.Execute(ctx)
+	}
 	for {
-		cond := w.expr.Evaluate(ctx)
-		if !cond.Truth(ctx) {
+		// test
+		if f.test != nil {
+			if !f.test.Evaluate(ctx).Truth(ctx) {
+				break
+			}
+		}
+		// block
+		f.block.Execute(ctx)
+		if ret, ok := f.block.Return(); ok {
+			f.retValue = ret
+			return
+		}
+		if f.block.Break() {
 			break
 		}
-		newCtx := NewContext(ctx)
-		w.block.Execute(newCtx)
-		if value, ok := w.block.Return(); ok {
-			w.retValue = value
-			break
-		}
-		if w.block.Break() {
-			break
+		// incr
+		if f.incr != nil {
+			if expr, ok := f.incr.(Expression); ok {
+				expr.Evaluate(ctx)
+			} else if stmt, ok := f.incr.(Statement); ok {
+				stmt.Execute(ctx)
+			}
 		}
 	}
 }
