@@ -1,15 +1,11 @@
 package main
 
-import (
-	"fmt"
-)
-
 type Statement interface {
 	Execute(ctx *Context)
 }
 
 type Returner interface {
-	Return() (*Value, bool)
+	Return() (Value, bool)
 }
 
 type Breaker interface {
@@ -35,11 +31,7 @@ type VariableAssignmentStatement struct {
 }
 
 func (v *VariableAssignmentStatement) Execute(ctx *Context) {
-	var value *Value
-	if value = ctx.FindValue(v.Name, true); value == nil {
-		panic(fmt.Sprintf("undefined variable: %s", v.Name))
-	}
-	*value = *v.Expr.Evaluate(ctx)
+	ctx.SetValue(v.Name, v.Expr.Evaluate(ctx))
 }
 
 type FunctionStatement struct {
@@ -48,12 +40,12 @@ type FunctionStatement struct {
 }
 
 func (f *FunctionStatement) Execute(ctx *Context) {
-	ctx.AddValue(f.name, ValueFromFunction(f.name, f.expr))
+	ctx.AddValue(f.name, ValueFromFunction(f.expr))
 }
 
 type ReturnStatement struct {
 	expr  Expression
-	value *Value
+	value Value
 }
 
 func NewReturnStatement(expr Expression) *ReturnStatement {
@@ -66,12 +58,12 @@ func (r *ReturnStatement) Execute(ctx *Context) {
 	r.value = r.expr.Evaluate(ctx)
 }
 
-func (r *ReturnStatement) Return() (*Value, bool) {
+func (r *ReturnStatement) Return() (Value, bool) {
 	return r.value, true
 }
 
 type BlockStatement struct {
-	retValue *Value
+	retValue Value
 	broke    bool
 	stmts    []Statement
 }
@@ -84,8 +76,8 @@ func NewBlockStatement(stmts ...Statement) *BlockStatement {
 	return b
 }
 
-func (b *BlockStatement) Return() (*Value, bool) {
-	return b.retValue, b.retValue != nil
+func (b *BlockStatement) Return() (Value, bool) {
+	return b.retValue, b.retValue.defined()
 }
 
 func (b *BlockStatement) Break() bool {
@@ -134,17 +126,17 @@ func (r *ExpressionStatement) Execute(ctx *Context) {
 type WhileStatement struct {
 	expr     Expression
 	block    *BlockStatement
-	retValue *Value
+	retValue Value
 }
 
-func (w *WhileStatement) Return() (*Value, bool) {
-	return w.retValue, w.retValue != nil
+func (w *WhileStatement) Return() (Value, bool) {
+	return w.retValue, w.retValue.defined()
 }
 
 func (w *WhileStatement) Execute(ctx *Context) {
 	for {
 		cond := w.expr.Evaluate(ctx)
-		if !cond.Truthy(ctx) {
+		if !cond.Truth(ctx) {
 			break
 		}
 		newCtx := NewContext(ctx)
@@ -174,12 +166,12 @@ type IfStatement struct {
 	cond      Expression
 	ifBlock   *BlockStatement
 	elseBlock Statement // if or block
-	retValue  *Value
+	retValue  Value
 	broke     bool
 }
 
-func (i *IfStatement) Return() (*Value, bool) {
-	return i.retValue, i.retValue != nil
+func (i *IfStatement) Return() (Value, bool) {
+	return i.retValue, i.retValue.defined()
 }
 
 func (i *IfStatement) Break() bool {
@@ -187,8 +179,8 @@ func (i *IfStatement) Break() bool {
 }
 
 func (i *IfStatement) Execute(ctx *Context) {
-	cond := i.cond.Evaluate(ctx).Truthy(ctx)
-	if cond {
+	cond := i.cond.Evaluate(ctx)
+	if cond.Truth(ctx) {
 		newCtx := NewContext(ctx)
 		i.ifBlock.Execute(newCtx)
 		if ret, ok := i.ifBlock.Return(); ok {

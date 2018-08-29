@@ -5,169 +5,221 @@ import (
 	"fmt"
 )
 
+// ValueType is the type of a value.
 type ValueType int
 
 const (
-	vtNil ValueType = iota
+	_ ValueType = iota
+	vtNil
+	vtBoolean
 	vtNumber
 	vtString
-	vtBoolean
-	vtFunction
 	vtVariable
-	vtBuiltin
 	vtObject
+	vtFunction
+	vtBuiltin
 )
 
-// how to make this a c-like union struct ?
+// Value holds a union(dynamic) value identified by Type.
 type Value struct {
-	Type     ValueType
-	Bool     bool
-	Number   int
-	Str      string
-	Func     Expression
-	Variable string
-	Builtin  Builtin
-	Object   *Object
+	Type  ValueType
+	value interface{}
 }
 
-func ValueFromNil() *Value {
-	v := Value{}
-	v.SetNil()
-	return &v
+// ValueFromNil creates a nil value.
+func ValueFromNil() Value {
+	return Value{
+		Type: vtNil,
+	}
 }
 
-func ValueFromBoolean(b bool) *Value {
-	v := Value{}
-	v.SetBoolean(b)
-	return &v
+// ValueFromBoolean creates a boolean value.
+func ValueFromBoolean(b bool) Value {
+	return Value{
+		Type:  vtBoolean,
+		value: b,
+	}
 }
 
-func ValueFromNumber(num int) *Value {
-	v := Value{}
-	v.SetNumber(num)
-	return &v
+// ValueFromNumber creates a number value.
+func ValueFromNumber(num int) Value {
+	return Value{
+		Type:  vtNumber,
+		value: num,
+	}
 }
 
-func ValueFromString(str string) *Value {
-	v := Value{}
-	v.SetString(str)
-	return &v
+// ValueFromString creates a string value.
+func ValueFromString(str string) Value {
+	return Value{
+		Type:  vtString,
+		value: str,
+	}
 }
 
-func ValueFromFunction(name string, expr Expression) *Value {
-	v := Value{}
-	v.Str = name
-	v.SetFunction(expr)
-	return &v
+// ValueFromVariable creates a variable value.
+// It references a variable by its name.
+func ValueFromVariable(name string) Value {
+	return Value{
+		Type:  vtVariable,
+		value: name,
+	}
 }
 
-func ValueFromVariable(name string) *Value {
-	v := Value{}
-	v.SetVariable(name)
-	return &v
+// ValueFromObject creates an array | object value.
+func ValueFromObject(obj *Object) Value {
+	return Value{
+		Type:  vtObject,
+		value: obj,
+	}
 }
 
-func ValueFromBuiltin(name string, builtin Builtin) *Value {
-	v := Value{}
-	v.Str = name
-	v.SetBuiltin(builtin)
-	return &v
+// ValueFromFunction creates a function expression value.
+func ValueFromFunction(fn *FunctionExpression) Value {
+	return Value{
+		Type:  vtFunction,
+		value: fn,
+	}
 }
 
-func ValueFromObject(obj *Object) *Value {
-	v := Value{}
-	v.SetObject(obj)
-	return &v
+// ValueFromBuiltin creates a builtin function value.
+func ValueFromBuiltin(builtin *Builtin) Value {
+	return Value{
+		Type:  vtBuiltin,
+		value: builtin,
+	}
 }
 
-func (v *Value) SetNil() {
-	v.Type = vtNil
+func (v Value) defined() bool {
+	return v.Type != 0
+}
+func (v Value) undefined() bool {
+	return !v.defined()
 }
 
-func (v *Value) SetBoolean(b bool) {
-	v.Type = vtBoolean
-	v.Bool = b
+func (v *Value) isNil() bool {
+	return v.Type == vtNil
 }
 
-func (v *Value) SetNumber(num int) {
-	v.Type = vtNumber
-	v.Number = num
+func (v *Value) isBoolean() bool {
+	return v.Type == vtBoolean
 }
 
-func (v *Value) SetString(str string) {
-	v.Type = vtString
-	v.Str = str
+func (v *Value) isNumber() bool {
+	return v.Type == vtNumber
 }
 
-func (v *Value) SetFunction(expr Expression) {
-	v.Type = vtFunction
-	v.Func = expr
+func (v *Value) isString() bool {
+	return v.Type == vtString
 }
 
-func (v *Value) SetVariable(name string) {
-	v.Type = vtVariable
-	v.Variable = name
+func (v *Value) isObject() bool {
+	return v.Type == vtObject
 }
 
-func (v *Value) SetBuiltin(builtin Builtin) {
-	v.Type = vtBuiltin
-	v.Builtin = builtin
+func (v *Value) isVariable() bool {
+	return v.Type == vtVariable
 }
 
-func (v *Value) SetObject(obj *Object) {
-	v.Type = vtObject
-	v.Object = obj
+func (v *Value) isFunction() bool {
+	return v.Type == vtFunction
 }
 
-func (v *Value) Evaluate(ctx *Context) *Value {
+func (v *Value) isBuiltin() bool {
+	return v.Type == vtBuiltin
+}
+
+func (v *Value) checkType(vt ValueType) {
+	if v.Type != vt {
+		panic("wrong use")
+	}
+}
+
+func (v *Value) boolean() bool {
+	v.checkType(vtBoolean)
+	return v.value.(bool)
+}
+
+func (v *Value) number() int {
+	v.checkType(vtNumber)
+	return v.value.(int)
+}
+
+func (v *Value) str() string {
+	v.checkType(vtString)
+	return v.value.(string)
+}
+
+func (v *Value) variable() string {
+	v.checkType(vtVariable)
+	return v.value.(string)
+}
+
+func (v *Value) object() *Object {
+	v.checkType(vtObject)
+	return v.value.(*Object)
+}
+
+func (v *Value) function() *FunctionExpression {
+	v.checkType(vtFunction)
+	return v.value.(*FunctionExpression)
+}
+
+func (v *Value) builtin() *Builtin {
+	v.checkType(vtBuiltin)
+	return v.value.(*Builtin)
+}
+
+// Evaluate implements Expression.
+func (v Value) Evaluate(ctx *Context) Value {
 	switch v.Type {
 	case vtNil, vtBoolean, vtNumber, vtString:
-		cp := *v
-		return &cp
-	case vtFunction:
 		return v
 	case vtVariable:
-		value := ctx.FindValue(v.Variable, true)
-		if value == nil {
-			panic(fmt.Sprintf("undefined symbol: %s", v.Variable))
+		value, ok := ctx.FindValue(v.variable(), true)
+		if !ok {
+			panic(fmt.Sprintf("undefined symbol: %s", v.variable()))
 		}
 		return value
-	case vtBuiltin:
-		return v
 	case vtObject:
+		return v
+	case vtFunction:
+		return v
+	case vtBuiltin:
 		return v
 	default:
 		panic("cannot evaluate value on type")
 	}
 }
 
-func (v *Value) String() string {
+func (v Value) String() string {
 	switch v.Type {
 	case vtNil:
 		return "nil"
 	case vtBoolean:
-		return fmt.Sprint(v.Bool)
+		return fmt.Sprint(v.boolean())
 	case vtNumber:
-		return fmt.Sprint(v.Number)
+		return fmt.Sprint(v.number())
 	case vtString:
-		return v.Str
+		return v.str()
 	case vtFunction:
-		expr := v.Func.(*FunctionExpression)
+		expr := v.function()
 		name := expr.name
 		if name == "" {
 			name = "<anonymous>"
 		}
 		return fmt.Sprintf("function(%s)", name)
 	case vtBuiltin:
-		return fmt.Sprintf("builtin(%s)", v.Str)
+		return fmt.Sprintf("builtin(%s)", v.str())
 	case vtObject:
-		if !v.Object.IsArray() {
+		if !v.object().IsArray() {
 			return fmt.Sprintf(`"[object]"`)
 		} else {
 			buf := bytes.NewBuffer(nil)
 			buf.WriteString("[")
-			for i, n := 0, v.Object.Len(); i < n; i++ {
-				buf.WriteString(v.Object.Elem(i).String())
+			for i, n := 0, v.object().Len(); i < n; i++ {
+				elem := v.object().Elem(i)
+				buf.WriteString(elem.String())
 				if i != n-1 {
 					buf.WriteString(",")
 				}
@@ -179,61 +231,54 @@ func (v *Value) String() string {
 	return fmt.Sprintf("unknown(%p)", v)
 }
 
-func (v *Value) Interface() interface{} {
-	switch v.Type {
-	case vtNil:
-		return nil
-	case vtNumber:
-		return v.Number
-	case vtString:
-		return v.Str
-	case vtBoolean:
-		return v.Bool
-	case vtFunction:
-		return v.Func
-	case vtVariable:
-		return v.Variable
-	case vtBuiltin:
-		return v.Builtin
-	case vtObject:
-		return v.Object
-	default:
-		return nil
-	}
-}
-
-func (v *Value) Truthy(ctx *Context) bool {
+// Truth return true if value represents a true value.
+// A value is considered true when:
+func (v *Value) Truth(ctx *Context) bool {
 	switch v.Type {
 	case vtNil:
 		return false
 	case vtNumber:
-		return v.Number != 0
+		return v.number() != 0
 	case vtString:
-		return v.Str != ""
+		return v.str() != ""
 	case vtBoolean:
-		return v.Bool
+		return v.boolean()
 	case vtFunction, vtBuiltin, vtObject:
 		return true
 	case vtVariable:
-		value := ctx.FindValue(v.Variable, true)
-		if value == nil {
-			panicf("variable is not defined: %s", v.Variable)
+		value, ok := ctx.FindValue(v.variable(), true)
+		if !ok {
+			panicf("variable is not defined: %s", v.variable())
 		}
-		return value.Truthy(ctx)
+		return value.Truth(ctx)
 	}
-	panicf("unknown truthy type")
+	panicf("unknown truth type")
 	return false
 }
 
-type Values []*Value
-
-func (v *Values) Len() int {
-	return len(*v)
+// Values is a collection of values.
+type Values struct {
+	values []Value
 }
 
-func (v *Values) ToInterfaces() []interface{} {
+// NewValues news a Values.
+func NewValues(values ...Value) *Values {
+	v := &Values{}
+	for _, value := range values {
+		v.values = append(v.values, value)
+	}
+	return v
+}
+
+// Len lens the values.
+func (v *Values) Len() int {
+	return len(v.values)
+}
+
+// All alls the values.
+func (v *Values) All() []interface{} {
 	var i []interface{}
-	for _, value := range *v {
+	for _, value := range v.values {
 		i = append(i, value)
 	}
 	return i

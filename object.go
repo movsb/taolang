@@ -1,17 +1,17 @@
 package main
 
 type KeyIndexer interface {
-	Key(key string) *Value
+	Key(key string) Value
 	SetKey(key string, val Value)
 }
 
 type ElemIndexer interface {
 	Len() int
-	Elem(pos int) *Value
+	Elem(pos int) Value
 	SetElem(pos int, val Value)
 	PushElem(val Value)
 
-	Each(ctx *Context, args Values) *Value
+	Each(ctx *Context, args *Values) Value
 }
 
 // Object is an object.
@@ -39,16 +39,16 @@ func NewArray() *Object {
 }
 
 // Key gets a value by key.
-func (o *Object) Key(key string) *Value {
+func (o *Object) Key(key string) Value {
 	if o.IsArray() {
 		if key == "length" {
 			return ValueFromNumber(o.Len())
 		} else if key == "each" {
-			return ValueFromBuiltin("each", o.Each)
+			return ValueFromBuiltin(NewBuiltin("each", o.Each))
 		}
 	}
 	if val, ok := o.props[key]; ok {
-		return &val
+		return val
 	}
 	return ValueFromNil()
 }
@@ -70,11 +70,11 @@ func (a *Array) Len() int {
 	return len(a.elems)
 }
 
-func (a *Array) Elem(pos int) *Value {
+func (a *Array) Elem(pos int) Value {
 	if pos < 0 || pos > len(a.elems)-1 {
 		panic("array index out of range")
 	}
-	return &a.elems[pos]
+	return a.elems[pos]
 }
 
 func (a *Array) SetElem(pos int, val Value) {
@@ -88,37 +88,37 @@ func (a *Array) PushElem(val Value) {
 	a.elems = append(a.elems, val)
 }
 
-func (a *Array) Each(ctx *Context, args Values) *Value {
-	if args.Len() != 1 || args[0].Type != vtFunction {
+func (a *Array) Each(ctx *Context, args *Values) Value {
+	if args.Len() != 1 || !args.values[0].isFunction() {
 		panic("each accepts function or lambda only")
 	}
-	fn := args[0].Func.(*FunctionExpression)
+	fn := args.values[0].function()
 	if fn.params.Len() != 1 {
 		panic("one parameter only")
 	}
 	for i, n := 0, a.Len(); i < n; i++ {
 		newCtx := NewContext(ctx)
-		newCtx.AddValue(fn.params.names[0], &a.elems[i])
+		newCtx.AddValue(fn.params.names[0], a.elems[i])
 		maybeVar := fn.Execute(newCtx)
 		switch maybeVar.Type {
 		case vtVariable:
-			value := newCtx.FindValue(maybeVar.Variable, true)
-			if value == nil {
+			value, ok := newCtx.FindValue(maybeVar.variable(), true)
+			if !ok {
 				panic("variable not defined")
 			}
 			_ = value // drop it because each doesn't need it
 		case vtFunction:
-			f := maybeVar.Func.(*FunctionExpression)
+			f := maybeVar.function()
 			if f.params.Len() != 1 {
 				panic("one parameter only")
 			}
 			newCtx2 := NewContext(newCtx)
-			newCtx2.AddValue(f.params.names[0], &a.elems[i])
+			newCtx2.AddValue(f.params.names[0], a.elems[i])
 			_ = f.Execute(newCtx2)
 		case vtBuiltin:
 			newCtx2 := NewContext(newCtx)
-			values := Values{&a.elems[i]}
-			_ = maybeVar.Builtin(newCtx2, values)
+			values := NewValues(a.elems[i])
+			_ = maybeVar.builtin().fn(newCtx2, values)
 		}
 
 	}
