@@ -93,6 +93,27 @@ function main() {
 }
 ```
 
+### 闭包
+
+```js
+function createCounter() {
+    let a = 0;
+    return function() {
+        a = a + 1;
+        return a;
+    };
+}
+
+function main() {
+    let c1 = createCounter();
+    let c2 = createCounter();
+    println(c1()); // 1
+    println(c1()); // 2
+    println(c2()); // 1
+    println(c2()); // 2
+}
+```
+
 ### 对象定义与访问
 
 ```js
