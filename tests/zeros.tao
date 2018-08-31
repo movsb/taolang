@@ -1,0 +1,6 @@
+function main() {
+    let a = [!nil, !false, !0, !"", ![], !{}, !function(){}, !print];
+    for let i=0; i < a.length; i=i+1 {
+        println(a[i]);
+    }
+}

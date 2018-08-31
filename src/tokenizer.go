@@ -361,13 +361,15 @@ func (t *Tokenizer) next() (token Token) {
 			return t.iif('=', ttGreaterThanOrEqual, ttGreaterThan)
 		case '<':
 			return t.iif('=', ttLessThanOrEqual, ttLessThan)
+		case '!':
+			return Token{typ: ttNot}
 		case '&':
 			return t.iif('&', ttAndAnd, ttBitAnd)
 		case '|':
 			return t.iif('|', ttOrOr, ttBitOr)
 		}
 
-		panic(fmt.Sprintf("unhandled character at: line:%d,col:%d", t.line, t.col))
+		panic(fmt.Sprintf("unhandled character `%c' at: line:%d,col:%d", ch, t.line, t.col))
 	}
 }
 

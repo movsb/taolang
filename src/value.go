@@ -247,10 +247,16 @@ func (v Value) Truth(ctx *Context) bool {
 		return v.str() != ""
 	case vtBoolean:
 		return v.boolean()
-	case vtFunction, vtBuiltin, vtObject:
+	case vtFunction, vtBuiltin:
 		return true
 	case vtVariable:
 		return ctx.MustFind(v.variable(), true).Truth(ctx)
+	case vtObject:
+		obj := v.object()
+		if obj.IsArray() {
+			return obj.Len() > 0
+		}
+		return len(obj.props) > 0
 	}
 	panicf("unknown truth type")
 	return false

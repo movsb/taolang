@@ -26,18 +26,7 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 		}
 		return ValueFromNumber(-value.number())
 	case ttNot:
-		switch value.Type {
-		case vtNil:
-			return ValueFromBoolean(true)
-		case vtBoolean:
-			return ValueFromBoolean(!value.boolean())
-		case vtNumber:
-			return ValueFromBoolean(!(value.number() != 0))
-		case vtString:
-			return ValueFromBoolean(!(len(value.str()) != 0))
-		default:
-			panic("!value is invalid")
-		}
+		return ValueFromBoolean(!value.Truth(ctx))
 	}
 	panicf("unknown unary operator: %v", u.tt) // TODO
 	return ValueFromNil()
