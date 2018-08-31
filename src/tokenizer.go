@@ -6,8 +6,10 @@ import (
 	"container/list"
 	"fmt"
 	"io"
+	"os"
 )
 
+// TokenType is the type of a token.
 type TokenType uint
 
 const (
@@ -15,6 +17,7 @@ const (
 
 	ttEOF
 
+	// braces
 	ttLeftParen
 	ttRightParen
 	ttLeftBrace
@@ -27,8 +30,10 @@ const (
 	ttColon
 	ttLambda
 
-	// arithmetic
+	// assignment
 	ttAssign
+
+	// arithmetic
 	ttAddition
 	ttSubstraction
 	ttMultiply
@@ -72,74 +77,82 @@ const (
 var keywords map[string]TokenType
 
 func init() {
-	keywords = make(map[string]TokenType)
-	keywords["let"] = ttLet
-	keywords["function"] = ttFunction
-	keywords["return"] = ttReturn
-	keywords["for"] = ttFor
-	keywords["break"] = ttBreak
-	keywords["if"] = ttIf
-	keywords["else"] = ttElse
-	keywords["nil"] = ttNil
-	keywords["true"] = ttBoolean
-	keywords["false"] = ttBoolean
+	keywords = map[string]TokenType{
+		"let":      ttLet,
+		"function": ttFunction,
+		"return":   ttReturn,
+		"for":      ttFor,
+		"break":    ttBreak,
+		"if":       ttIf,
+		"else":     ttElse,
+		"nil":      ttNil,
+		"true":     ttBoolean,
+		"false":    ttBoolean,
+	}
 }
 
 var tokenNames map[TokenType]string
 
 func init() {
-	m := make(map[TokenType]string)
-	m[ttEOF] = "EOF"
-	m[ttLeftParen] = "("
-	m[ttRightParen] = ")"
-	m[ttLeftBracket] = "["
-	m[ttRightBracket] = "]"
-	m[ttLeftBrace] = "{"
-	m[ttRightBrace] = "}"
-	m[ttDot] = "."
-	m[ttComma] = ","
-	m[ttSemicolon] = ";"
-	m[ttColon] = ":"
-	m[ttLambda] = "=>"
+	tokenNames = map[TokenType]string{
+		ttEOF:          "EOF",
+		ttLeftParen:    "(",
+		ttRightParen:   ")",
+		ttLeftBracket:  "[",
+		ttRightBracket: "]",
+		ttLeftBrace:    "{",
+		ttRightBrace:   "}",
+		ttDot:          ".",
+		ttComma:        ",",
+		ttSemicolon:    ";",
+		ttColon:        ":",
+		ttLambda:       "=>",
 
-	m[ttAssign] = "="
-	m[ttAddition] = "+"
-	m[ttSubstraction] = "-"
-	m[ttMultiply] = "*"
-	m[ttDivision] = "/"
-	m[ttPercent] = "%"
+		ttAssign: "=",
 
-	m[ttGreaterThan] = ">"
-	m[ttGreaterThanOrEqual] = ">="
-	m[ttEqual] = "=="
-	m[ttNotEqual] = "!="
-	m[ttLessThan] = "<"
-	m[ttLessThanOrEqual] = "<="
+		ttAddition:     "+",
+		ttSubstraction: "-",
+		ttMultiply:     "*",
+		ttDivision:     "/",
+		ttPercent:      "%",
 
-	m[ttNot] = "!"
-	m[ttAndAnd] = "&&"
-	m[ttOrOr] = "||"
+		ttGreaterThan:        ">",
+		ttGreaterThanOrEqual: ">=",
+		ttEqual:              "==",
+		ttNotEqual:           "!=",
+		ttLessThan:           "<",
+		ttLessThanOrEqual:    "<=",
 
-	m[ttNil] = "nil"
+		ttNot:    "!",
+		ttAndAnd: "&&",
+		ttOrOr:   "||",
 
-	m[ttLet] = "let"
-	m[ttFunction] = "function"
-	m[ttReturn] = "return"
-	m[ttFor] = "for"
-	m[ttBreak] = "break"
-	m[ttIf] = "if"
-	m[ttElse] = "else"
-	tokenNames = m
+		ttNil: "nil",
+
+		ttLet:      "let",
+		ttFunction: "function",
+		ttReturn:   "return",
+		ttFor:      "for",
+		ttBreak:    "break",
+		ttIf:       "if",
+		ttElse:     "else",
+	}
 }
 
+// Token is a token.
 type Token struct {
 	typ  TokenType
 	str  string
 	num  int
 	line int
+	col  int
 }
 
-func (t Token) String() string {
+func (t Token) String() (ret string) {
+	defer func() {
+		ret += fmt.Sprintf(" (line:%d col:%d)", t.line, t.col)
+	}()
+
 	if s, ok := tokenNames[t.typ]; ok {
 		return s
 	}
@@ -156,13 +169,17 @@ func (t Token) String() string {
 	return "--unknown-token--"
 }
 
+// Tokenizer splits input into tokens.
 type Tokenizer struct {
 	input  *bufio.Reader
 	buf    *list.List
 	frames []*list.List
-	line   int
+	line   int  // current line number
+	col    int  // current line column
+	ch     byte // current read char
 }
 
+// NewTokenizer creates a new tokenizer.
 func NewTokenizer(input io.Reader) *Tokenizer {
 	return &Tokenizer{
 		input: bufio.NewReader(input),
@@ -171,12 +188,18 @@ func NewTokenizer(input io.Reader) *Tokenizer {
 	}
 }
 
+// Next returns next token tokenized.
+// It first uses buffers or frames if there is one.
 func (t *Tokenizer) Next() (token Token) {
 	// use frame
 	defer func() {
 		if len(t.frames) > 0 {
 			frame := t.frames[len(t.frames)-1]
 			frame.PushBack(token)
+		}
+		if except := recover(); except != nil {
+			fmt.Printf("%v\n", except)
+			os.Exit(-1)
 		}
 	}()
 
@@ -193,6 +216,7 @@ func (t *Tokenizer) Next() (token Token) {
 	return
 }
 
+// Undo undoes(put back) a token.
 func (t *Tokenizer) Undo(token Token) {
 	t.buf.PushFront(token)
 	if len(t.frames) > 0 {
@@ -204,16 +228,19 @@ func (t *Tokenizer) Undo(token Token) {
 	}
 }
 
+// Peek peeks the next token.
 func (t *Tokenizer) Peek() Token {
 	token := t.Next()
 	t.Undo(token)
 	return token
 }
 
+// PushFrame starts a new lookahead.
 func (t *Tokenizer) PushFrame() {
 	t.frames = append(t.frames, list.New())
 }
 
+// PopFrame stops a lookahead.
 func (t *Tokenizer) PopFrame(putBack bool) {
 	if len(t.frames) == 0 {
 		panic("bad PopFrame call")
@@ -225,21 +252,24 @@ func (t *Tokenizer) PopFrame(putBack bool) {
 	}
 }
 
+// next produces next token.
 func (t *Tokenizer) next() (token Token) {
 	defer func() {
 		token.line = t.line
+		token.col = t.col
+		// fmt.Println(token)
 	}()
 
 	for {
-		ch, err := t.input.ReadByte()
-		if err == io.EOF {
+		ch := t.read()
+		if ch == 0 {
 			return Token{
 				typ: ttEOF,
 			}
 		}
 
 		if ch >= '0' && ch <= '9' {
-			t.input.UnreadByte()
+			t.unread()
 			n := t.readNumber()
 			t.checkFollow()
 			return Token{
@@ -247,7 +277,7 @@ func (t *Tokenizer) next() (token Token) {
 				num: n,
 			}
 		} else if ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' {
-			t.input.UnreadByte()
+			t.unread()
 			name := t.readIdentifier()
 			t.checkFollow()
 			typ := ttIdentifier
@@ -259,7 +289,7 @@ func (t *Tokenizer) next() (token Token) {
 				str: name,
 			}
 		} else if ch == '"' {
-			t.input.UnreadByte()
+			t.unread()
 			s := t.readString()
 			t.checkFollow()
 			return Token{
@@ -269,10 +299,7 @@ func (t *Tokenizer) next() (token Token) {
 		}
 
 		switch ch {
-		case ' ', '\t', '\r':
-			continue
-		case '\n':
-			t.line++
+		case ' ', '\t', '\r', '\n':
 			continue
 		case '(':
 			return Token{typ: ttLeftParen}
@@ -340,43 +367,58 @@ func (t *Tokenizer) next() (token Token) {
 			return t.iif('|', ttOrOr, ttBitOr)
 		}
 
-		panic("unhandled character")
+		panic(fmt.Sprintf("unhandled character at: line:%d,col:%d", t.line, t.col))
 	}
 }
 
 func (t *Tokenizer) read() byte {
 	ch, _ := t.input.ReadByte()
+	t.ch = ch
+	//if t.col > 0 {
+	t.col++
+	//}
+	if t.ch == '\n' {
+		t.line++
+		t.col = 1
+	}
 	return ch
 }
 
 func (t *Tokenizer) unread() {
-	t.input.UnreadByte()
+	if t.ch != 0 {
+		t.input.UnreadByte()
+		if t.ch == '\n' {
+			t.line--
+			t.col = 1 // invalid
+		} else {
+			t.col--
+		}
+	}
 }
 
 func (t *Tokenizer) checkFollow() {
-	ch, err := t.input.ReadByte()
-	if err != io.EOF {
-		t.input.UnreadByte()
-	}
+	ch := t.read()
+	t.unread()
+
 	if ch >= '0' && ch <= '9' ||
 		ch >= 'a' && ch <= 'z' ||
 		ch >= 'A' && ch <= 'Z' ||
 		ch == '"' {
-		panic("unexpected follow character")
+		panic(fmt.Sprintf("unexpected follow character %c at line:%d,col:%d", ch, t.line, t.col))
 	}
 }
 
+// iif returns tt1 if next char is ch, else returns tt2.
 func (t *Tokenizer) iif(ch byte, tt1 TokenType, tt2 TokenType) Token {
 	c := t.read()
 	if c == ch {
 		return Token{typ: tt1}
 	}
-	if c != 0 {
-		t.unread()
-	}
+	t.unread()
 	return Token{typ: tt2}
 }
 
+// readString reads a quoted string.
 func (t *Tokenizer) readString() string {
 	buf := bytes.NewBuffer(nil)
 	t.read() // eat '"'
@@ -390,6 +432,7 @@ func (t *Tokenizer) readString() string {
 	return buf.String()
 }
 
+// readNumber reads a int32 number.
 func (t *Tokenizer) readNumber() int {
 	num := 0
 	for {
@@ -397,27 +440,25 @@ func (t *Tokenizer) readNumber() int {
 		if ch >= '0' && ch <= '9' {
 			num = num*10 + (int(ch) - '0')
 		} else {
-			if ch != 0 {
-				t.unread()
-			}
+			t.unread()
 			break
 		}
 	}
 	return num
 }
 
+// readIdentifier reads a identifier.
 func (t *Tokenizer) readIdentifier() string {
 	buf := bytes.NewBuffer(nil)
 	for {
 		ch := t.read()
 		if ch >= 'a' && ch <= 'z' ||
 			ch >= 'A' && ch <= 'Z' ||
-			ch >= '0' && ch <= '9' {
+			ch >= '0' && ch <= '9' ||
+			ch == '_' {
 			buf.WriteByte(ch)
 		} else {
-			if ch != 0 {
-				t.unread()
-			}
+			t.unread()
 			break
 		}
 	}
