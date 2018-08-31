@@ -165,7 +165,7 @@ function main() {
 function main2() {
     let a = [1,2,3,4,5,6,7,8];
     let n = a.length-1;
-    while n >= 0 {
+    for n >= 0 {
         println(a[n]);
         n = n - 1;
     }
@@ -217,39 +217,24 @@ function where() {
 
 ### 控制语句
 
-#### while 控制语句
+#### for 循环
 
 表达式部分不用 `()` 括起来。
 
 ```js
-function While() {
-    let n = 10;
-    while n > 0 {
-        print(n);
-        n = n - 1;
-    }
-}
-
-function Break() {
-    let n = 10;
-    while n > 0 {
-        print(n);
-        break;
-    }
-}
-
-function Return() {
-    let n = 10;
-    while n > 0 {
-        print(n);
-        return nil;
-    }
-}
-
 function main() {
-    While();
-    Break();
-    Return();
+    let a = [1,2,3,4,5];
+    for let i=0; i<a.length; i=i+1 {
+        println(a[i]);
+    }
+    let b = 3;
+    for {
+        println(b);
+        b = b-1;
+        if b < -10 {
+            break;
+        }
+    }
 }
 ```
 
@@ -278,7 +263,7 @@ function If() {
 
 function Break() {
     let a = 10;
-    while a > 0 {
+    for a > 0 {
         if a == 5 {
             break;
         }
@@ -289,7 +274,7 @@ function Break() {
 
 function Return() {
     let a = 10;
-    while a > 0 {
+    for a > 0 {
         if a == 8 {
             return a;
         }

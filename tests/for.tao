@@ -1,14 +1,26 @@
 function main() {
-    let a = [1,2,3,4,5];
-    for let i=0; i<a.length; i=i+1 {
-        println(a[i]);
-    }
-    let b = 3;
+    for1();
+    for2();
+    for3();
+}
+
+function for1() {
     for {
-        println(b);
-        b = b-1;
-        if b < -10 {
-            break;
-        }
+        println("for1");
+        break;
+    }
+}
+
+function for2() {
+    let n = 3;
+    for n >= 0 {
+        println(n);
+        n = n - 1;
+    }
+}
+
+function for3() {
+    for let n = 3; n >= 0; n = n - 1 {
+        println(n);
     }
 }
