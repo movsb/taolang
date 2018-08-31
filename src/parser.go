@@ -247,7 +247,9 @@ func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
 }
 
 // All three parts of for-stmt (init, test, incr) can be omitted.
-// If any of them is not omitted, no semicolon can be omitted.
+// If all these parts are omitted, the two semicolons can be omitted.
+//   for [init]; [test]; [incr] {}
+//   for {}
 func (p *Parser) parseForStatement() *ForStatement {
 	p.expect(ttFor)
 
@@ -262,6 +264,9 @@ func (p *Parser) parseForStatement() *ForStatement {
 	} else if p.follow(ttSemicolon) {
 		hasInit = true
 		p.expect(ttSemicolon)
+	} else if !p.follow(ttLeftBrace) {
+		fs.test = p.parseExpression()
+		hasInit = false
 	}
 
 	if hasInit {
