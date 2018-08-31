@@ -4,14 +4,6 @@ type Statement interface {
 	Execute(ctx *Context)
 }
 
-type Returner interface {
-	Return() (Value, bool)
-}
-
-type Breaker interface {
-	Break() bool
-}
-
 type VariableStatement struct {
 	Name string
 	Expr Expression
@@ -35,17 +27,15 @@ func (v *AssignmentStatement) Execute(ctx *Context) {
 }
 
 type FunctionStatement struct {
-	name string
 	expr *FunctionExpression
 }
 
 func (f *FunctionStatement) Execute(ctx *Context) {
-	ctx.AddValue(f.name, ValueFromFunction(f.expr))
+	_ = f.expr.Evaluate(ctx)
 }
 
 type ReturnStatement struct {
-	expr  Expression
-	value Value
+	expr Expression
 }
 
 func NewReturnStatement(expr Expression) *ReturnStatement {
@@ -55,17 +45,12 @@ func NewReturnStatement(expr Expression) *ReturnStatement {
 }
 
 func (r *ReturnStatement) Execute(ctx *Context) {
-	r.value = r.expr.Evaluate(ctx)
-}
-
-func (r *ReturnStatement) Return() (Value, bool) {
-	return r.value, true
+	retval := r.expr.Evaluate(ctx)
+	ctx.SetReturn(retval)
 }
 
 type BlockStatement struct {
-	retValue Value
-	broke    bool
-	stmts    []Statement
+	stmts []Statement
 }
 
 func NewBlockStatement(stmts ...Statement) *BlockStatement {
@@ -76,46 +61,31 @@ func NewBlockStatement(stmts ...Statement) *BlockStatement {
 	return b
 }
 
-func (b *BlockStatement) Return() (Value, bool) {
-	return b.retValue, b.retValue.defined()
-}
-
-func (b *BlockStatement) Break() bool {
-	return b.broke
-}
-
 func (b *BlockStatement) Execute(ctx *Context) {
 	for _, stmt := range b.stmts {
+		var newCtx *Context
 		switch typed := stmt.(type) {
 		case *BlockStatement:
-			newCtx := NewContext(ctx)
+			newCtx = NewContext("--block--", ctx)
 			typed.Execute(newCtx)
 		default:
+			newCtx = ctx
 			typed.Execute(ctx)
 		}
-		if returner, ok := stmt.(Returner); ok {
-			if ret, ok := returner.Return(); ok {
-				b.retValue = ret
-				return
-			}
+		if newCtx.broke {
+			ctx.broke = true
+			break
 		}
-		if breaker, ok := stmt.(Breaker); ok {
-			if breaker.Break() {
-				b.broke = true
-				break
-			}
+		if newCtx.hasret {
+			ctx.hasret = true
+			ctx.retval = newCtx.retval
+			return
 		}
 	}
 }
 
 type ExpressionStatement struct {
 	expr Expression
-}
-
-func NewExpressionStatement(expr Expression) *ExpressionStatement {
-	return &ExpressionStatement{
-		expr: expr,
-	}
 }
 
 func (r *ExpressionStatement) Execute(ctx *Context) {
@@ -129,16 +99,10 @@ func (r *ExpressionStatement) Execute(ctx *Context) {
 //      block
 // }
 type ForStatement struct {
-	init     Statement
-	test     Expression
-	incr     interface{} // can be either Expression or Statement(without semicolon)
-	block    *BlockStatement
-	retValue Value
-}
-
-// Return implements Returner.
-func (f *ForStatement) Return() (Value, bool) {
-	return f.retValue, f.retValue.defined()
+	init  Statement
+	test  Expression
+	incr  interface{} // can be either Expression or Statement(without semicolon)
+	block *BlockStatement
 }
 
 // Execute implements Statement.
@@ -155,11 +119,10 @@ func (f *ForStatement) Execute(ctx *Context) {
 		}
 		// block
 		f.block.Execute(ctx)
-		if ret, ok := f.block.Return(); ok {
-			f.retValue = ret
+		if ctx.hasret {
 			return
 		}
-		if f.block.Break() {
+		if ctx.broke {
 			break
 		}
 		// incr
@@ -176,69 +139,50 @@ func (f *ForStatement) Execute(ctx *Context) {
 type BreakStatement struct {
 }
 
-func (b *BreakStatement) Break() bool {
-	return true
-}
-
 func (b *BreakStatement) Execute(ctx *Context) {
-
+	ctx.SetBreak()
 }
 
 type IfStatement struct {
 	cond      Expression
 	ifBlock   *BlockStatement
 	elseBlock Statement // if or block
-	retValue  Value
-	broke     bool
-}
-
-func (i *IfStatement) Return() (Value, bool) {
-	return i.retValue, i.retValue.defined()
-}
-
-func (i *IfStatement) Break() bool {
-	return i.broke
 }
 
 func (i *IfStatement) Execute(ctx *Context) {
 	cond := i.cond.Evaluate(ctx)
 	if cond.Truth(ctx) {
-		newCtx := NewContext(ctx)
+		newCtx := NewContext("--block--", ctx)
 		i.ifBlock.Execute(newCtx)
-		if ret, ok := i.ifBlock.Return(); ok {
-			i.retValue = ret
+		if newCtx.broke {
+			ctx.broke = true
 			return
 		}
-		if broke := i.ifBlock.Break(); broke {
-			i.broke = true
+		if newCtx.hasret {
+			ctx.hasret = true
+			ctx.retval = newCtx.retval
 			return
 		}
 	} else {
-		var stmt Statement
+		newCtx := NewContext("--block--", ctx)
 		switch typed := i.elseBlock.(type) {
 		case nil:
 			return
 		case *IfStatement:
-			stmt = typed
-			typed.Execute(ctx)
+			typed.Execute(newCtx)
 		case *BlockStatement:
-			stmt = typed
-			newCtx := NewContext(ctx)
 			typed.Execute(newCtx)
 		default:
 			panic("bad else stmt")
 		}
-		if ret, ok := stmt.(Returner); ok {
-			if value, ok := ret.Return(); ok {
-				i.retValue = value
-				return
-			}
+		if newCtx.broke {
+			ctx.broke = true
+			return
 		}
-		if brk, ok := stmt.(Breaker); ok {
-			if brk.Break() {
-				i.broke = true
-				return
-			}
+		if newCtx.hasret {
+			ctx.hasret = true
+			ctx.retval = newCtx.retval
+			return
 		}
 	}
 }

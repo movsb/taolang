@@ -1,5 +1,11 @@
 package main
 
+// var usedContexts map[string]uint
+//
+// func init() {
+// 	usedContexts = make(map[string]uint)
+// }
+
 // Symbol is a name value in the context scopes.
 type Symbol struct {
 	Name  string
@@ -8,13 +14,33 @@ type Symbol struct {
 
 // Context chains named values in call frames.
 type Context struct {
+	// the name of the context, for debug purpose
+	name    string
 	parent  *Context
 	symbols []*Symbol
+	broke   bool  // a break statement has executed
+	hasret  bool  // Is retval set?
+	retval  Value // a return statement has executed
 }
 
 // NewContext news a context from parent.
-func NewContext(parent *Context) *Context {
+// name: who this context is created for.
+// parent: the parent scope or the parent closure chain.
+func NewContext(name string, parent *Context) *Context {
+	// thisName := name
+	// if last, ok := usedContexts[name]; ok {
+	// 	thisName = name + fmt.Sprint(last+1)
+	// 	usedContexts[name]++
+	// } else {
+	// 	usedContexts[thisName] = 0
+	// }
+	// parentName := ""
+	// if parent != nil {
+	// 	parentName = parent.name
+	// }
+	// log.Printf("NewContext: %s -> %s\n", thisName, parentName)
 	return &Context{
+		name:   name,
 		parent: parent,
 	}
 }
@@ -51,6 +77,7 @@ func (c *Context) AddValue(name string, value Value) {
 		Name:  name,
 		Value: value,
 	})
+	// log.Printf("AddValue %s to %s\n", name, c.name)
 }
 
 // SetValue sets value of an existed name.
@@ -58,8 +85,30 @@ func (c *Context) SetValue(name string, value Value) {
 	for _, symbol := range c.symbols {
 		if symbol.Name == name {
 			symbol.Value = value
+			// log.Printf("SetValue %v in %s\n", value, c.name)
 			return
 		}
 	}
+	if c.parent != nil {
+		c.parent.SetValue(name, value)
+		return
+	}
 	panicf("name `%s' is not defined", name)
+}
+
+// SetParent sets parent context.
+func (c *Context) SetParent(parent *Context) {
+	// log.Printf("SetParent: %s -> %s\n", c.name, parent.name)
+	c.parent = parent
+}
+
+// SetReturn sets block return value.
+func (c *Context) SetReturn(retval Value) {
+	c.hasret = true
+	c.retval = retval
+}
+
+// SetBreak sets break flag.
+func (c *Context) SetBreak() {
+	c.broke = true
 }

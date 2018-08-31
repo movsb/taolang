@@ -73,8 +73,8 @@ func ValueFromObject(obj *Object) Value {
 	}
 }
 
-// ValueFromFunction creates a function expression value.
-func ValueFromFunction(fn *FunctionExpression) Value {
+// ValueFromFunction creates a evaluated function expression value.
+func ValueFromFunction(fn *EvaluatedFunctionExpression) Value {
 	return Value{
 		Type:  vtFunction,
 		value: fn,
@@ -90,13 +90,6 @@ func ValueFromBuiltin(name string, fn func(*Context, *Values) Value) Value {
 			fn:   fn,
 		},
 	}
-}
-
-func (v Value) defined() bool {
-	return v.Type != 0
-}
-func (v Value) undefined() bool {
-	return !v.defined()
 }
 
 func (v *Value) isNil() bool {
@@ -162,9 +155,9 @@ func (v *Value) object() *Object {
 	return v.value.(*Object)
 }
 
-func (v *Value) function() *FunctionExpression {
+func (v *Value) function() *EvaluatedFunctionExpression {
 	v.checkType(vtFunction)
-	return v.value.(*FunctionExpression)
+	return v.value.(*EvaluatedFunctionExpression)
 }
 
 func (v *Value) builtin() *Builtin {
@@ -202,13 +195,13 @@ func (v Value) String() string {
 		return v.str()
 	case vtFunction:
 		expr := v.function()
-		name := expr.name
+		name := expr.expr.name
 		if name == "" {
 			name = "<anonymous>"
 		}
 		return fmt.Sprintf("function(%s)", name)
 	case vtBuiltin:
-		return fmt.Sprintf("builtin(%s)", v.str())
+		return fmt.Sprintf("builtin(%s)", v.builtin().name)
 	case vtObject:
 		if !v.object().IsArray() {
 			buf := bytes.NewBuffer(nil)
@@ -239,7 +232,7 @@ func (v Value) String() string {
 			return buf.String()
 		}
 	}
-	return fmt.Sprintf("unknown(%p)", v)
+	return fmt.Sprintf("unknown value")
 }
 
 // Truth return true if value represents a true value.

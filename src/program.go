@@ -9,7 +9,7 @@ func (p *Program) Execute() (ret Value, err error) {
 		err = toErr(recover())
 	}()
 
-	global := NewContext(nil)
+	global := NewContext("--global--", nil)
 
 	InitBuiltins(global)
 
