@@ -56,20 +56,20 @@ func (a *Array) Functional(name string) *Builtin {
 }
 
 func (a *Array) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
-	ctx = NewContext(ctx)
+	ctx = NewContext("--lambda--", nil)
 	lambda := lambdaValue.function()
 	lambda.BindArguments(ctx, args...)
 	switch data := lambda.Execute(ctx); data.Type {
 	case vtVariable:
 		return ctx.MustFind(data.variable(), true)
 	case vtFunction:
-		newCtx := NewContext(ctx)
 		fn := data.function()
+		newCtx := NewContext(fn.expr.name, nil)
 		fn.BindArguments(newCtx, args...)
 		return fn.Execute(newCtx)
 	case vtBuiltin:
-		newCtx := NewContext(ctx)
 		builtin := data.builtin()
+		newCtx := NewContext(builtin.name, nil)
 		return builtin.fn(newCtx, NewValues(args...))
 	default:
 		return data

@@ -97,7 +97,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 		return p.parseVariableStatement()
 	case ttFunction:
 		fn := p.parseFunctionStatement()
-		if fn.name == "" {
+		if fn.expr.name == "" {
 			panic("function statement must have function name")
 		}
 		return fn
@@ -193,7 +193,6 @@ func (p *Parser) parseFunctionStatement() *FunctionStatement {
 	var fn FunctionStatement
 	p.expect(ttFunction)
 	expr := p.parseFunctionExpression()
-	fn.name = expr.name
 	fn.expr = expr
 	return &fn
 }

@@ -5,8 +5,8 @@ test: ./tao
 
 build: ./tao
 
-./tao:
+./tao: src/*.go
 	cd src && go build -o ../tao
 
 main: build
-	./tao main.tao
+	@./tao main.tao
