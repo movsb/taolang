@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>The Tao Programming Language</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" media="screen" href="style.css" />
+</head>
+<body>
+<div id="head">
+<h1>The Tao Programming Language</h1>
+</div>
+<hr />
+<div id="body">
+
+<div class=left>
+
+<p>Tao 是由 <a href="https://github.com/movsb" target=_blank title="movsb @ GitHub">tao</a> 开发的一门类似 <a href="https://en.wikipedia.org/wiki/JavaScript" target=_blank title="JavaScript - Wikipedia">JavaScript</a> 的脚本语言。
+她是作者在学习编译原理期间，在下班后熬了 7 个晚上的时间打造出来的。希望你能喜欢。</p>
+
+<p>她目前至少拥有以下特性：</p>
+<ul>
+    <li>动态类型</li>
+    <li>数组、对象</li>
+    <li>函数作为第一类值</li>
+    <li>Lambda 表达式</li>
+    <li>函数式编程</li>
+    <li>词法作用域、闭包</li>
+</ul>
+
+<p>一些有用的链接：</p>
+<ul>
+    <li>项目仓库：<a href="https://github.com/movsb/taolang">movsb/taolang - GitHub</a></li>
+    <li>作者的 GitHub：<a href="https://github.com/movsb">movsb - GitHub</a></li>
+    <li>作者邮箱：<a href="mailto:chkesp@gmail.com">chkesp@gmail.com</a></li>
+</ul>
+</div>
+
+<form id="form" class=right>
+
+<div id=editor>
+    <textarea id=source name=source></textarea>
+    <div class=vert-split></div>
+    <textarea id=result></textarea>
+</div>
+
+<div id=toolbar>
+    <select id=files name=file style="width:200px">
+    </select>
+    <input type=submit value=运行 />
+</div>
+
+</form>
+
+</div>
+
+<hr />
+
+<div id="foot">
+    <p>
+        <i>Copyright &copy; 2018 All rights reserved.</i>
+        <i>Last-Modified: Sat Sep 1 18:49:40 CST 2018</i>
+    </p>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
