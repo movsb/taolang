@@ -1,0 +1,7 @@
+function main() {
+    let a = 5;
+    a--;
+    println(a--, a);
+    a++;
+    println(a++, a);
+}

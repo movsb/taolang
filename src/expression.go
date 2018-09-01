@@ -5,6 +5,11 @@ type Expression interface {
 	Evaluate(ctx *Context) Value
 }
 
+// Addresser is implemented by those who can be assigned.
+type Addresser interface {
+	Address(ctx *Context) *Value
+}
+
 type UnaryExpression struct {
 	tt   TokenType
 	expr Expression
@@ -17,6 +22,7 @@ func NewUnaryExpression(tt TokenType, expr Expression) *UnaryExpression {
 	}
 }
 
+// Evaluate implements
 func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	value := u.expr.Evaluate(ctx)
 	switch u.tt {
@@ -30,6 +36,53 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	}
 	panicf("unknown unary operator: %v", u.tt) // TODO
 	return ValueFromNil()
+}
+
+// IncrementDecrementExpression is a++ / a-- / ++a / --a
+type IncrementDecrementExpression struct {
+	prefix bool
+	op     Token
+	expr   Expression
+}
+
+func NewIncrementDecrementExpression(op Token, prefix bool, expr Expression) *IncrementDecrementExpression {
+	return &IncrementDecrementExpression{
+		prefix: prefix,
+		op:     op,
+		expr:   expr,
+	}
+}
+
+// Evaluate implements
+func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
+	addresser, ok := i.expr.(Addresser)
+	if !ok {
+		val := i.expr.Evaluate(ctx)
+		panicf("not assignable: %v (type: %s)", val, val.TypeName())
+	}
+	ref := addresser.Address(ctx)
+	if ref == nil {
+		panic("cannot address")
+	}
+	if !ref.isNumber() {
+		panic("value is not increment/decrement-able")
+	}
+	if i.prefix {
+		panic("prefix not handled")
+	} else {
+		switch i.op.typ {
+		case ttIncrement:
+			old := ref.number()
+			ref.value = ref.number() + 1
+			return ValueFromNumber(old)
+		case ttDecrement:
+			old := ref.number()
+			ref.value = ref.number() - 1
+			return ValueFromNumber(old)
+		default:
+			panic("bad op")
+		}
+	}
 }
 
 type BinaryExpression struct {

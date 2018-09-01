@@ -28,7 +28,7 @@ func (p *Parser) Parse() (program *Program, err error) {
 	}
 	tk := p.next()
 	if tk.typ != ttEOF {
-		panic("unexpected statement")
+		panicf("unexpected token: %v", tk)
 	}
 
 	return program, nil
@@ -96,10 +96,19 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttLet:
 		return p.parseVariableStatement()
 	case ttFunction:
+		// don't know whether it is a function statement or function expression.
+		// but, if a function doesn't have a name, it must be function expression.
+		p.enter()
 		fn := p.parseFunctionStatement()
 		if fn.expr.name == "" {
-			panic("function statement must have function name")
+			// if p.peek().typ != ttLeftParen {
+			// 	panic("anonymous function expression must be called immediately")
+			// }
+			p.leave(true)
+			// TODO we should directly parse function expression statement since we knew it is.
+			return p.parseExpressionStatement()
 		}
+		p.leave(false)
 		return fn
 	}
 
@@ -129,10 +138,6 @@ func (p *Parser) parseStatement(global bool) Statement {
 	}
 
 	return nil
-}
-
-func (p *Parser) parseExpression() Expression {
-	return p.parseLogicalExpression()
 }
 
 func (p *Parser) parseVariableStatement() *VariableStatement {
@@ -355,6 +360,10 @@ func (p *Parser) parseIfStatement() *IfStatement {
 	}
 }
 
+func (p *Parser) parseExpression() Expression {
+	return p.parseLogicalExpression()
+}
+
 func (p *Parser) parseLogicalExpression() Expression {
 	left := p.parseEqualityExpression()
 	for {
@@ -425,7 +434,18 @@ func (p *Parser) parseUnaryExpression() Expression {
 		right := p.parseUnaryExpression()
 		return NewUnaryExpression(op.typ, right)
 	}
-	return p.parsePrimaryExpression()
+	return p.parsePostfixIncrementDecrementExpression()
+}
+
+func (p *Parser) parsePostfixIncrementDecrementExpression() Expression {
+	left := p.parsePrimaryExpression()
+	if left == nil {
+		return left
+	}
+	if op, ok := p.match(ttIncrement, ttDecrement); ok {
+		return NewIncrementDecrementExpression(op, false, left)
+	}
+	return left
 }
 
 func (p *Parser) parsePrimaryExpression() Expression {
