@@ -1,0 +1,19 @@
+function fib() {
+    let a = 0;
+    let b = 1;
+    return function() {
+        let c = a + b;
+        a = b;
+        b = c;
+        return a;
+    };
+}
+
+function main() {
+    let f = fib();
+    let n = 0;
+    for n < 50 {
+        println(f());
+        n = n + 1;
+    }
+}

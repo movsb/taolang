@@ -1,0 +1,43 @@
+function main() {
+    let a;          // 变量定义，值为 nil
+    let b = nil;    // nil 是空类型
+    let c = true;   // 布尔变量
+    let d = 123;    // 数值类型，内部类型为 int
+    let e = "str";  // 字符串类型（原始字符串）
+    let f = function(x,y,z) {return x+y*z;};        // 函数类型，可以直接当表达式使用
+    let g = function() {return "test"+"str";}();    // 函数作为表达式，定义后可以直接调用
+    let h = [1,2,3,true,"str",[111,222,333]];
+    let x = {       // 定义一个对象
+        a: nil,
+        b: 1,
+        c: "cc",
+        d: true,
+        e: function() {print("e");},
+        f: {
+            xxx: "this is xxx",
+        },
+        g: function () {
+            return "d";
+        },
+        h: function() {
+            return {
+                what: "what",
+                when: "when",
+                "who?": "who?",
+            };
+        },
+    };
+
+    println(a,b,c,d,e,f,g,h);
+
+    println(x);
+    println(x.a);
+    println(x.b);
+    println(x["c"]);
+    println(x[x.g()]);
+    println(x.e);
+    println(x.f.xxx);
+    println(x.h().what);
+    println(x.h()["who?"]);
+    println(x.y);
+}

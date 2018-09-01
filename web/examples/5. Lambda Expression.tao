@@ -1,0 +1,9 @@
+function main() {
+    let a = [1,3,5,7,9];
+
+    a.each(x=>x+x);
+
+    a.each(x=>println);
+
+    a.each(x=>println(x*x));
+}
