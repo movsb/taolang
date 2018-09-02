@@ -33,6 +33,9 @@ const (
 	// assignment
 	ttAssign
 	ttStarStarAssign
+	ttStarAssign
+	ttDivideAssign
+	ttPercentAssign
 
 	// ++ --
 	ttIncrement
@@ -119,6 +122,9 @@ func init() {
 
 		ttAssign:           "=",
 		ttStarStarAssign:   "**=",
+		ttStarAssign:       "*=",
+		ttDivideAssign:     "/=",
+		ttPercentAssign:    "%=",
 
 		ttAddition:     "+",
 		ttSubstraction: "-",
@@ -340,29 +346,25 @@ func (t *Tokenizer) next() (token Token) {
 			switch next := t.read(); next {
 			case '*':
 				return t.iif('=', ttStarStarAssign, ttStarStar)
+			case '=':
+				return Token{typ: ttStarAssign}
 			default:
 				t.unread()
 				return Token{typ: ttMultiply}
 			}
 		case '/':
-			c := t.read()
-			if c == '/' {
-				for {
-					c = t.read()
-					if c == '\n' || c == 0 {
-						if c == '\n' {
-							t.line++
-						}
-						break
-					}
-				}
+			switch c := t.read(); c {
+			case '/':
+				t.readComment()
 				continue
-			} else {
+			case '=':
+				return Token{typ: ttDivideAssign}
+			default:
 				t.unread()
 				return Token{typ: ttDivision}
 			}
 		case '%':
-			return Token{typ: ttPercent}
+			return t.iif('=', ttPercentAssign, ttPercent)
 		case '=':
 			next := t.read()
 			switch next {
@@ -496,4 +498,17 @@ func (t *Tokenizer) readIdentifier() string {
 		}
 	}
 	return buf.String()
+}
+
+// readComment eats out comment
+func (t *Tokenizer) readComment() {
+	for {
+		c := t.read()
+		if c == '\n' || c == 0 {
+			if c == '\n' {
+				t.line++
+			}
+			break
+		}
+	}
 }

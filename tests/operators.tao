@@ -8,10 +8,40 @@ function exponentiation() {
     a = 3;
     a **= 2;
     println(a);
+
+    println();
+}
+
+function multiplication() {
+    let a;
+    let b;
+    let c;
+
+    a = 3;
+    a = a * 3;
+    println(a);
+    a = 3;
+    a *= 3;
+    println(a);
+
+    b = 8;
+    b = b / 2;
+    println(b); 
+    b = 8;
+    b /= 2;
+    println(b); 
+
+    c = 8;
+    c = c % 3;
+    println(c); 
+    c = 8;
+    c %= 3;
+    println(c); 
 }
 
 function all() {
     exponentiation();
+    multiplication();
 }
 
 function main() {
