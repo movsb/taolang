@@ -160,36 +160,30 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 	}()
 
 	var as AssignmentStatement
-	name := p.next()
-	if name.typ != ttIdentifier &&
-		name.typ != ttBoolean && // these two are predeclared constants
-		name.typ != ttNil {
-		p.undo(name)
+
+	as.left = p.parseExpression()
+
+	if _, ok := p.match(ttAssign); ok {
+		as.right = p.parseExpression()
+	} else if op, ok := p.match(ttStarStarAssign); ok {
+		right := p.parseExpression()
+		var binOp TokenType
+		switch op.typ {
+		case ttStarStarAssign:
+			binOp = ttStarStar
+		default:
+			panic("won't go here")
+		}
+		as.right = NewBinaryExpression(as.left, binOp, right)
+	} else {
 		return nil
 	}
-	as.Name = name.str
-
-	assign := p.next()
-	if assign.typ != ttAssign {
-		p.undo(assign)
-		p.undo(name)
-		return nil
-	}
-
-	as.Expr = p.parseExpression()
 
 	if !p.skipSemicolon {
-		semi := p.next()
-		if semi.typ != ttSemicolon {
-			p.undo(semi)
-			return nil
-		}
+		// hah? !skip? skip?
+		p.skip(ttSemicolon)
 	} else {
 		p.skipSemicolon = false
-	}
-
-	if name.typ == ttBoolean || name.typ == ttNil {
-		panicf("predeclared constants cannot be assigned: %v", name)
 	}
 
 	return &as
@@ -418,14 +412,24 @@ func (p *Parser) parseAdditionExpression() Expression {
 }
 
 func (p *Parser) parseMultiplicationExpression() Expression {
-	left := p.parseUnaryExpression()
+	left := p.parseExponentiationExpression()
 	for {
 		if op, ok := p.match(ttMultiply, ttDivision, ttPercent); ok {
-			right := p.parseUnaryExpression()
+			right := p.parseExponentiationExpression()
 			left = NewBinaryExpression(left, op.typ, right)
 		} else {
 			break
 		}
+	}
+	return left
+}
+
+func (p *Parser) parseExponentiationExpression() Expression {
+	left := p.parseUnaryExpression()
+	if op, ok := p.match(ttStarStar); ok {
+		// ** is r2l association
+		right := p.parseExponentiationExpression()
+		return NewBinaryExpression(left, op.typ, right)
 	}
 	return left
 }

@@ -32,6 +32,7 @@ const (
 
 	// assignment
 	ttAssign
+	ttStarStarAssign
 
 	// ++ --
 	ttIncrement
@@ -43,6 +44,7 @@ const (
 	ttMultiply
 	ttDivision
 	ttPercent
+	ttStarStar
 
 	// comparision
 	ttGreaterThan
@@ -114,13 +116,16 @@ func init() {
 
 		ttIncrement: "++",
 		ttDecrement: "--",
-		ttAssign: "=",
+
+		ttAssign:           "=",
+		ttStarStarAssign:   "**=",
 
 		ttAddition:     "+",
 		ttSubstraction: "-",
 		ttMultiply:     "*",
 		ttDivision:     "/",
 		ttPercent:      "%",
+		ttStarStar:     "**",
 
 		ttGreaterThan:        ">",
 		ttGreaterThanOrEqual: ">=",
@@ -332,7 +337,13 @@ func (t *Tokenizer) next() (token Token) {
 		case '-':
 			return t.iiif('-', '=', ttDecrement, ttMinusAssign, ttSubstraction)
 		case '*':
-			return Token{typ: ttMultiply}
+			switch next := t.read(); next {
+			case '*':
+				return t.iif('=', ttStarStarAssign, ttStarStar)
+			default:
+				t.unread()
+				return Token{typ: ttMultiply}
+			}
 		case '/':
 			c := t.read()
 			if c == '/' {

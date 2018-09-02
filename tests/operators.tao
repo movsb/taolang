@@ -1,0 +1,19 @@
+function exponentiation() {
+    let a;
+    
+    a = 3;
+    a = a ** 2;
+    println(a);
+
+    a = 3;
+    a **= 2;
+    println(a);
+}
+
+function all() {
+    exponentiation();
+}
+
+function main() {
+    all();
+}

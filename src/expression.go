@@ -1,5 +1,9 @@
 package main
 
+import (
+	"math"
+)
+
 // Expression is the interface that is implemented by all expressions.
 type Expression interface {
 	Evaluate(ctx *Context) Value
@@ -26,6 +30,11 @@ func NewUnaryExpression(tt TokenType, expr Expression) *UnaryExpression {
 func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	value := u.expr.Evaluate(ctx)
 	switch u.tt {
+	case ttAddition:
+		if value.Type != vtNumber {
+			panic("+value is invalid")
+		}
+		return ValueFromNumber(+value.number())
 	case ttSubstraction:
 		if value.Type != vtNumber {
 			panic("-value is invalid")
@@ -163,6 +172,10 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromBoolean(lv.number() != rv.number())
 		case ttPercent:
 			return ValueFromNumber(lv.number() % rv.number())
+		case ttStarStar:
+			// TODO precision lost
+			val := math.Pow(float64(lv.number()), float64(rv.number()))
+			return ValueFromNumber(int(val))
 		}
 	}
 
