@@ -4,4 +4,5 @@ function main() {
     println(a--, a);
     a++;
     println(a++, a);
+    println(++a, --a);
 }

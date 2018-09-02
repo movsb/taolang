@@ -69,7 +69,16 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 		panic("value is not increment/decrement-able")
 	}
 	if i.prefix {
-		panic("prefix not handled")
+		switch i.op.typ {
+		case ttIncrement:
+			ref.value = ref.number() + 1
+			return ValueFromNumber(ref.number())
+		case ttDecrement:
+			ref.value = ref.number() - 1
+			return ValueFromNumber(ref.number())
+		default:
+			panic("bad op")
+		}
 	} else {
 		switch i.op.typ {
 		case ttIncrement:

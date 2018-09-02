@@ -431,9 +431,13 @@ func (p *Parser) parseMultiplicationExpression() Expression {
 }
 
 func (p *Parser) parseUnaryExpression() Expression {
-	if op, ok := p.match(ttNot, ttSubstraction); ok {
+	if op, ok := p.match(ttNot, ttSubstraction, ttAddition); ok {
 		right := p.parseUnaryExpression()
 		return NewUnaryExpression(op.typ, right)
+	}
+	if op, ok := p.match(ttIncrement, ttDecrement); ok {
+		right := p.parseUnaryExpression()
+		return NewIncrementDecrementExpression(op, true, right)
 	}
 	return p.parsePostfixIncrementDecrementExpression()
 }
