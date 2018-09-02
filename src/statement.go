@@ -17,13 +17,24 @@ func (v *VariableStatement) Execute(ctx *Context) {
 	ctx.AddValue(v.Name, value)
 }
 
+// AssignmentStatement assigns right to left
+// address(left) <- evaluate(right)
 type AssignmentStatement struct {
-	Name string
-	Expr Expression
+	left  Expression
+	right Expression
 }
 
 func (v *AssignmentStatement) Execute(ctx *Context) {
-	ctx.SetValue(v.Name, v.Expr.Evaluate(ctx))
+	addresser, ok := v.left.(Addresser)
+	if !ok {
+		val := v.left.Evaluate(ctx)
+		panicf("not assignable: %v (type: %s)", val, val.TypeName())
+	}
+	ref := addresser.Address(ctx)
+	if ref == nil {
+		panic("cannot address")
+	}
+	*ref = v.right.Evaluate(ctx)
 }
 
 type FunctionStatement struct {

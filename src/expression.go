@@ -1,5 +1,9 @@
 package main
 
+import (
+	"math"
+)
+
 // Expression is the interface that is implemented by all expressions.
 type Expression interface {
 	Evaluate(ctx *Context) Value
@@ -26,6 +30,11 @@ func NewUnaryExpression(tt TokenType, expr Expression) *UnaryExpression {
 func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	value := u.expr.Evaluate(ctx)
 	switch u.tt {
+	case ttAddition:
+		if value.Type != vtNumber {
+			panic("+value is invalid")
+		}
+		return ValueFromNumber(+value.number())
 	case ttSubstraction:
 		if value.Type != vtNumber {
 			panic("-value is invalid")
@@ -163,6 +172,20 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromBoolean(lv.number() != rv.number())
 		case ttPercent:
 			return ValueFromNumber(lv.number() % rv.number())
+		case ttStarStar:
+			// TODO precision lost
+			val := math.Pow(float64(lv.number()), float64(rv.number()))
+			return ValueFromNumber(int(val))
+		case ttLeftShift:
+			return ValueFromNumber(lv.number() << uint(rv.number()))
+		case ttRightShift:
+			return ValueFromNumber(lv.number() >> uint(rv.number()))
+		case ttBitAnd:
+			return ValueFromNumber(lv.number() & rv.number())
+		case ttBitOr:
+			return ValueFromNumber(lv.number() | rv.number())
+		case ttBitXor:
+			return ValueFromNumber(lv.number() ^ rv.number())
 		}
 	}
 
@@ -189,6 +212,30 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	}
 
 	panic("unknown binary operator and operands")
+}
+
+// TernaryExpression is `?:` expression.
+type TernaryExpression struct {
+	cond  Expression
+	left  Expression
+	right Expression
+}
+
+// NewTernaryExpression news a ternary expression.
+func NewTernaryExpression(cond, left, right Expression) *TernaryExpression {
+	return &TernaryExpression{
+		cond:  cond,
+		left:  left,
+		right: right,
+	}
+}
+
+// Evaluate implements Expression.
+func (t *TernaryExpression) Evaluate(ctx *Context) Value {
+	if t.cond.Evaluate(ctx).Truth(ctx) {
+		return t.left.Evaluate(ctx)
+	}
+	return t.right.Evaluate(ctx)
 }
 
 type Parameters struct {

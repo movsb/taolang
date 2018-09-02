@@ -24,14 +24,28 @@ const (
 	ttRightBrace
 	ttLeftBracket
 	ttRightBracket
+
+	// seperators
 	ttDot
 	ttComma
 	ttSemicolon
 	ttColon
 	ttLambda
+	ttQuestion
 
 	// assignment
 	ttAssign
+	ttPlusAssign
+	ttMinusAssign
+	ttStarStarAssign
+	ttStarAssign
+	ttDivideAssign
+	ttPercentAssign
+	ttLeftShiftAssign
+	ttRightShiftAssign
+	ttAndAssign
+	ttXorAssign
+	ttOrAssign
 
 	// ++ --
 	ttIncrement
@@ -43,6 +57,7 @@ const (
 	ttMultiply
 	ttDivision
 	ttPercent
+	ttStarStar
 
 	// comparision
 	ttGreaterThan
@@ -60,6 +75,9 @@ const (
 	// Bit
 	ttBitAnd
 	ttBitOr
+	ttBitXor
+	ttLeftShift
+	ttRightShift
 
 	// Literals
 	ttNil
@@ -114,13 +132,26 @@ func init() {
 
 		ttIncrement: "++",
 		ttDecrement: "--",
-		ttAssign: "=",
+
+		ttAssign:           "=",
+		ttPlusAssign:       "+=",
+		ttMinusAssign:      "-=",
+		ttStarStarAssign:   "**=",
+		ttStarAssign:       "*=",
+		ttDivideAssign:     "/=",
+		ttPercentAssign:    "%=",
+		ttLeftShiftAssign:  "<<=",
+		ttRightShiftAssign: ">>=",
+		ttAndAssign:        "&=",
+		ttXorAssign:        "^=",
+		ttOrAssign:         "|=",
 
 		ttAddition:     "+",
 		ttSubstraction: "-",
 		ttMultiply:     "*",
 		ttDivision:     "/",
 		ttPercent:      "%",
+		ttStarStar:     "**",
 
 		ttGreaterThan:        ">",
 		ttGreaterThanOrEqual: ">=",
@@ -132,6 +163,12 @@ func init() {
 		ttNot:    "!",
 		ttAndAnd: "&&",
 		ttOrOr:   "||",
+
+		ttBitAnd:     "&",
+		ttBitOr:      "|",
+		ttBitXor:     "^",
+		ttLeftShift:  "<<",
+		ttRightShift: ">>",
 
 		ttNil: "nil",
 
@@ -325,6 +362,8 @@ func (t *Tokenizer) next() (token Token) {
 			return Token{typ: ttComma}
 		case ':':
 			return Token{typ: ttColon}
+		case '?':
+			return Token{typ: ttQuestion}
 		case ';':
 			return Token{typ: ttSemicolon}
 		case '+':
@@ -332,47 +371,58 @@ func (t *Tokenizer) next() (token Token) {
 		case '-':
 			return t.iiif('-', '=', ttDecrement, ttMinusAssign, ttSubstraction)
 		case '*':
-			return Token{typ: ttMultiply}
+			switch next := t.read(); next {
+			case '*':
+				return t.iif('=', ttStarStarAssign, ttStarStar)
+			case '=':
+				return Token{typ: ttStarAssign}
+			default:
+				t.unread()
+				return Token{typ: ttMultiply}
+			}
 		case '/':
-			c := t.read()
-			if c == '/' {
-				for {
-					c = t.read()
-					if c == '\n' || c == 0 {
-						if c == '\n' {
-							t.line++
-						}
-						break
-					}
-				}
+			switch c := t.read(); c {
+			case '/':
+				t.readComment()
 				continue
-			} else {
+			case '=':
+				return Token{typ: ttDivideAssign}
+			default:
 				t.unread()
 				return Token{typ: ttDivision}
 			}
 		case '%':
-			return Token{typ: ttPercent}
+			return t.iif('=', ttPercentAssign, ttPercent)
 		case '=':
-			next := t.read()
-			switch next {
+			return t.iiif('=', '>', ttEqual, ttLambda, ttAssign)
+		case '>':
+			switch c := t.read(); c {
 			case '=':
-				return Token{typ: ttEqual}
+				return Token{typ: ttGreaterThanOrEqual}
 			case '>':
-				return Token{typ: ttLambda}
+				return t.iif('=', ttRightShiftAssign, ttRightShift)
 			default:
 				t.unread()
-				return Token{typ: ttAssign}
+				return Token{typ: ttGreaterThan}
 			}
-		case '>':
-			return t.iif('=', ttGreaterThanOrEqual, ttGreaterThan)
 		case '<':
-			return t.iif('=', ttLessThanOrEqual, ttLessThan)
+			switch c := t.read(); c {
+			case '=':
+				return Token{typ: ttLessThanOrEqual}
+			case '<':
+				return t.iif('=', ttLeftShiftAssign, ttLeftShift)
+			default:
+				t.unread()
+				return Token{typ: ttLessThan}
+			}
 		case '!':
-			return Token{typ: ttNot}
+			return t.iif('=', ttNotEqual, ttNot)
 		case '&':
-			return t.iif('&', ttAndAnd, ttBitAnd)
+			return t.iiif('&', '=', ttAndAnd, ttAndAssign, ttBitAnd)
 		case '|':
-			return t.iif('|', ttOrOr, ttBitOr)
+			return t.iiif('|', '=', ttOrOr, ttOrAssign, ttBitOr)
+		case '^':
+			return t.iif('=', ttXorAssign, ttBitXor)
 		}
 
 		panic(fmt.Sprintf("unhandled character `%c' at: line:%d,col:%d", ch, t.line, t.col))
@@ -485,4 +535,17 @@ func (t *Tokenizer) readIdentifier() string {
 		}
 	}
 	return buf.String()
+}
+
+// readComment eats out comment
+func (t *Tokenizer) readComment() {
+	for {
+		c := t.read()
+		if c == '\n' || c == 0 {
+			if c == '\n' {
+				t.line++
+			}
+			break
+		}
+	}
 }

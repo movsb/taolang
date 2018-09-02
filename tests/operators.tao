@@ -1,0 +1,139 @@
+function exponentiation() {
+    let a;
+    
+    a = 3;
+    a = a ** 2;
+    println(a);
+
+    a = 3;
+    a **= 2;
+    println(a);
+}
+
+function multiplication() {
+    let a;
+    let b;
+    let c;
+
+    a = 3;
+    a = a * 3;
+    println(a);
+    a = 3;
+    a *= 3;
+    println(a);
+
+    b = 8;
+    b = b / 2;
+    println(b); 
+    b = 8;
+    b /= 2;
+    println(b); 
+
+    c = 8;
+    c = c % 3;
+    println(c); 
+    c = 8;
+    c %= 3;
+    println(c); 
+}
+
+function addition() {
+    let a;
+    let b;
+
+    a = 3;
+    a = a + 3;
+    println(a);
+    a = 3;
+    a += 3;
+    println(a);
+
+    b = 8;
+    b = b - 2;
+    println(b); 
+    b = 8;
+    b -= 2;
+    println(b); 
+}
+
+function shift() {
+    let a = 255;
+    a = a >> 4;
+    println(a);
+    a <<= 4;
+    println(a);
+
+    let b = 15;
+    b = b << 4;
+    println(a);
+    b >>= 4;
+    println(b);
+}
+
+function comparison() {
+    let a = 8;
+    let b = 6;
+
+    println(a < b);
+    println(b < b);
+
+    println(a <= b);
+    println(b <= b);
+
+    println(a > b);
+    println(b > b);
+
+    println(a >= b);
+    println(b >= b);
+}
+
+function equality() {
+    let a = 8;
+    let b = 6;
+
+    println(a == a);
+    println(a == b);
+    println(a != b);
+}
+
+function bitwise() {
+    let a = 15;
+    let b = 240;
+    let c;
+
+    println(a & b);
+    println(a | b);
+    println(a ^ b);
+
+    c = a;
+    c &= b;
+    println(c);
+
+    c = a;
+    c |= b;
+    println(c);
+
+    c = a;
+    c ^= b;
+    println(c);
+}
+
+function ternary() {
+    println(0 ? 2 : 3);
+    println(1 ? 2 : 3);
+}
+
+function all() {
+    exponentiation();
+    multiplication();
+    addition();
+    shift();
+    comparison();
+    equality();
+    bitwise();
+    ternary();
+}
+
+function main() {
+    all();
+}
