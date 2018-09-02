@@ -592,22 +592,43 @@ func (p *Parser) parsePrimaryExpression() Expression {
 func (p *Parser) parseLambdaExpression() (expr *FunctionExpression) {
 	params := &Parameters{}
 
+	p.enter()
+
 	if _, ok := p.match(ttLeftParen); ok {
 		for {
-			params.PutParam(p.expect(ttIdentifier).str)
-			if p.follow(ttRightParen) {
-				break
+			if p.follow(ttIdentifier) {
+				params.PutParam(p.expect(ttIdentifier).str)
+			} else {
+				if p.follow(ttRightParen) {
+					break
+				} else {
+					p.leave(true)
+					return nil
+				}
 			}
-			if !p.skip(ttComma) {
-				return nil
+			if p.skip(ttComma) {
+				continue
 			}
 		}
-		p.expect(ttRightParen)
+		if _, ok := p.match(ttRightParen); !ok {
+			p.leave(true)
+			return nil
+		}
 	} else {
-		params.PutParam(p.expect(ttIdentifier).str)
+		if !p.follow(ttIdentifier) {
+			p.leave(true)
+			return nil
+		}
+		params.PutParam(p.next().str)
 	}
 
-	p.expect(ttLambda)
+	if !p.follow(ttLambda) {
+		p.leave(true)
+		return nil
+	}
+
+	p.leave(false)
+	p.next()
 
 	var block *BlockStatement
 

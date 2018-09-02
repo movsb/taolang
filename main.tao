@@ -1,15 +1,6 @@
-let a= [1];
-let b = {};
-
 function main() {
-    a[0] = 2;
+    let a = (8);
     println(a);
-
-    b.x = 8;
+    let b = -(-90);
     println(b);
-
-    let c = 0;
-    println(c);
-    c = 7;
-    println(c);
 }
