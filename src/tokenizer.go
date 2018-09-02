@@ -24,6 +24,8 @@ const (
 	ttRightBrace
 	ttLeftBracket
 	ttRightBracket
+
+	// seperators
 	ttDot
 	ttComma
 	ttSemicolon
@@ -40,6 +42,9 @@ const (
 	ttPercentAssign
 	ttLeftShiftAssign
 	ttRightShiftAssign
+	ttAndAssign
+	ttXorAssign
+	ttOrAssign
 
 	// ++ --
 	ttIncrement
@@ -69,6 +74,9 @@ const (
 	// Bit
 	ttBitAnd
 	ttBitOr
+	ttBitXor
+	ttLeftShift
+	ttRightShift
 
 	// Literals
 	ttNil
@@ -133,6 +141,9 @@ func init() {
 		ttPercentAssign:    "%=",
 		ttLeftShiftAssign:  "<<=",
 		ttRightShiftAssign: ">>=",
+		ttAndAssign:        "&=",
+		ttXorAssign:        "^=",
+		ttOrAssign:         "|=",
 
 		ttAddition:     "+",
 		ttSubstraction: "-",
@@ -152,6 +163,9 @@ func init() {
 		ttAndAnd: "&&",
 		ttOrOr:   "||",
 
+		ttBitAnd:     "&",
+		ttBitOr:      "|",
+		ttBitXor:     "^",
 		ttLeftShift:  "<<",
 		ttRightShift: ">>",
 
@@ -401,9 +415,11 @@ func (t *Tokenizer) next() (token Token) {
 		case '!':
 			return t.iif('=', ttNotEqual, ttNot)
 		case '&':
-			return t.iif('&', ttAndAnd, ttBitAnd)
+			return t.iiif('&', '=', ttAndAnd, ttAndAssign, ttBitAnd)
 		case '|':
-			return t.iif('|', ttOrOr, ttBitOr)
+			return t.iiif('|', '=', ttOrOr, ttOrAssign, ttBitOr)
+		case '^':
+			return t.iif('=', ttXorAssign, ttBitXor)
 		}
 
 		panic(fmt.Sprintf("unhandled character `%c' at: line:%d,col:%d", ch, t.line, t.col))

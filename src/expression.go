@@ -180,6 +180,12 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromNumber(lv.number() << uint(rv.number()))
 		case ttRightShift:
 			return ValueFromNumber(lv.number() >> uint(rv.number()))
+		case ttBitAnd:
+			return ValueFromNumber(lv.number() & rv.number())
+		case ttBitOr:
+			return ValueFromNumber(lv.number() | rv.number())
+		case ttBitXor:
+			return ValueFromNumber(lv.number() ^ rv.number())
 		}
 	}
 

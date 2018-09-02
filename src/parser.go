@@ -170,6 +170,7 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 		ttStarAssign, ttDivideAssign, ttPercentAssign,
 		ttPlusAssign, ttMinusAssign,
 		ttLeftShiftAssign, ttRightShiftAssign,
+		ttAndAssign, ttOrAssign, ttXorAssign,
 	); ok {
 		right := p.parseExpression()
 		var binOp TokenType
@@ -190,6 +191,12 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 			binOp = ttLeftShift
 		case ttRightShiftAssign:
 			binOp = ttRightShift
+		case ttAndAssign:
+			binOp = ttBitAnd
+		case ttOrAssign:
+			binOp = ttBitOr
+		case ttXorAssign:
+			binOp = ttBitXor
 		default:
 			panic("won't go here")
 		}
@@ -379,9 +386,23 @@ func (p *Parser) parseExpression() Expression {
 }
 
 func (p *Parser) parseLogicalExpression() Expression {
-	left := p.parseEqualityExpression()
+	left := p.parseBitwiseExpression()
 	for {
 		if op, ok := p.match(ttAndAnd, ttOrOr); ok {
+			right := p.parseBitwiseExpression()
+			left = NewBinaryExpression(left, op.typ, right)
+		} else {
+			break
+		}
+	}
+	return left
+}
+
+// Attention: &, |, ^ have the same precedence that doesn't match javascript.
+func (p *Parser) parseBitwiseExpression() Expression {
+	left := p.parseEqualityExpression()
+	for {
+		if op, ok := p.match(ttBitAnd, ttBitOr, ttBitXor); ok {
 			right := p.parseEqualityExpression()
 			left = NewBinaryExpression(left, op.typ, right)
 		} else {

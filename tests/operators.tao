@@ -96,6 +96,28 @@ function equality() {
     println(a != b);
 }
 
+function bitwise() {
+    let a = 15;
+    let b = 240;
+    let c;
+
+    println(a & b);
+    println(a | b);
+    println(a ^ b);
+
+    c = a;
+    c &= b;
+    println(c);
+
+    c = a;
+    c |= b;
+    println(c);
+
+    c = a;
+    c ^= b;
+    println(c);
+}
+
 function all() {
     exponentiation();
     multiplication();
@@ -103,6 +125,7 @@ function all() {
     shift();
     comparison();
     equality();
+    bitwise();
 }
 
 function main() {
