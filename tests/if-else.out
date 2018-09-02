@@ -1,2 +1,4 @@
-unexpected token: while
-name `main' not found
+1 > 0
+else 1 > 2
+else
+8

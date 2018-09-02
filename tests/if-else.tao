@@ -20,7 +20,7 @@ function If() {
 
 function Break() {
     let a = 10;
-    while a > 0 {
+    for a > 0 {
         if a == 5 {
             break;
         }
@@ -31,7 +31,7 @@ function Break() {
 
 function Return() {
     let a = 10;
-    while a > 0 {
+    for a > 0 {
         if a == 8 {
             return a;
         }
