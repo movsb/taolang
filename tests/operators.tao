@@ -8,8 +8,6 @@ function exponentiation() {
     a = 3;
     a **= 2;
     println(a);
-
-    println();
 }
 
 function multiplication() {
@@ -39,9 +37,29 @@ function multiplication() {
     println(c); 
 }
 
+function addition() {
+    let a;
+    let b;
+
+    a = 3;
+    a = a + 3;
+    println(a);
+    a = 3;
+    a += 3;
+    println(a);
+
+    b = 8;
+    b = b - 2;
+    println(b); 
+    b = 8;
+    b -= 2;
+    println(b); 
+}
+
 function all() {
     exponentiation();
     multiplication();
+    addition();
 }
 
 function main() {

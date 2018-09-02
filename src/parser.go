@@ -165,7 +165,11 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 
 	if _, ok := p.match(ttAssign); ok {
 		as.right = p.parseExpression()
-	} else if op, ok := p.match(ttStarStarAssign, ttStarAssign, ttDivideAssign, ttPercentAssign); ok {
+	} else if op, ok := p.match(
+		ttStarStarAssign,
+		ttStarAssign, ttDivideAssign, ttPercentAssign,
+		ttPlusAssign, ttMinusAssign,
+	); ok {
 		right := p.parseExpression()
 		var binOp TokenType
 		switch op.typ {
@@ -177,6 +181,10 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 			binOp = ttDivision
 		case ttPercentAssign:
 			binOp = ttPercent
+		case ttPlusAssign:
+			binOp = ttAddition
+		case ttMinusAssign:
+			binOp = ttSubstraction
 		default:
 			panic("won't go here")
 		}

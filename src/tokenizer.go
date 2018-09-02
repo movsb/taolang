@@ -32,6 +32,8 @@ const (
 
 	// assignment
 	ttAssign
+	ttPlusAssign
+	ttMinusAssign
 	ttStarStarAssign
 	ttStarAssign
 	ttDivideAssign
@@ -121,6 +123,8 @@ func init() {
 		ttDecrement: "--",
 
 		ttAssign:           "=",
+		ttPlusAssign:       "+=",
+		ttMinusAssign:      "-=",
 		ttStarStarAssign:   "**=",
 		ttStarAssign:       "*=",
 		ttDivideAssign:     "/=",
