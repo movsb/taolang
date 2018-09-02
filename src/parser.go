@@ -96,19 +96,20 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttLet:
 		return p.parseVariableStatement()
 	case ttFunction:
-		// don't know whether it is a function statement or function expression.
-		// but, if a function doesn't have a name, it must be function expression.
-		p.enter()
+		// // don't know whether it is a function statement or function expression.
+		// // but, if a function doesn't have a name, it must be function expression.
+		// p.enter()
 		fn := p.parseFunctionStatement()
-		if fn.expr.name == "" {
-			// if p.peek().typ != ttLeftParen {
-			// 	panic("anonymous function expression must be called immediately")
-			// }
-			p.leave(true)
-			// TODO we should directly parse function expression statement since we knew it is.
-			return p.parseExpressionStatement()
-		}
-		p.leave(false)
+		// if fn.expr.name == "" {
+		// 	p.leave(true)
+		// 	// TODO we should directly parse function expression statement since we knew it is.
+		// 	stmt := p.parseExpressionStatement()
+		// 	if stmt == nil {
+		//
+		// 		panic("anonymous function expression must be called immediately")
+		// 	}
+		// }
+		// p.leave(false)
 		return fn
 	}
 

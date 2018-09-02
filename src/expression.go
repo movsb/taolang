@@ -64,6 +64,7 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 	if ref == nil {
 		panic("cannot address")
 	}
+	// Do we need this?
 	if !ref.isNumber() {
 		panic("value is not increment/decrement-able")
 	}

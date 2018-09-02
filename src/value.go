@@ -217,7 +217,7 @@ func (v Value) String() string {
 	case vtNumber:
 		return fmt.Sprint(v.number())
 	case vtString:
-		return `"` + v.str() + `"`
+		return v.str()
 	case vtFunction:
 		expr := v.function()
 		name := expr.expr.name
