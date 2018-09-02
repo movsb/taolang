@@ -214,6 +214,30 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	panic("unknown binary operator and operands")
 }
 
+// TernaryExpression is `?:` expression.
+type TernaryExpression struct {
+	cond  Expression
+	left  Expression
+	right Expression
+}
+
+// NewTernaryExpression news a ternary expression.
+func NewTernaryExpression(cond, left, right Expression) *TernaryExpression {
+	return &TernaryExpression{
+		cond:  cond,
+		left:  left,
+		right: right,
+	}
+}
+
+// Evaluate implements Expression.
+func (t *TernaryExpression) Evaluate(ctx *Context) Value {
+	if t.cond.Evaluate(ctx).Truth(ctx) {
+		return t.left.Evaluate(ctx)
+	}
+	return t.right.Evaluate(ctx)
+}
+
 type Parameters struct {
 	names []string
 }

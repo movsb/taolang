@@ -31,6 +31,7 @@ const (
 	ttSemicolon
 	ttColon
 	ttLambda
+	ttQuestion
 
 	// assignment
 	ttAssign
@@ -361,6 +362,8 @@ func (t *Tokenizer) next() (token Token) {
 			return Token{typ: ttComma}
 		case ':':
 			return Token{typ: ttColon}
+		case '?':
+			return Token{typ: ttQuestion}
 		case ';':
 			return Token{typ: ttSemicolon}
 		case '+':

@@ -118,6 +118,11 @@ function bitwise() {
     println(c);
 }
 
+function ternary() {
+    println(0 ? 2 : 3);
+    println(1 ? 2 : 3);
+}
+
 function all() {
     exponentiation();
     multiplication();
@@ -126,6 +131,7 @@ function all() {
     comparison();
     equality();
     bitwise();
+    ternary();
 }
 
 function main() {

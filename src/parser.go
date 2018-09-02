@@ -382,7 +382,27 @@ func (p *Parser) parseIfStatement() *IfStatement {
 }
 
 func (p *Parser) parseExpression() Expression {
-	return p.parseLogicalExpression()
+	return p.parseTernaryExpression()
+}
+
+func (p *Parser) parseTernaryExpression() Expression {
+	var cond, left, right Expression
+	cond = p.parseLogicalExpression()
+	if _, ok := p.match(ttQuestion); ok {
+		// Although we don't allow nested ternary expression, we parse it, we panic it, later.
+		// left = p.parseLogicalExpression()
+		left = p.parseExpression()
+		p.expect(ttColon)
+		right = p.parseExpression()
+		if _, ok := left.(*TernaryExpression); ok {
+			panic("left expression of ?: cannot be ?: (nested ?: is not allowed)")
+		}
+		if _, ok := right.(*TernaryExpression); ok {
+			panic("right expression of ?: cannot be ?: (nested ?: is not allowed)")
+		}
+		return NewTernaryExpression(cond, left, right)
+	}
+	return cond
 }
 
 func (p *Parser) parseLogicalExpression() Expression {
