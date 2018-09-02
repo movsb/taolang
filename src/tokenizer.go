@@ -399,7 +399,7 @@ func (t *Tokenizer) next() (token Token) {
 				return Token{typ: ttLessThan}
 			}
 		case '!':
-			return Token{typ: ttNot}
+			return t.iif('=', ttNotEqual, ttNot)
 		case '&':
 			return t.iif('&', ttAndAnd, ttBitAnd)
 		case '|':
