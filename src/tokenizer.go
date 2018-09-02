@@ -33,6 +33,10 @@ const (
 	// assignment
 	ttAssign
 
+	// ++ --
+	ttIncrement
+	ttDecrement
+
 	// arithmetic
 	ttAddition
 	ttSubstraction
@@ -108,6 +112,8 @@ func init() {
 		ttColon:        ":",
 		ttLambda:       "=>",
 
+		ttIncrement: "++",
+		ttDecrement: "--",
 		ttAssign: "=",
 
 		ttAddition:     "+",
@@ -322,9 +328,9 @@ func (t *Tokenizer) next() (token Token) {
 		case ';':
 			return Token{typ: ttSemicolon}
 		case '+':
-			return Token{typ: ttAddition}
+			return t.iiif('+', '=', ttIncrement, ttPlusAssign, ttAddition)
 		case '-':
-			return Token{typ: ttSubstraction}
+			return t.iiif('-', '=', ttDecrement, ttMinusAssign, ttSubstraction)
 		case '*':
 			return Token{typ: ttMultiply}
 		case '/':
@@ -418,6 +424,20 @@ func (t *Tokenizer) iif(ch byte, tt1 TokenType, tt2 TokenType) Token {
 	}
 	t.unread()
 	return Token{typ: tt2}
+}
+
+// if ch1 return tt1
+// else if ch2 return tt2
+// else return tt3
+func (t *Tokenizer) iiif(ch1, ch2 byte, tt1, tt2, tt3 TokenType) Token {
+	c := t.read()
+	if c == ch1 {
+		return Token{typ: tt1}
+	} else if c == ch2 {
+		return Token{typ: tt2}
+	}
+	t.unread()
+	return Token{typ: tt3}
 }
 
 // readString reads a quoted string.

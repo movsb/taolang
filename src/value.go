@@ -19,6 +19,17 @@ const (
 	vtBuiltin
 )
 
+var typeNames = map[ValueType]string{
+	vtNil:      "nil",
+	vtBoolean:  "boolean",
+	vtNumber:   "number",
+	vtString:   "string",
+	vtVariable: "variable",
+	vtObject:   "object",
+	vtFunction: "function",
+	vtBuiltin:  "builtin",
+}
+
 // Value holds a union(dynamic) value identified by Type.
 type Value struct {
 	Type  ValueType
@@ -181,6 +192,20 @@ func (v Value) Evaluate(ctx *Context) Value {
 	default:
 		panic("cannot evaluate value on type")
 	}
+}
+
+// Address implements Addresser.
+func (v Value) Address(ctx *Context) *Value {
+	if v.isVariable() {
+		return ctx.GetAddress(v.variable())
+	}
+	panicf("not assignable: %v (type: %s)", v.value, v.TypeName())
+	return nil
+}
+
+// TypeName returns the value type as string.
+func (v Value) TypeName() string {
+	return typeNames[v.Type]
 }
 
 func (v Value) String() string {

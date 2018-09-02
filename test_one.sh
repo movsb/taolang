@@ -2,6 +2,7 @@
 
 set -e
 
-make build > /dev/null
+make tao > /dev/null
 
 ./bin/tao "$@"
+
