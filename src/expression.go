@@ -176,6 +176,10 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			// TODO precision lost
 			val := math.Pow(float64(lv.number()), float64(rv.number()))
 			return ValueFromNumber(int(val))
+		case ttLeftShift:
+			return ValueFromNumber(lv.number() << uint(rv.number()))
+		case ttRightShift:
+			return ValueFromNumber(lv.number() >> uint(rv.number()))
 		}
 	}
 

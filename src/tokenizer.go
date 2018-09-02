@@ -38,6 +38,8 @@ const (
 	ttStarAssign
 	ttDivideAssign
 	ttPercentAssign
+	ttLeftShiftAssign
+	ttRightShiftAssign
 
 	// ++ --
 	ttIncrement
@@ -129,6 +131,8 @@ func init() {
 		ttStarAssign:       "*=",
 		ttDivideAssign:     "/=",
 		ttPercentAssign:    "%=",
+		ttLeftShiftAssign:  "<<=",
+		ttRightShiftAssign: ">>=",
 
 		ttAddition:     "+",
 		ttSubstraction: "-",
@@ -147,6 +151,9 @@ func init() {
 		ttNot:    "!",
 		ttAndAnd: "&&",
 		ttOrOr:   "||",
+
+		ttLeftShift:  "<<",
+		ttRightShift: ">>",
 
 		ttNil: "nil",
 
@@ -370,20 +377,27 @@ func (t *Tokenizer) next() (token Token) {
 		case '%':
 			return t.iif('=', ttPercentAssign, ttPercent)
 		case '=':
-			next := t.read()
-			switch next {
+			return t.iiif('=', '>', ttEqual, ttLambda, ttAssign)
+		case '>':
+			switch c := t.read(); c {
 			case '=':
-				return Token{typ: ttEqual}
+				return Token{typ: ttGreaterThanOrEqual}
 			case '>':
-				return Token{typ: ttLambda}
+				return t.iif('=', ttRightShiftAssign, ttRightShift)
 			default:
 				t.unread()
-				return Token{typ: ttAssign}
+				return Token{typ: ttGreaterThan}
 			}
-		case '>':
-			return t.iif('=', ttGreaterThanOrEqual, ttGreaterThan)
 		case '<':
-			return t.iif('=', ttLessThanOrEqual, ttLessThan)
+			switch c := t.read(); c {
+			case '=':
+				return Token{typ: ttLessThanOrEqual}
+			case '<':
+				return t.iif('=', ttLeftShiftAssign, ttLeftShift)
+			default:
+				t.unread()
+				return Token{typ: ttLessThan}
+			}
 		case '!':
 			return Token{typ: ttNot}
 		case '&':

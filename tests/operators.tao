@@ -56,10 +56,25 @@ function addition() {
     println(b); 
 }
 
+function shift() {
+    let a = 255;
+    a = a >> 4;
+    println(a);
+    a <<= 4;
+    println(a);
+
+    let b = 15;
+    b = b << 4;
+    println(a);
+    b >>= 4;
+    println(b);
+}
+
 function all() {
     exponentiation();
     multiplication();
     addition();
+    shift();
 }
 
 function main() {

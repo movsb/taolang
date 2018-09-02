@@ -169,6 +169,7 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 		ttStarStarAssign,
 		ttStarAssign, ttDivideAssign, ttPercentAssign,
 		ttPlusAssign, ttMinusAssign,
+		ttLeftShiftAssign, ttRightShiftAssign,
 	); ok {
 		right := p.parseExpression()
 		var binOp TokenType
@@ -185,6 +186,10 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 			binOp = ttAddition
 		case ttMinusAssign:
 			binOp = ttSubstraction
+		case ttLeftShiftAssign:
+			binOp = ttLeftShift
+		case ttRightShiftAssign:
+			binOp = ttRightShift
 		default:
 			panic("won't go here")
 		}
@@ -400,9 +405,22 @@ func (p *Parser) parseEqualityExpression() Expression {
 }
 
 func (p *Parser) parseComparisonExpression() Expression {
-	left := p.parseAdditionExpression()
+	left := p.parseShiftExpression()
 	for {
 		if op, ok := p.match(ttGreaterThan, ttGreaterThanOrEqual, ttLessThan, ttLessThanOrEqual); ok {
+			right := p.parseShiftExpression()
+			left = NewBinaryExpression(left, op.typ, right)
+		} else {
+			break
+		}
+	}
+	return left
+}
+
+func (p *Parser) parseShiftExpression() Expression {
+	left := p.parseAdditionExpression()
+	for {
+		if op, ok := p.match(ttLeftShift, ttRightShift); ok {
 			right := p.parseAdditionExpression()
 			left = NewBinaryExpression(left, op.typ, right)
 		} else {
