@@ -96,20 +96,6 @@ func (c *Context) SetValue(name string, value Value) {
 	panicf("name `%s' is not defined", name)
 }
 
-// GetAddress gets referenced value.
-func (c *Context) GetAddress(name string) *Value {
-	for _, symbol := range c.symbols {
-		if symbol.Name == name {
-			return &symbol.Value
-		}
-	}
-	if c.parent != nil {
-		return c.parent.GetAddress(name)
-	}
-	panicf("name `%s' is not defined", name)
-	return nil
-}
-
 // SetParent sets parent context.
 func (c *Context) SetParent(parent *Context) {
 	// log.Printf("SetParent: %s -> %s\n", c.name, parent.name)

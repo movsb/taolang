@@ -25,16 +25,13 @@ type AssignmentStatement struct {
 }
 
 func (v *AssignmentStatement) Execute(ctx *Context) {
-	addresser, ok := v.left.(Addresser)
+	assigner, ok := v.left.(Assigner)
 	if !ok {
 		val := v.left.Evaluate(ctx)
 		panicf("not assignable: %v (type: %s)", val, val.TypeName())
 	}
-	ref := addresser.Address(ctx)
-	if ref == nil {
-		panic("cannot address")
-	}
-	*ref = v.right.Evaluate(ctx)
+	value := v.right.Evaluate(ctx)
+	assigner.Assign(ctx, value)
 }
 
 type FunctionStatement struct {

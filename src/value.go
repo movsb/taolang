@@ -194,13 +194,13 @@ func (v Value) Evaluate(ctx *Context) Value {
 	}
 }
 
-// Address implements Addresser.
-func (v Value) Address(ctx *Context) *Value {
+// Assign implements Addresser.
+func (v Value) Assign(ctx *Context, val Value) {
 	if v.isVariable() {
-		return ctx.GetAddress(v.variable())
+		ctx.SetValue(v.variable(), val)
+		return
 	}
 	panicf("not assignable: %v (type: %s)", v.value, v.TypeName())
-	return nil
 }
 
 // TypeName returns the value type as string.

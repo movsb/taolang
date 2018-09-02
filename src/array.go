@@ -12,6 +12,7 @@ func NewArray(elems ...Value) *Object {
 	o.props = make(map[string]Value)
 	o.array = &Array{elems: elems}
 	o.ElemIndexer = o.array
+	o.ElemAssigner = o.array
 	o.array.object = o
 	o.array.funcs = map[string]func(*Context, *Values) Value{
 		"each":   o.array.Each,
@@ -40,6 +41,10 @@ func (a *Array) SetElem(pos int, val Value) {
 		panic("array index out of range")
 	}
 	a.elems[pos] = val
+}
+
+func (a *Array) ElemAssign(elem int, val Value) {
+	a.SetElem(elem, val)
 }
 
 func (a *Array) PushElem(val Value) {

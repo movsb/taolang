@@ -9,9 +9,9 @@ type Expression interface {
 	Evaluate(ctx *Context) Value
 }
 
-// Addresser is implemented by those who can be assigned.
-type Addresser interface {
-	Address(ctx *Context) *Value
+// Assigner is implemented by those who can be assigned.
+type Assigner interface {
+	Assign(ctx *Context, value Value)
 }
 
 type UnaryExpression struct {
@@ -64,44 +64,30 @@ func NewIncrementDecrementExpression(op Token, prefix bool, expr Expression) *In
 
 // Evaluate implements
 func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
-	addresser, ok := i.expr.(Addresser)
-	if !ok {
-		val := i.expr.Evaluate(ctx)
-		panicf("not assignable: %v (type: %s)", val, val.TypeName())
-	}
-	ref := addresser.Address(ctx)
-	if ref == nil {
-		panic("cannot address")
-	}
-	// Do we need this?
-	if !ref.isNumber() {
-		panic("value is not increment/decrement-able")
-	}
-	if i.prefix {
+	oldval := i.expr.Evaluate(ctx)
+	if oldval.isNumber() {
+		assigner, ok := i.expr.(Assigner)
+		if !ok {
+			panicf("not assignable: %v (type: %s)", oldval, oldval.TypeName())
+		}
+		newval := Value{}
 		switch i.op.typ {
 		case ttIncrement:
-			ref.value = ref.number() + 1
-			return ValueFromNumber(ref.number())
+			newval = ValueFromNumber(oldval.number() + 1)
+			assigner.Assign(ctx, newval)
 		case ttDecrement:
-			ref.value = ref.number() - 1
-			return ValueFromNumber(ref.number())
+			newval = ValueFromNumber(oldval.number() - 1)
+			assigner.Assign(ctx, newval)
 		default:
 			panic("bad op")
 		}
-	} else {
-		switch i.op.typ {
-		case ttIncrement:
-			old := ref.number()
-			ref.value = ref.number() + 1
-			return ValueFromNumber(old)
-		case ttDecrement:
-			old := ref.number()
-			ref.value = ref.number() - 1
-			return ValueFromNumber(old)
-		default:
-			panic("bad op")
+		if i.prefix {
+			return newval
 		}
+		return oldval
 	}
+	panicf("not assignable: %v (type: %s)", oldval, oldval.TypeName())
+	return Value{}
 }
 
 type BinaryExpression struct {
@@ -358,12 +344,13 @@ type IndexExpression struct {
 	key       Expression
 }
 
+// Evaluate implements Expression.
 func (i *IndexExpression) Evaluate(ctx *Context) Value {
-	value := i.indexable.Evaluate(ctx).value
-	keyer, ok1 := value.(KeyIndexer)
-	elemer, ok2 := value.(ElemIndexer)
+	value := i.indexable.Evaluate(ctx)
+	keyer, ok1 := value.value.(KeyIndexer)
+	elemer, ok2 := value.value.(ElemIndexer)
 	if !ok1 && !ok2 {
-		panic("value of expr is not indexable")
+		panicf("attempt to index %v (type: %s)", value, value.TypeName())
 	}
 	key := i.key.Evaluate(ctx)
 	if key.Type == vtString && keyer != nil {
@@ -373,6 +360,26 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 		return elemer.Elem(key.number())
 	}
 	panic("not indexable")
+}
+
+// Assign implements Assigner.
+func (i *IndexExpression) Assign(ctx *Context, val Value) {
+	value := i.indexable.Evaluate(ctx)
+	keyer, ok1 := value.value.(KeyAssigner)
+	elemer, ok2 := value.value.(ElemAssigner)
+	if !ok1 && !ok2 {
+		panicf("not assignable: %v (type: %s)", value, value.TypeName())
+	}
+	key := i.key.Evaluate(ctx)
+	if key.isString() && keyer != nil {
+		keyer.KeyAssign(key.str(), val)
+		return
+	}
+	if key.isNumber() && elemer != nil {
+		elemer.ElemAssign(key.number(), val)
+		return
+	}
+	panic("not assignable")
 }
 
 // CallExpression wrap a method call.

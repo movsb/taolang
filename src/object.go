@@ -13,11 +13,22 @@ type ElemIndexer interface {
 	Functional(name string) *Builtin
 }
 
+// KeyAssigner is implemented by those who can be assigned.
+type KeyAssigner interface {
+	KeyAssign(key string, val Value)
+}
+
+// ElemAssigner is implemented by those who can be assigned.
+type ElemAssigner interface {
+	ElemAssign(elem int, val Value)
+}
+
 // Object is an object.
 type Object struct {
 	array *Array
 	props map[string]Value
 	ElemIndexer
+	ElemAssigner
 }
 
 // NewObject news an object.
@@ -25,6 +36,7 @@ func NewObject() *Object {
 	o := &Object{}
 	o.props = make(map[string]Value)
 	o.ElemIndexer = nil
+	o.ElemAssigner = nil
 	return o
 }
 
@@ -48,6 +60,11 @@ func (o *Object) Key(key string) Value {
 // SetKey sets a value by key.
 func (o *Object) SetKey(key string, val Value) {
 	o.props[key] = val
+}
+
+// KeyAssign implements KeyAssigner.
+func (o *Object) KeyAssign(key string, val Value) {
+	o.SetKey(key, val)
 }
 
 func (o *Object) IsArray() bool {

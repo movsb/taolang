@@ -245,11 +245,9 @@ func (p *Parser) parseExpressionStatement() (stmt *ExpressionStatement) {
 	stmt = &ExpressionStatement{
 		expr: expr,
 	}
-	semi := p.next()
-	if semi.typ == ttSemicolon {
+	if p.skip(ttSemicolon) {
 		return stmt
 	}
-	p.undo(semi)
 	return nil
 }
 
@@ -394,11 +392,12 @@ func (p *Parser) parseTernaryExpression() Expression {
 		left = p.parseExpression()
 		p.expect(ttColon)
 		right = p.parseExpression()
+		errstr := " expression of ?: cannot be ?: (nested ?: is not allowed)"
 		if _, ok := left.(*TernaryExpression); ok {
-			panic("left expression of ?: cannot be ?: (nested ?: is not allowed)")
+			panic("left" + errstr)
 		}
 		if _, ok := right.(*TernaryExpression); ok {
-			panic("right expression of ?: cannot be ?: (nested ?: is not allowed)")
+			panic("right" + errstr)
 		}
 		return NewTernaryExpression(cond, left, right)
 	}
@@ -553,9 +552,13 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		expr = p.parseExpression()
 		p.expect(ttRightParen)
 	case ttIdentifier:
-		if p.peek().typ == ttLambda {
+		if p.follow(ttLambda) {
 			p.undo(next)
-			return p.parseLambdaExpression()
+			lambda := p.parseLambdaExpression()
+			if lambda == nil {
+				panic("bad lambda expression")
+			}
+			return lambda
 		}
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
@@ -587,12 +590,6 @@ func (p *Parser) parsePrimaryExpression() Expression {
 }
 
 func (p *Parser) parseLambdaExpression() (expr *FunctionExpression) {
-	p.enter()
-	defer func() {
-		recover()
-		p.leave(expr == nil)
-	}()
-
 	params := &Parameters{}
 
 	if _, ok := p.match(ttLeftParen); ok {
@@ -632,11 +629,6 @@ func (p *Parser) parseLambdaExpression() (expr *FunctionExpression) {
 }
 
 func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
-	p.enter()
-	defer func() {
-		p.leave(expr == nil)
-	}()
-
 	switch token := p.next(); token.typ {
 	case ttDot:
 		if ident := p.next(); ident.typ == ttIdentifier {
@@ -658,6 +650,8 @@ func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
 			indexable: left,
 			key:       keyExpr,
 		}
+	default:
+		p.undo(token)
 	}
 	return nil
 }
