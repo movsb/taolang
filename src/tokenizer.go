@@ -193,7 +193,10 @@ type Token struct {
 
 func (t Token) String() (ret string) {
 	defer func() {
-		ret += fmt.Sprintf(" (line:%d col:%d)", t.line, t.col)
+		ret = "`" + ret + "'"
+		if t.line > 0 && t.col > 0 {
+			ret += fmt.Sprintf(" (line:%d col:%d)", t.line, t.col)
+		}
 	}()
 
 	if s, ok := tokenNames[t.typ]; ok {

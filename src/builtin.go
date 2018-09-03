@@ -4,11 +4,13 @@ import (
 	"fmt"
 )
 
+// Builtin is a builtin function.
 type Builtin struct {
 	name string
 	fn   func(ctx *Context, args *Values) Value
 }
 
+// NewBuiltin news a Builtin.
 func NewBuiltin(name string, fn func(*Context, *Values) Value) *Builtin {
 	return &Builtin{
 		name: name,
@@ -16,6 +18,7 @@ func NewBuiltin(name string, fn func(*Context, *Values) Value) *Builtin {
 	}
 }
 
+// InitBuiltins registers builtins into ctx.
 func InitBuiltins(ctx *Context) {
 	builtins := []Builtin{
 		{"print", print},

@@ -1,5 +1,6 @@
 package main
 
+// Parser parses tokens into AbstractSyntaxTree.
 type Parser struct {
 	tokenizer *Tokenizer
 
@@ -7,12 +8,14 @@ type Parser struct {
 	skipSemicolon bool
 }
 
+// NewParser news a parser.
 func NewParser(tokenizer *Tokenizer) *Parser {
 	return &Parser{
 		tokenizer: tokenizer,
 	}
 }
 
+// Parse does parse the input tokens.
 func (p *Parser) Parse() (program *Program, err error) {
 	defer func() {
 		err = toErr(recover())
@@ -37,7 +40,7 @@ func (p *Parser) Parse() (program *Program, err error) {
 func (p *Parser) expect(tt TokenType) Token {
 	token := p.next()
 	if token.typ != tt {
-		panicf("unexpected token: %v", token)
+		panicf("unexpected token: %v (expect: %v)", token, Token{typ: tt})
 	}
 	return token
 }

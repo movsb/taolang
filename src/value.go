@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 )
 
@@ -209,6 +208,10 @@ func (v Value) TypeName() string {
 }
 
 func (v Value) String() string {
+	if str, ok := v.value.(fmt.Stringer); ok {
+		return str.String()
+	}
+
 	switch v.Type {
 	case vtNil:
 		return "nil"
@@ -227,35 +230,6 @@ func (v Value) String() string {
 		return fmt.Sprintf("function(%s)", name)
 	case vtBuiltin:
 		return fmt.Sprintf("builtin(%s)", v.builtin().name)
-	case vtObject:
-		if !v.object().IsArray() {
-			buf := bytes.NewBuffer(nil)
-			buf.WriteString("{")
-			n := len(v.object().props)
-			i := 0
-			for k, p := range v.object().props {
-				// TODO k may have invalid characters.
-				buf.WriteString(fmt.Sprintf(`%s:%v`, k, p))
-				if i != n-1 {
-					buf.WriteString(",")
-				}
-				i++
-			}
-			buf.WriteString("}")
-			return buf.String()
-		} else {
-			buf := bytes.NewBuffer(nil)
-			buf.WriteString("[")
-			for i, n := 0, v.object().Len(); i < n; i++ {
-				elem := v.object().Elem(i)
-				buf.WriteString(elem.String())
-				if i != n-1 {
-					buf.WriteString(",")
-				}
-			}
-			buf.WriteString("]")
-			return buf.String()
-		}
 	}
 	return fmt.Sprintf("unknown value")
 }

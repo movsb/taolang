@@ -1,8 +1,12 @@
 package main
 
+import "bytes"
+
+// Array is the array type of tao.
+// Array is an object indeed.
 type Array struct {
-	object *Object
-	elems  []Value
+	object *Object // the owner object
+	elems  []Value // array elements
 	funcs  map[string]func(*Context, *Values) Value
 }
 
@@ -25,10 +29,12 @@ func NewArray(elems ...Value) *Object {
 	return o
 }
 
+// Len implements ElemIndexer.
 func (a *Array) Len() int {
 	return len(a.elems)
 }
 
+// Elem implements ElemIndexer.
 func (a *Array) Elem(pos int) Value {
 	if pos < 0 || pos > len(a.elems)-1 {
 		panic("array index out of range")
@@ -36,6 +42,7 @@ func (a *Array) Elem(pos int) Value {
 	return a.elems[pos]
 }
 
+// SetElem implements ElemIndexer.
 func (a *Array) SetElem(pos int, val Value) {
 	if pos < 0 || pos > len(a.elems)-1 {
 		panic("array index out of range")
@@ -43,16 +50,34 @@ func (a *Array) SetElem(pos int, val Value) {
 	a.elems[pos] = val
 }
 
+// ElemAssign implements ElemAssigner.
 func (a *Array) ElemAssign(elem int, val Value) {
 	a.SetElem(elem, val)
 }
 
+// PushElem implements ElemIndexer.
 func (a *Array) PushElem(val Value) {
 	a.elems = append(a.elems, val)
 }
 
+func (a *Array) String() string {
+	buf := bytes.NewBuffer(nil)
+	buf.WriteString("[")
+	for i, n := 0, a.Len(); i < n; i++ {
+		elem := a.Elem(i)
+		buf.WriteString(elem.String())
+		if i != n-1 {
+			buf.WriteString(",")
+		}
+	}
+	buf.WriteString("]")
+	return buf.String()
+}
+
 /// functional programming implementations below
 
+// Functional implements ElemIndexer.
+// which returns the functional programming method by its name.
 func (a *Array) Functional(name string) *Builtin {
 	if fn, ok := a.funcs[name]; ok {
 		return &Builtin{name: name, fn: fn}

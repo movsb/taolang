@@ -1,14 +1,17 @@
 package main
 
+// Statement is implemented by those who can execute.
 type Statement interface {
 	Execute(ctx *Context)
 }
 
+// VariableStatement is a let ... statement, which defines and inits variables.
 type VariableStatement struct {
 	Name string
 	Expr Expression
 }
 
+// Execute implements Statement.
 func (v *VariableStatement) Execute(ctx *Context) {
 	value := ValueFromNil()
 	if v.Expr != nil {
@@ -24,6 +27,7 @@ type AssignmentStatement struct {
 	right Expression
 }
 
+// Execute implements Statement.
 func (v *AssignmentStatement) Execute(ctx *Context) {
 	assigner, ok := v.left.(Assigner)
 	if !ok {
@@ -34,33 +38,42 @@ func (v *AssignmentStatement) Execute(ctx *Context) {
 	assigner.Assign(ctx, value)
 }
 
+// FunctionStatement is a function definition statement.
+// Because Tao treats functions as first-class values.
+// We call it a function expression.
 type FunctionStatement struct {
 	expr *FunctionExpression
 }
 
+// Execute implements Statement.
 func (f *FunctionStatement) Execute(ctx *Context) {
 	_ = f.expr.Evaluate(ctx)
 }
 
+// ReturnStatement is the `return ...;` statement.
 type ReturnStatement struct {
 	expr Expression
 }
 
+// NewReturnStatement news a ReturnStatement.
 func NewReturnStatement(expr Expression) *ReturnStatement {
 	return &ReturnStatement{
 		expr: expr,
 	}
 }
 
+// Execute implements Statement.
 func (r *ReturnStatement) Execute(ctx *Context) {
 	retval := r.expr.Evaluate(ctx)
 	ctx.SetReturn(retval)
 }
 
+// BlockStatement is a `{ ... }` statement.
 type BlockStatement struct {
 	stmts []Statement
 }
 
+// NewBlockStatement news a block statement.
 func NewBlockStatement(stmts ...Statement) *BlockStatement {
 	b := &BlockStatement{}
 	for _, stmt := range stmts {
@@ -69,6 +82,7 @@ func NewBlockStatement(stmts ...Statement) *BlockStatement {
 	return b
 }
 
+// Execute implements Statement.
 func (b *BlockStatement) Execute(ctx *Context) {
 	for _, stmt := range b.stmts {
 		var newCtx *Context
@@ -92,10 +106,14 @@ func (b *BlockStatement) Execute(ctx *Context) {
 	}
 }
 
+// ExpressionStatement is the expression statement.
+// An expression statement is an expression ended with a semicolon.
+// The evaluated value of the expression is simply dropped.
 type ExpressionStatement struct {
 	expr Expression
 }
 
+// Execute implements Statement.
 func (r *ExpressionStatement) Execute(ctx *Context) {
 	value := r.expr.Evaluate(ctx)
 	_ = value // drop expr value
@@ -144,19 +162,23 @@ func (f *ForStatement) Execute(ctx *Context) {
 	}
 }
 
+// BreakStatement is the break statement.
 type BreakStatement struct {
 }
 
+// Execute implements Statement.
 func (b *BreakStatement) Execute(ctx *Context) {
 	ctx.SetBreak()
 }
 
+// IfStatement is the if ... else if ... statement.
 type IfStatement struct {
 	cond      Expression
 	ifBlock   *BlockStatement
 	elseBlock Statement // if or block
 }
 
+// Execute implements Statement.
 func (i *IfStatement) Execute(ctx *Context) {
 	cond := i.cond.Evaluate(ctx)
 	if cond.Truth(ctx) {

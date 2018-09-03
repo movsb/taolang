@@ -14,11 +14,13 @@ type Assigner interface {
 	Assign(ctx *Context, value Value)
 }
 
+// UnaryExpression is a unary expression.
 type UnaryExpression struct {
 	tt   TokenType
 	expr Expression
 }
 
+// NewUnaryExpression new a UnaryExpression.
 func NewUnaryExpression(tt TokenType, expr Expression) *UnaryExpression {
 	return &UnaryExpression{
 		tt:   tt,
@@ -47,13 +49,14 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	return ValueFromNil()
 }
 
-// IncrementDecrementExpression is a++ / a-- / ++a / --a
+// IncrementDecrementExpression is a++ / a-- / ++a / --a expressions.
 type IncrementDecrementExpression struct {
 	prefix bool
 	op     Token
 	expr   Expression
 }
 
+// NewIncrementDecrementExpression new an IncrementDecrementExpression.
 func NewIncrementDecrementExpression(op Token, prefix bool, expr Expression) *IncrementDecrementExpression {
 	return &IncrementDecrementExpression{
 		prefix: prefix,
@@ -90,12 +93,14 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 	return Value{}
 }
 
+// BinaryExpression is a binary expression.
 type BinaryExpression struct {
 	left  Expression
 	op    TokenType
 	right Expression
 }
 
+// NewBinaryExpression news a BinaryExpression.
 func NewBinaryExpression(left Expression, op TokenType, right Expression) *BinaryExpression {
 	return &BinaryExpression{
 		left:  left,
@@ -104,6 +109,7 @@ func NewBinaryExpression(left Expression, op TokenType, right Expression) *Binar
 	}
 }
 
+// Evaluate implements Expression.
 func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	op := b.op
 	lv, rv := Value{}, Value{}
@@ -224,10 +230,12 @@ func (t *TernaryExpression) Evaluate(ctx *Context) Value {
 	return t.right.Evaluate(ctx)
 }
 
+// Parameters is a collection of function parameters.
 type Parameters struct {
 	names []string
 }
 
+// NewParameters news
 func NewParameters(names ...string) *Parameters {
 	p := &Parameters{}
 	for _, name := range names {
@@ -236,10 +244,12 @@ func NewParameters(names ...string) *Parameters {
 	return p
 }
 
+// Len returns the count of parameters.
 func (p *Parameters) Len() int {
 	return len(p.names)
 }
 
+// GetAt gets n-th parameter.
 func (p *Parameters) GetAt(index int) string {
 	if index > len(p.names)-1 {
 		panic("parameter index out of range")
@@ -247,6 +257,7 @@ func (p *Parameters) GetAt(index int) string {
 	return p.names[index]
 }
 
+// PutParam adds a parameter.
 func (p *Parameters) PutParam(name string) {
 	p.names = append(p.names, name)
 }
@@ -314,18 +325,22 @@ func (f *FunctionExpression) Execute(this *Context, ctx *Context) Value {
 	return ValueFromNil()
 }
 
+// Arguments is the collection of arguments for function call.
 type Arguments struct {
 	exprs []Expression
 }
 
+// Len returns the length of arguments.
 func (a *Arguments) Len() int {
 	return len(a.exprs)
 }
 
+// PutArgument adds an argument.
 func (a *Arguments) PutArgument(expr Expression) {
 	a.exprs = append(a.exprs, expr)
 }
 
+// EvaluateAll evaluates all values of arguments.
 func (a *Arguments) EvaluateAll(ctx *Context) Values {
 	args := Values{}
 	for _, expr := range a.exprs {
@@ -347,17 +362,17 @@ type IndexExpression struct {
 // Evaluate implements Expression.
 func (i *IndexExpression) Evaluate(ctx *Context) Value {
 	value := i.indexable.Evaluate(ctx)
-	keyer, ok1 := value.value.(KeyIndexer)
-	elemer, ok2 := value.value.(ElemIndexer)
+	keyable, ok1 := value.value.(KeyIndexer)
+	elemable, ok2 := value.value.(ElemIndexer)
 	if !ok1 && !ok2 {
 		panicf("attempt to index %v (type: %s)", value, value.TypeName())
 	}
 	key := i.key.Evaluate(ctx)
-	if key.Type == vtString && keyer != nil {
-		return keyer.Key(key.str())
+	if key.Type == vtString && keyable != nil {
+		return keyable.Key(key.str())
 	}
-	if key.Type == vtNumber && elemer != nil {
-		return elemer.Elem(key.number())
+	if key.Type == vtNumber && elemable != nil {
+		return elemable.Elem(key.number())
 	}
 	panic("not indexable")
 }
@@ -365,18 +380,18 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 // Assign implements Assigner.
 func (i *IndexExpression) Assign(ctx *Context, val Value) {
 	value := i.indexable.Evaluate(ctx)
-	keyer, ok1 := value.value.(KeyAssigner)
-	elemer, ok2 := value.value.(ElemAssigner)
+	keyable, ok1 := value.value.(KeyAssigner)
+	elemable, ok2 := value.value.(ElemAssigner)
 	if !ok1 && !ok2 {
 		panicf("not assignable: %v (type: %s)", value, value.TypeName())
 	}
 	key := i.key.Evaluate(ctx)
-	if key.isString() && keyer != nil {
-		keyer.KeyAssign(key.str(), val)
+	if key.isString() && keyable != nil {
+		keyable.KeyAssign(key.str(), val)
 		return
 	}
-	if key.isNumber() && elemer != nil {
-		elemer.ElemAssign(key.number(), val)
+	if key.isNumber() && elemable != nil {
+		elemable.ElemAssign(key.number(), val)
 		return
 	}
 	panic("not assignable")
@@ -433,16 +448,19 @@ func (f *CallExpression) Evaluate(ctx *Context) Value {
 	}
 }
 
+// ObjectExpression is the object literal expression.
 type ObjectExpression struct {
 	props map[string]Expression
 }
 
+// NewObjectExpression news an object literal expression.
 func NewObjectExpression() *ObjectExpression {
 	return &ObjectExpression{
 		props: make(map[string]Expression),
 	}
 }
 
+// Evaluate implements Expression.
 func (o *ObjectExpression) Evaluate(ctx *Context) Value {
 	obj := NewObject()
 	for k, v := range o.props {
@@ -451,14 +469,17 @@ func (o *ObjectExpression) Evaluate(ctx *Context) Value {
 	return ValueFromObject(obj)
 }
 
+// ArrayExpression is the array literal expression.
 type ArrayExpression struct {
 	elements []Expression
 }
 
+// NewArrayExpression news an array literal expression.
 func NewArrayExpression() *ArrayExpression {
 	return &ArrayExpression{}
 }
 
+// Evaluate implements Expression.
 func (a *ArrayExpression) Evaluate(ctx *Context) Value {
 	arr := NewArray()
 	for _, element := range a.elements {
