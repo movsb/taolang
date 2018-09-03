@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"sort"
 )
 
 // KeyIndexer is implemented by those who supports keyed values.
@@ -119,6 +120,17 @@ func (o *Object) PushElem(val Value) {
 	o.elems = append(o.elems, val)
 }
 
+func (o *Object) sortedKeys() []string {
+	keys := make([]string, len(o.props))
+	i := 0
+	for key := range o.props {
+		keys[i] = key
+		i++
+	}
+	sort.Strings(keys)
+	return keys
+}
+
 func (o *Object) String() string {
 	if o.array {
 		buf := bytes.NewBuffer(nil)
@@ -136,10 +148,9 @@ func (o *Object) String() string {
 	buf := bytes.NewBuffer(nil)
 	buf.WriteString("{")
 	n := len(o.props)
-	i := 0
-	for k, p := range o.props {
-		// TODO k may have invalid characters.
-		buf.WriteString(fmt.Sprintf(`%s:%v`, k, p))
+	for i, key := range o.sortedKeys() {
+		// TODO key may have invalid characters.
+		buf.WriteString(fmt.Sprintf(`%s:%v`, key, o.props[key]))
 		if i != n-1 {
 			buf.WriteString(",")
 		}

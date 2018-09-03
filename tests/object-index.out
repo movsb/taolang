@@ -1,4 +1,4 @@
-{d:true,e:function(<anonymous>),f:{xxx:this is xxx},g:function(<anonymous>),h:function(<anonymous>),a:nil,b:1,c:cc}
+{a:nil,b:1,c:cc,d:true,e:function(<anonymous>),f:{xxx:this is xxx},g:function(<anonymous>),h:function(<anonymous>)}
 nil
 1
 cc
