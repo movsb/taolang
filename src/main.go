@@ -12,10 +12,12 @@ func exec(input io.Reader) {
 	program, err := parser.Parse()
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	ret, err := program.Execute()
 	if err != nil {
 		fmt.Println(err)
+		return
 	}
 	_ = ret
 }

@@ -4,14 +4,21 @@ package main
 type Parser struct {
 	tokenizer *Tokenizer
 
-	// TODO find a better way to do this
+	// how many loops the parser is in.
+	// a positive loopCount means we can break.
+	loopCount uint
+
+	// if we want to parse a statement without eating out the end semicolon,
+	// set it to true. And it will be cleared immediately after a statement is parsed.
 	skipSemicolon bool
 }
 
 // NewParser news a parser.
 func NewParser(tokenizer *Tokenizer) *Parser {
 	return &Parser{
-		tokenizer: tokenizer,
+		tokenizer:     tokenizer,
+		loopCount:     0,
+		skipSemicolon: false,
 	}
 }
 
@@ -129,6 +136,9 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttFor:
 		return p.parseForStatement()
 	case ttBreak:
+		if p.loopCount <= 0 {
+			panic("break statement must be in loop")
+		}
 		return p.parseBreakStatement()
 	case ttIf:
 		return p.parseIfStatement()
@@ -344,10 +354,14 @@ func (p *Parser) parseForStatement() *ForStatement {
 		}
 	}
 
+	p.loopCount++
+
 	fs.block = p.parseBlockStatement()
 	if fs.block == nil {
 		panic("for needs body")
 	}
+
+	p.loopCount--
 
 	return &fs
 }
@@ -734,7 +748,12 @@ func (p *Parser) parseFunctionExpression() *FunctionExpression {
 		panic("function needs a body")
 	}
 
+	saveLoopCount := p.loopCount
+	p.loopCount = 0
+
 	block = p.parseBlockStatement()
+
+	p.loopCount = saveLoopCount
 
 	return &FunctionExpression{
 		name:   name,

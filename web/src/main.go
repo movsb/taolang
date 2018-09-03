@@ -37,7 +37,7 @@ func main() {
 			c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
 			return
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
 		cmd := exec.CommandContext(ctx, "./bin/tao")
 		cmd.Stdin = strings.NewReader(data.Source)

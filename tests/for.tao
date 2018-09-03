@@ -2,6 +2,7 @@ function main() {
     for1();
     for2();
     for3();
+    for4();
 }
 
 function for1() {
@@ -22,5 +23,13 @@ function for2() {
 function for3() {
     for let n = 3; n >= 0; n = n - 1 {
         println(n);
+    }
+}
+
+function for4() {
+    println("for4");
+    for let i = 0; i < 3; i++ {
+        let a = i;
+        println(a);
     }
 }

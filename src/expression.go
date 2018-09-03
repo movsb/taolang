@@ -302,7 +302,6 @@ type FunctionExpression struct {
 
 // Evaluate is
 func (f *FunctionExpression) Evaluate(ctx *Context) Value {
-	// log.Printf("function %s evaluate in %s\n", f.name, ctx.name)
 	value := ValueFromFunction(&EvaluatedFunctionExpression{
 		this: ctx,
 		expr: f,
@@ -316,7 +315,6 @@ func (f *FunctionExpression) Evaluate(ctx *Context) Value {
 // Execute executes function statements.
 // This is not a statement interface implementation.
 func (f *FunctionExpression) Execute(this *Context, ctx *Context) Value {
-	// log.Printf("function %s execute in %s\n", f.name, ctx.name)
 	ctx.SetParent(this) // this is how closure works
 	f.block.Execute(ctx)
 	if ctx.hasret {

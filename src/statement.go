@@ -144,11 +144,14 @@ func (f *ForStatement) Execute(ctx *Context) {
 			}
 		}
 		// block
-		f.block.Execute(ctx)
-		if ctx.hasret {
+		newCtx := NewContext("--for-block--", ctx)
+		f.block.Execute(newCtx)
+		if newCtx.hasret {
+			ctx.SetReturn(newCtx.retval)
 			return
 		}
-		if ctx.broke {
+		if newCtx.broke {
+			ctx.SetBreak()
 			break
 		}
 		// incr

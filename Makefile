@@ -6,7 +6,7 @@ test: ./tao
 
 .PHONY: tao
 tao: 
-	cd src && go build -o ../bin/tao
+	@cd src && go build -o ../bin/tao
 
 .PHONY:main
 main: tao
@@ -14,4 +14,4 @@ main: tao
 
 .PHONY: web
 web:
-	cd web/src && go build -o ../../bin/web
+	@cd web/src && go build -o ../../bin/web
