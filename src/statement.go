@@ -64,7 +64,10 @@ func NewReturnStatement(expr Expression) *ReturnStatement {
 
 // Execute implements Statement.
 func (r *ReturnStatement) Execute(ctx *Context) {
-	retval := r.expr.Evaluate(ctx)
+	retval := ValueFromNil()
+	if r.expr != nil {
+		retval = r.expr.Evaluate(ctx)
+	}
 	ctx.SetReturn(retval)
 }
 
