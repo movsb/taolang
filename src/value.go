@@ -84,10 +84,13 @@ func ValueFromObject(obj *Object) Value {
 }
 
 // ValueFromFunction creates a evaluated function expression value.
-func ValueFromFunction(fn *EvaluatedFunctionExpression) Value {
+func ValueFromFunction(fn *FunctionExpression, this *Context) Value {
 	return Value{
-		Type:  vtFunction,
-		value: fn,
+		Type: vtFunction,
+		value: &EvaluatedFunctionExpression{
+			this: this,
+			expr: fn,
+		},
 	}
 }
 
@@ -252,7 +255,7 @@ func (v Value) Truth(ctx *Context) bool {
 		return ctx.MustFind(v.variable(), true).Truth(ctx)
 	case vtObject:
 		obj := v.object()
-		if obj.IsArray() {
+		if obj.array {
 			return obj.Len() > 0
 		}
 		return len(obj.props) > 0

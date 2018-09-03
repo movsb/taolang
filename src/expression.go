@@ -284,6 +284,7 @@ type EvaluatedFunctionExpression struct {
 }
 
 // Execute evaluates the function expression within closure.
+// This is not a statement interface implementation.
 func (e *EvaluatedFunctionExpression) Execute(ctx *Context) Value {
 	return e.expr.Execute(e.this, ctx)
 }
@@ -302,10 +303,7 @@ type FunctionExpression struct {
 
 // Evaluate is
 func (f *FunctionExpression) Evaluate(ctx *Context) Value {
-	value := ValueFromFunction(&EvaluatedFunctionExpression{
-		this: ctx,
-		expr: f,
-	})
+	value := ValueFromFunction(f, ctx)
 	if f.name != "" {
 		ctx.AddValue(f.name, value)
 	}
