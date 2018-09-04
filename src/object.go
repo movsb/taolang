@@ -51,12 +51,14 @@ func NewArray(elems ...Value) *Object {
 	o.elems = elems
 
 	builtins := map[string]func(*Context, *Values) Value{
-		"each":   o.Each,
-		"map":    o.Map,
-		"reduce": o.Reduce,
-		"find":   o.Find,
-		"filter": o.Filter,
-		"where":  o.Where,
+		"splice":  o.Splice,
+		"unshift": o.Unshift,
+		"each":    o.Each,
+		"map":     o.Map,
+		"reduce":  o.Reduce,
+		"find":    o.Find,
+		"filter":  o.Filter,
+		"where":   o.Where,
 	}
 
 	for k, v := range builtins {
@@ -159,6 +161,68 @@ func (o *Object) String() string {
 	buf.WriteString("}")
 	return buf.String()
 }
+
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
+/// Javascript array methods.
+
+// Splice changes the contents of an array by removing existing elements and/or adding new elements.
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice
+func (o *Object) Splice(ctx *Context, args *Values) Value {
+	start := 0
+	if args.Len() < 1 || !args.At(0).isNumber() {
+		panic("splice: start must be number")
+	}
+	start = args.Shift().number()
+	if start > o.Len() {
+		start = o.Len()
+	} else if start < 0 {
+		if -start > o.Len() {
+			start = 0
+		} else {
+			start += o.Len()
+		}
+	}
+	deleteCount := 0
+	if args.Len() >= 1 {
+		if !args.At(0).isNumber() {
+			panic("splice: deleteCount must be number")
+		}
+		deleteCount = args.Shift().number()
+		if deleteCount > o.Len()-start {
+			deleteCount = o.Len() - start
+		}
+		if deleteCount <= 0 {
+
+		}
+	} else {
+		deleteCount = o.Len() - start
+	}
+	deletedElements := []Value{}
+	if deleteCount > 0 {
+		deletedElements = make([]Value, deleteCount)
+		copy(deletedElements, o.elems[start:start+deleteCount])
+		o.elems = append(o.elems[0:start], o.elems[start+deleteCount:]...)
+	}
+	if args.Len() > 0 {
+		elems := make([]Value, len(o.elems)+args.Len())
+		copy(elems, o.elems[:start])
+		copy(elems[start:], args.values)
+		copy(elems[start+args.Len():], o.elems[start:])
+		o.elems = elems
+	}
+	return ValueFromObject(NewArray(deletedElements...))
+}
+
+// Unshift adds elements to the beginning of the array and returns the new length of the array.
+// https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
+func (o *Object) Unshift(ctx *Context, args *Values) Value {
+	for _, v := range args.values {
+		o.elems = append([]Value{v}, o.elems...)
+	}
+	return ValueFromNumber(o.Len())
+}
+
+/// functional methods implementations below.
 
 func (o *Object) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
 	ctx = NewContext("--lambda--", nil)

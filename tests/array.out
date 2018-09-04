@@ -2,3 +2,18 @@
 6
 str
 9
+[-2,-1,1,3,5,7,9] 7
+[angel,clown,drum,mandarin,sturgeon]
+[]
+[angel,clown,drum,sturgeon]
+[mandarin]
+[angel,clown,trumpet,sturgeon]
+[drum]
+[parrot,anemone,blue,trumpet,sturgeon]
+[angel,clown]
+[parrot,anemone,sturgeon]
+[blue,trumpet]
+[angel,clown,sturgeon]
+[mandarin]
+[angel,clown]
+[mandarin,sturgeon]

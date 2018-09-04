@@ -105,75 +105,75 @@ func ValueFromBuiltin(name string, fn func(*Context, *Values) Value) Value {
 	}
 }
 
-func (v *Value) isNil() bool {
+func (v Value) isNil() bool {
 	return v.Type == vtNil
 }
 
-func (v *Value) isBoolean() bool {
+func (v Value) isBoolean() bool {
 	return v.Type == vtBoolean
 }
 
-func (v *Value) isNumber() bool {
+func (v Value) isNumber() bool {
 	return v.Type == vtNumber
 }
 
-func (v *Value) isString() bool {
+func (v Value) isString() bool {
 	return v.Type == vtString
 }
 
-func (v *Value) isObject() bool {
+func (v Value) isObject() bool {
 	return v.Type == vtObject
 }
 
-func (v *Value) isVariable() bool {
+func (v Value) isVariable() bool {
 	return v.Type == vtVariable
 }
 
-func (v *Value) isFunction() bool {
+func (v Value) isFunction() bool {
 	return v.Type == vtFunction
 }
 
-func (v *Value) isBuiltin() bool {
+func (v Value) isBuiltin() bool {
 	return v.Type == vtBuiltin
 }
 
-func (v *Value) checkType(vt ValueType) {
+func (v Value) checkType(vt ValueType) {
 	if v.Type != vt {
 		panic("wrong use")
 	}
 }
 
-func (v *Value) boolean() bool {
+func (v Value) boolean() bool {
 	v.checkType(vtBoolean)
 	return v.value.(bool)
 }
 
-func (v *Value) number() int {
+func (v Value) number() int {
 	v.checkType(vtNumber)
 	return v.value.(int)
 }
 
-func (v *Value) str() string {
+func (v Value) str() string {
 	v.checkType(vtString)
 	return v.value.(string)
 }
 
-func (v *Value) variable() string {
+func (v Value) variable() string {
 	v.checkType(vtVariable)
 	return v.value.(string)
 }
 
-func (v *Value) object() *Object {
+func (v Value) object() *Object {
 	v.checkType(vtObject)
 	return v.value.(*Object)
 }
 
-func (v *Value) function() *EvaluatedFunctionExpression {
+func (v Value) function() *EvaluatedFunctionExpression {
 	v.checkType(vtFunction)
 	return v.value.(*EvaluatedFunctionExpression)
 }
 
-func (v *Value) builtin() *Builtin {
+func (v Value) builtin() *Builtin {
 	v.checkType(vtBuiltin)
 	return v.value.(*Builtin)
 }
@@ -298,4 +298,14 @@ func (v *Values) All() []interface{} {
 		i = append(i, value)
 	}
 	return i
+}
+
+// Shift shifts out one element from left.
+func (v *Values) Shift() (rv Value) {
+	if v.Len() >= 1 {
+		rv = v.values[0]
+		v.values = v.values[1:]
+		return
+	}
+	return Value{}
 }
