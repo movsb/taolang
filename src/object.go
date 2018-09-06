@@ -51,13 +51,16 @@ func NewArray(elems ...Value) *Object {
 	o.elems = elems
 
 	builtins := map[string]func(*Context, *Values) Value{
+		"each":    o.Each,
+		"filter":  o.Filter,
+		"find":    o.Find,
+		"join":    o.Join,
+		"map":     o.Map,
+		"push":    o.Push,
+		"pop":     o.Pop,
+		"reduce":  o.Reduce,
 		"splice":  o.Splice,
 		"unshift": o.Unshift,
-		"each":    o.Each,
-		"map":     o.Map,
-		"reduce":  o.Reduce,
-		"find":    o.Find,
-		"filter":  o.Filter,
 		"where":   o.Where,
 	}
 
@@ -220,6 +223,44 @@ func (o *Object) Unshift(ctx *Context, args *Values) Value {
 		o.elems = append([]Value{v}, o.elems...)
 	}
 	return ValueFromNumber(o.Len())
+}
+
+// Push adds one or more elements to the end of an array and returns the new length of the array.
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push
+func (o *Object) Push(ctx *Context, args *Values) Value {
+	o.elems = append(o.elems, args.values...)
+	return ValueFromNumber(o.Len())
+}
+
+// Pop removes the last element from an array and returns that element.
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/pop
+func (o *Object) Pop(ctx *Context, args *Values) Value {
+	if o.Len() > 0 {
+		value := o.elems[o.Len()-1]
+		o.elems = o.elems[:o.Len()-1]
+		return value
+	}
+	return ValueFromNil()
+}
+
+// Join joins all elements of an array into a string and returns this string.
+// https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
+func (o *Object) Join(ctx *Context, args *Values) Value {
+	if o.Len() <= 0 {
+		return ValueFromString("")
+	}
+	sep := ""
+	if args.Len() >= 1 {
+		sep = fmt.Sprint(args.At(0))
+	}
+	n := o.Len()
+	buf := bytes.NewBuffer(nil)
+	for i := 0; i < n-1; i++ {
+		s := fmt.Sprintf("%v%s", o.elems[i], sep)
+		buf.WriteString(s)
+	}
+	buf.WriteString(fmt.Sprint(o.elems[n-1]))
+	return ValueFromString(buf.String())
 }
 
 /// functional methods implementations below.

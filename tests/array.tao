@@ -53,4 +53,27 @@ function main() {
         println(myFish);
         println(removed);
     }
+    {
+        let a = [1,2,3];
+        a.push(4);
+        a.push("5");
+        a.push([1,2,3]);
+        a.push({a:8});
+        a.push(1,true,[],{},"s");
+        println(a);
+    }
+    {
+        let a = [1,2,3];
+        println(a.pop());
+        println(a.pop());
+        println(a.pop());
+        println(a.pop());
+    }
+    {
+        println([1,2,3].join());
+        println([1,2,3].join(""));
+        println([1,2,3].join(true));
+        println([1,2,3].join(nil));
+        println([1,2,3].join({},[]));
+    }
 }

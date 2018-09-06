@@ -17,3 +17,13 @@ str
 [mandarin]
 [angel,clown]
 [mandarin,sturgeon]
+[1,2,3,4,5,[1,2,3],{a:8},1,true,[],{},s]
+3
+2
+1
+nil
+123
+123
+1true2true3
+1nil2nil3
+1{}2{}3
