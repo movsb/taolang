@@ -44,6 +44,11 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 		return ValueFromNumber(-value.number())
 	case ttNot:
 		return ValueFromBoolean(!value.Truth(ctx))
+	case ttBitXor:
+		if value.Type != vtNumber {
+			panic("^value is invalid")
+		}
+		return ValueFromNumber(^value.number())
 	}
 	panicf("unknown unary operator: %v", u.tt) // TODO
 	return ValueFromNil()
@@ -178,6 +183,8 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromNumber(lv.number() | rv.number())
 		case ttBitXor:
 			return ValueFromNumber(lv.number() ^ rv.number())
+		case ttBitAndNot:
+			return ValueFromNumber(lv.number() &^ rv.number())
 		}
 	}
 

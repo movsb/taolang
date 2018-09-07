@@ -116,6 +116,14 @@ function bitwise() {
     c = a;
     c ^= b;
     println(c);
+
+    println(255 &^ 1);
+  
+    {
+        let a = 15;
+        a &^= 4;
+        println(a);
+    }
 }
 
 function ternary() {

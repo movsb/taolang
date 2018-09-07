@@ -183,7 +183,7 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 		ttStarAssign, ttDivideAssign, ttPercentAssign,
 		ttPlusAssign, ttMinusAssign,
 		ttLeftShiftAssign, ttRightShiftAssign,
-		ttAndAssign, ttOrAssign, ttXorAssign,
+		ttAndAssign, ttOrAssign, ttXorAssign, ttAndNotAssign,
 	); ok {
 		right := p.parseExpression(ttQuestion)
 		var binOp TokenType
@@ -210,6 +210,8 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 			binOp = ttBitOr
 		case ttXorAssign:
 			binOp = ttBitXor
+		case ttAndNotAssign:
+			binOp = ttBitAndNot
 		default:
 			panic("won't go here")
 		}
@@ -399,7 +401,7 @@ func (p *Parser) parseIfStatement() *IfStatement {
 func (p *Parser) parseExpression(level TokenType) Expression {
 	var expr Expression
 	switch next := p.peek(); next.typ {
-	case ttNot, ttAddition, ttSubstraction:
+	case ttNot, ttBitXor, ttAddition, ttSubstraction:
 		p.next()
 		right := p.parseExpression(ttIncrement)
 		expr = NewUnaryExpression(next.typ, right)
@@ -426,7 +428,7 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 		switch op.typ {
 		case ttAndAnd, ttOrOr:
 			right = p.parseExpression(ttBitAnd)
-		case ttBitAnd, ttBitOr, ttBitXor:
+		case ttBitAnd, ttBitOr, ttBitXor, ttBitAndNot:
 			right = p.parseExpression(ttEqual)
 		case ttEqual, ttNotEqual:
 			right = p.parseExpression(ttGreaterThan)

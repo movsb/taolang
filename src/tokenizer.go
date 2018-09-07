@@ -47,6 +47,7 @@ const (
 	ttAndAssign
 	ttXorAssign
 	ttOrAssign
+	ttAndNotAssign
 
 	// Conditional
 	ttQuestion
@@ -60,6 +61,7 @@ const (
 	ttBitAnd
 	ttBitOr
 	ttBitXor
+	ttBitAndNot
 
 	// Equality
 	ttEqual
@@ -151,6 +153,7 @@ func init() {
 		ttAndAssign:        "&=",
 		ttXorAssign:        "^=",
 		ttOrAssign:         "|=",
+		ttAndNotAssign:     "&^=",
 
 		ttQuestion: "?",
 
@@ -158,9 +161,10 @@ func init() {
 		ttAndAnd: "&&",
 		ttOrOr:   "||",
 
-		ttBitAnd: "&",
-		ttBitOr:  "|",
-		ttBitXor: "^",
+		ttBitAnd:    "&",
+		ttBitOr:     "|",
+		ttBitXor:    "^",
+		ttBitAndNot: "&^",
 
 		ttEqual:    "==",
 		ttNotEqual: "!=",
@@ -434,7 +438,17 @@ func (t *Tokenizer) next() (token Token) {
 		case '!':
 			return t.iif('=', ttNotEqual, ttNot)
 		case '&':
-			return t.iiif('&', '=', ttAndAnd, ttAndAssign, ttBitAnd)
+			switch c := t.read(); c {
+			case '&':
+				return Token{typ: ttAndAnd}
+			case '=':
+				return Token{typ: ttAndAssign}
+			case '^':
+				return t.iif('=', ttAndNotAssign, ttBitAndNot)
+			default:
+				t.unread()
+				return Token{typ: ttBitAnd}
+			}
 		case '|':
 			return t.iiif('|', '=', ttOrOr, ttOrAssign, ttBitOr)
 		case '^':
