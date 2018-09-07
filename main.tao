@@ -1,6 +1,6 @@
 function main() {
-    let a = (8);
-    println(a);
-    let b = -(-90);
-    println(b);
+    (function(){
+        let a = 1;
+        println(a);
+    })();
 }

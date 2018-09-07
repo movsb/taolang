@@ -462,12 +462,11 @@ func (p *Parser) parseTernaryExpression(cond Expression) Expression {
 	left = p.parseExpression(ttQuestion)
 	p.expect(ttColon)
 	right = p.parseExpression(ttQuestion)
-	errstr := " expression of ?: cannot be ?: (nested ?: is not allowed)"
 	if _, ok := left.(*TernaryExpression); ok {
-		panic("left" + errstr)
+		panic("nested ?: is not allowed")
 	}
 	if _, ok := right.(*TernaryExpression); ok {
-		panic("right" + errstr)
+		panic("nested ?: is not allowed")
 	}
 	return NewTernaryExpression(cond, left, right)
 }

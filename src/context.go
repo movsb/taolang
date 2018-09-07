@@ -51,7 +51,7 @@ func (c *Context) FindValue(name string, outer bool) (Value, bool) {
 func (c *Context) MustFind(name string, outer bool) Value {
 	value, ok := c.FindValue(name, outer)
 	if !ok {
-		panicf("name `%s' not found", name)
+		panicf("name `%s' not defined", name)
 	}
 	return value
 }
@@ -59,7 +59,7 @@ func (c *Context) MustFind(name string, outer bool) Value {
 // AddValue adds a new value in current context.
 func (c *Context) AddValue(name string, value Value) {
 	if _, ok := c.FindValue(name, false); ok {
-		panicf("name `%s' is already defined in this scope", name)
+		panicf("name `%s' redefined", name)
 	}
 	c.symbols = append(c.symbols, &Symbol{
 		Name:  name,
@@ -79,7 +79,7 @@ func (c *Context) SetValue(name string, value Value) {
 		c.parent.SetValue(name, value)
 		return
 	}
-	panicf("name `%s' is not defined", name)
+	panicf("name `%s' not defined", name)
 }
 
 // SetParent sets parent context.
