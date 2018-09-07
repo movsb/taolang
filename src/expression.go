@@ -57,12 +57,12 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 // IncrementDecrementExpression is a++ / a-- / ++a / --a expressions.
 type IncrementDecrementExpression struct {
 	prefix bool
-	op     Token
+	op     TokenType
 	expr   Expression
 }
 
 // NewIncrementDecrementExpression new an IncrementDecrementExpression.
-func NewIncrementDecrementExpression(op Token, prefix bool, expr Expression) *IncrementDecrementExpression {
+func NewIncrementDecrementExpression(op TokenType, prefix bool, expr Expression) *IncrementDecrementExpression {
 	return &IncrementDecrementExpression{
 		prefix: prefix,
 		op:     op,
@@ -79,7 +79,7 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 			panicf("not assignable: %v (type: %s)", oldval, oldval.TypeName())
 		}
 		newval := Value{}
-		switch i.op.typ {
+		switch i.op {
 		case ttIncrement:
 			newval = ValueFromNumber(oldval.number() + 1)
 			assigner.Assign(ctx, newval)
