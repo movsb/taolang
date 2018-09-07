@@ -10,6 +10,8 @@ import (
 )
 
 // TokenType is the type of a token.
+// Operators are listed by precedence groups from lowest to highest.
+// ttQuestion -> ttIncrement
 type TokenType uint
 
 const (
@@ -31,7 +33,6 @@ const (
 	ttSemicolon
 	ttColon
 	ttLambda
-	ttQuestion
 
 	// assignment
 	ttAssign
@@ -47,25 +48,8 @@ const (
 	ttXorAssign
 	ttOrAssign
 
-	// ++ --
-	ttIncrement
-	ttDecrement
-
-	// arithmetic
-	ttAddition
-	ttSubstraction
-	ttMultiply
-	ttDivision
-	ttPercent
-	ttStarStar
-
-	// comparision
-	ttGreaterThan
-	ttGreaterThanOrEqual
-	ttEqual
-	ttNotEqual
-	ttLessThan
-	ttLessThanOrEqual
+	// Conditional
+	ttQuestion
 
 	// Logical
 	ttNot
@@ -76,8 +60,32 @@ const (
 	ttBitAnd
 	ttBitOr
 	ttBitXor
+
+	// Equality
+	ttEqual
+	ttNotEqual
+
+	// comparision
+	ttGreaterThan
+	ttGreaterThanOrEqual
+	ttLessThan
+	ttLessThanOrEqual
+
+	// Shift
 	ttLeftShift
 	ttRightShift
+
+	// arithmetic
+	ttAddition
+	ttSubstraction
+	ttMultiply
+	ttDivision
+	ttPercent
+	ttStarStar
+
+	// ++ --
+	ttIncrement
+	ttDecrement
 
 	// Literals
 	ttNil
@@ -124,14 +132,12 @@ func init() {
 		ttRightBracket: "]",
 		ttLeftBrace:    "{",
 		ttRightBrace:   "}",
-		ttDot:          ".",
-		ttComma:        ",",
-		ttSemicolon:    ";",
-		ttColon:        ":",
-		ttLambda:       "=>",
 
-		ttIncrement: "++",
-		ttDecrement: "--",
+		ttDot:       ".",
+		ttComma:     ",",
+		ttSemicolon: ";",
+		ttColon:     ":",
+		ttLambda:    "=>",
 
 		ttAssign:           "=",
 		ttPlusAssign:       "+=",
@@ -146,6 +152,27 @@ func init() {
 		ttXorAssign:        "^=",
 		ttOrAssign:         "|=",
 
+		ttQuestion: "?",
+
+		ttNot:    "!",
+		ttAndAnd: "&&",
+		ttOrOr:   "||",
+
+		ttBitAnd: "&",
+		ttBitOr:  "|",
+		ttBitXor: "^",
+
+		ttEqual:    "==",
+		ttNotEqual: "!=",
+
+		ttGreaterThan:        ">",
+		ttGreaterThanOrEqual: ">=",
+		ttLessThan:           "<",
+		ttLessThanOrEqual:    "<=",
+
+		ttLeftShift:  "<<",
+		ttRightShift: ">>",
+
 		ttAddition:     "+",
 		ttSubstraction: "-",
 		ttMultiply:     "*",
@@ -153,22 +180,8 @@ func init() {
 		ttPercent:      "%",
 		ttStarStar:     "**",
 
-		ttGreaterThan:        ">",
-		ttGreaterThanOrEqual: ">=",
-		ttEqual:              "==",
-		ttNotEqual:           "!=",
-		ttLessThan:           "<",
-		ttLessThanOrEqual:    "<=",
-
-		ttNot:    "!",
-		ttAndAnd: "&&",
-		ttOrOr:   "||",
-
-		ttBitAnd:     "&",
-		ttBitOr:      "|",
-		ttBitXor:     "^",
-		ttLeftShift:  "<<",
-		ttRightShift: ">>",
+		ttIncrement: "++",
+		ttDecrement: "--",
 
 		ttNil: "nil",
 

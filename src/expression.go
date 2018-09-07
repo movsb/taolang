@@ -361,7 +361,7 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 	keyable, ok1 := value.value.(KeyIndexer)
 	elemable, ok2 := value.value.(ElemIndexer)
 	if !ok1 && !ok2 {
-		panicf("attempt to index %v (type: %s)", value, value.TypeName())
+		panicf("not indexable: %v (type: %s)", value, value.TypeName())
 	}
 	key := i.key.Evaluate(ctx)
 	if key.Type == vtString && keyable != nil {
@@ -413,18 +413,8 @@ func (f *CallExpression) Evaluate(ctx *Context) Value {
 		break
 	case vtBuiltin:
 		break
-	case vtNil:
-		panic("cannot call on nil value")
-	case vtBoolean:
-		panic("cannot call on boolean value")
-	case vtNumber:
-		panic("cannot call on number value")
-	case vtString:
-		panic("cannot call on string value")
-	case vtObject:
-		panic("cannot call on object literal")
 	default:
-		panic("cannot call on unknown expr")
+		panicf("not callable: %v (type: %s)", callable, callable.TypeName())
 	}
 
 	switch callable.Type {

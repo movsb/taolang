@@ -30,7 +30,7 @@ func (p *Parser) Parse() (program *Program, err error) {
 
 	program = &Program{}
 	for {
-		stmt := p.parseGlobalStatement()
+		stmt := p.parseStatement(true)
 		if stmt == nil {
 			break
 		}
@@ -63,6 +63,10 @@ func (p *Parser) match(tts ...TokenType) (Token, bool) {
 	return Token{}, false
 }
 
+func (p *Parser) isOp(t Token) bool {
+	return t.typ >= ttQuestion && t.typ <= ttDecrement
+}
+
 func (p *Parser) next() Token {
 	return p.tokenizer.Next()
 }
@@ -93,10 +97,6 @@ func (p *Parser) enter() {
 
 func (p *Parser) leave(putback bool) {
 	p.tokenizer.PopFrame(putback)
-}
-
-func (p *Parser) parseGlobalStatement() Statement {
-	return p.parseStatement(true)
 }
 
 func (p *Parser) parseStatement(global bool) Statement {
@@ -160,7 +160,7 @@ func (p *Parser) parseVariableStatement() *VariableStatement {
 	v.Name = p.expect(ttIdentifier).str
 	if p.follow(ttAssign) {
 		p.next()
-		v.Expr = p.parseExpression()
+		v.Expr = p.parseExpression(ttQuestion)
 	}
 	p.expect(ttSemicolon)
 	return &v
@@ -174,10 +174,10 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 
 	var as AssignmentStatement
 
-	as.left = p.parseExpression()
+	as.left = p.parseExpression(ttQuestion)
 
 	if _, ok := p.match(ttAssign); ok {
-		as.right = p.parseExpression()
+		as.right = p.parseExpression(ttQuestion)
 	} else if op, ok := p.match(
 		ttStarStarAssign,
 		ttStarAssign, ttDivideAssign, ttPercentAssign,
@@ -185,7 +185,7 @@ func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
 		ttLeftShiftAssign, ttRightShiftAssign,
 		ttAndAssign, ttOrAssign, ttXorAssign,
 	); ok {
-		right := p.parseExpression()
+		right := p.parseExpression(ttQuestion)
 		var binOp TokenType
 		switch op.typ {
 		case ttStarStarAssign:
@@ -238,7 +238,7 @@ func (p *Parser) parseFunctionStatement() *FunctionStatement {
 
 func (p *Parser) parseReturnStatement() *ReturnStatement {
 	p.expect(ttReturn)
-	expr := p.parseExpression()
+	expr := p.parseExpression(ttQuestion)
 	p.expect(ttSemicolon)
 	return &ReturnStatement{
 		expr: expr,
@@ -251,7 +251,7 @@ func (p *Parser) parseExpressionStatement() (stmt *ExpressionStatement) {
 		p.leave(stmt == nil)
 	}()
 
-	expr := p.parseExpression()
+	expr := p.parseExpression(ttQuestion)
 	if expr == nil {
 		return nil
 	}
@@ -302,14 +302,14 @@ func (p *Parser) parseForStatement() *ForStatement {
 		hasInit = true
 		p.expect(ttSemicolon)
 	} else if !p.follow(ttLeftBrace) {
-		fs.test = p.parseExpression()
+		fs.test = p.parseExpression(ttQuestion)
 		hasInit = false
 	}
 
 	if hasInit {
 		// test
 		if !p.follow(ttSemicolon) {
-			fs.test = p.parseExpression()
+			fs.test = p.parseExpression(ttQuestion)
 			if fs.test == nil {
 				panic("expr expected")
 			} else {
@@ -323,7 +323,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 		if !p.follow(ttLeftBrace) {
 			// is expr?
 			p.enter()
-			fs.incr = p.parseExpression()
+			fs.incr = p.parseExpression(ttQuestion)
 			if !p.follow(ttLeftBrace) {
 				p.leave(true)
 				fs.incr = nil
@@ -374,7 +374,7 @@ func (p *Parser) parseBreakStatement() *BreakStatement {
 
 func (p *Parser) parseIfStatement() *IfStatement {
 	p.expect(ttIf)
-	expr := p.parseExpression()
+	expr := p.parseExpression(ttQuestion)
 	ifBlock := p.parseBlockStatement()
 	var elseBlock Statement
 	switch p.peek().typ {
@@ -396,154 +396,79 @@ func (p *Parser) parseIfStatement() *IfStatement {
 	}
 }
 
-func (p *Parser) parseExpression() Expression {
-	return p.parseTernaryExpression()
-}
-
-func (p *Parser) parseTernaryExpression() Expression {
-	var cond, left, right Expression
-	cond = p.parseLogicalExpression()
-	if _, ok := p.match(ttQuestion); ok {
-		// Although we don't allow nested ternary expression, we parse it, we panic it, later.
-		// left = p.parseLogicalExpression()
-		left = p.parseExpression()
-		p.expect(ttColon)
-		right = p.parseExpression()
-		errstr := " expression of ?: cannot be ?: (nested ?: is not allowed)"
-		if _, ok := left.(*TernaryExpression); ok {
-			panic("left" + errstr)
-		}
-		if _, ok := right.(*TernaryExpression); ok {
-			panic("right" + errstr)
-		}
-		return NewTernaryExpression(cond, left, right)
+func (p *Parser) parseExpression(level TokenType) Expression {
+	var expr Expression
+	switch next := p.peek(); next.typ {
+	case ttNot, ttAddition, ttSubstraction:
+		p.next()
+		right := p.parseExpression(ttIncrement)
+		expr = NewUnaryExpression(next.typ, right)
+	case ttIncrement, ttDecrement:
+		p.next()
+		right := p.parseExpression(ttIncrement)
+		expr = NewIncrementDecrementExpression(next, true, right)
+	default:
+		expr = p.parsePrimaryExpression()
 	}
-	return cond
-}
+	if expr == nil {
+		return nil
+	}
 
-func (p *Parser) parseLogicalExpression() Expression {
-	left := p.parseBitwiseExpression()
 	for {
-		if op, ok := p.match(ttAndAnd, ttOrOr); ok {
-			right := p.parseBitwiseExpression()
-			left = NewBinaryExpression(left, op.typ, right)
-		} else {
+		op := p.next()
+		if !p.isOp(op) || op.typ < level {
+			p.undo(op)
 			break
 		}
-	}
-	return left
-}
 
-// Attention: &, |, ^ have the same precedence that doesn't match javascript.
-func (p *Parser) parseBitwiseExpression() Expression {
-	left := p.parseEqualityExpression()
-	for {
-		if op, ok := p.match(ttBitAnd, ttBitOr, ttBitXor); ok {
-			right := p.parseEqualityExpression()
-			left = NewBinaryExpression(left, op.typ, right)
-		} else {
-			break
+		var right Expression
+
+		switch op.typ {
+		case ttAndAnd, ttOrOr:
+			right = p.parseExpression(ttBitAnd)
+		case ttBitAnd, ttBitOr, ttBitXor:
+			right = p.parseExpression(ttEqual)
+		case ttEqual, ttNotEqual:
+			right = p.parseExpression(ttGreaterThan)
+		case ttGreaterThan, ttGreaterThanOrEqual, ttLessThan, ttLessThanOrEqual:
+			right = p.parseExpression(ttLeftShift)
+		case ttLeftShift, ttRightShift:
+			right = p.parseExpression(ttAddition)
+		case ttAddition, ttSubstraction:
+			right = p.parseExpression(ttMultiply)
+		case ttMultiply, ttDivision, ttPercent:
+			right = p.parseExpression(ttStarStar)
+		case ttStarStar:
+			right = p.parseExpression(ttStarStar)
+		case ttQuestion:
+			expr = p.parseTernaryExpression(expr)
+		case ttIncrement, ttDecrement:
+			expr = NewIncrementDecrementExpression(op, false, expr)
+		}
+
+		if right != nil {
+			expr = NewBinaryExpression(expr, op.typ, right)
 		}
 	}
-	return left
+
+	return expr
 }
 
-func (p *Parser) parseEqualityExpression() Expression {
-	left := p.parseComparisonExpression()
-	for {
-		if op, ok := p.match(ttEqual, ttNotEqual); ok {
-			right := p.parseComparisonExpression()
-			left = NewBinaryExpression(left, op.typ, right)
-		} else {
-			break
-		}
+func (p *Parser) parseTernaryExpression(cond Expression) Expression {
+	var left, right Expression
+	// Although we don't allow nested ternary expression, we parse it, we panic it, later.
+	// left = p.parseLogicalExpression()
+	left = p.parseExpression(ttQuestion)
+	p.expect(ttColon)
+	right = p.parseExpression(ttQuestion)
+	errstr := " expression of ?: cannot be ?: (nested ?: is not allowed)"
+	if _, ok := left.(*TernaryExpression); ok {
+		panic("left" + errstr)
 	}
-	return left
-}
-
-func (p *Parser) parseComparisonExpression() Expression {
-	left := p.parseShiftExpression()
-	for {
-		if op, ok := p.match(ttGreaterThan, ttGreaterThanOrEqual, ttLessThan, ttLessThanOrEqual); ok {
-			right := p.parseShiftExpression()
-			left = NewBinaryExpression(left, op.typ, right)
-		} else {
-			break
-		}
+	if _, ok := right.(*TernaryExpression); ok {
+		panic("right" + errstr)
 	}
-	return left
-}
-
-func (p *Parser) parseShiftExpression() Expression {
-	left := p.parseAdditionExpression()
-	for {
-		if op, ok := p.match(ttLeftShift, ttRightShift); ok {
-			right := p.parseAdditionExpression()
-			left = NewBinaryExpression(left, op.typ, right)
-		} else {
-			break
-		}
-	}
-	return left
-}
-
-func (p *Parser) parseAdditionExpression() Expression {
-	left := p.parseMultiplicationExpression()
-	for {
-		if op, ok := p.match(ttAddition, ttSubstraction); ok {
-			right := p.parseMultiplicationExpression()
-			left = NewBinaryExpression(left, op.typ, right)
-		} else {
-			break
-		}
-	}
-	return left
-}
-
-func (p *Parser) parseMultiplicationExpression() Expression {
-	left := p.parseExponentiationExpression()
-	for {
-		if op, ok := p.match(ttMultiply, ttDivision, ttPercent); ok {
-			right := p.parseExponentiationExpression()
-			left = NewBinaryExpression(left, op.typ, right)
-		} else {
-			break
-		}
-	}
-	return left
-}
-
-func (p *Parser) parseExponentiationExpression() Expression {
-	left := p.parseUnaryExpression()
-	if op, ok := p.match(ttStarStar); ok {
-		// ** is r2l association
-		right := p.parseExponentiationExpression()
-		return NewBinaryExpression(left, op.typ, right)
-	}
-	return left
-}
-
-func (p *Parser) parseUnaryExpression() Expression {
-	if op, ok := p.match(ttNot, ttSubstraction, ttAddition); ok {
-		right := p.parseUnaryExpression()
-		return NewUnaryExpression(op.typ, right)
-	}
-	if op, ok := p.match(ttIncrement, ttDecrement); ok {
-		right := p.parseUnaryExpression()
-		return NewIncrementDecrementExpression(op, true, right)
-	}
-	return p.parsePostfixIncrementDecrementExpression()
-}
-
-func (p *Parser) parsePostfixIncrementDecrementExpression() Expression {
-	left := p.parsePrimaryExpression()
-	if left == nil {
-		return left
-	}
-	if op, ok := p.match(ttIncrement, ttDecrement); ok {
-		return NewIncrementDecrementExpression(op, false, left)
-	}
-	return left
+	return NewTernaryExpression(cond, left, right)
 }
 
 func (p *Parser) parsePrimaryExpression() Expression {
@@ -566,7 +491,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 			return lambda
 		}
 		p.next()
-		expr = p.parseExpression()
+		expr = p.parseExpression(ttQuestion)
 		p.expect(ttRightParen)
 	case ttIdentifier:
 		if p.follow(ttLambda) {
@@ -652,7 +577,7 @@ func (p *Parser) parseLambdaExpression() (expr *FunctionExpression) {
 	if p.follow(ttLeftBrace) {
 		block = p.parseBlockStatement()
 	} else {
-		expr := p.parseExpression()
+		expr := p.parseExpression(ttQuestion)
 		if expr == nil {
 			panic("cannot parse lambda body expr")
 		}
@@ -677,7 +602,7 @@ func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
 		}
 		// panic("unknown token after expr")
 	case ttLeftBracket:
-		keyExpr := p.parseExpression()
+		keyExpr := p.parseExpression(ttQuestion)
 		if keyExpr == nil {
 			return nil
 		}
@@ -706,7 +631,7 @@ func (p *Parser) parseCallExpression(left Expression) Expression {
 	}
 
 	for {
-		arg := p.parseExpression()
+		arg := p.parseExpression(ttQuestion)
 		if arg == nil {
 			break
 		}
@@ -788,7 +713,7 @@ func (p *Parser) parseObjectExpression() Expression {
 
 		p.expect(ttColon)
 
-		expr = p.parseExpression()
+		expr = p.parseExpression(ttQuestion)
 		objexpr.props[key] = expr
 
 		p.skip(ttComma)
@@ -809,7 +734,7 @@ func (p *Parser) parseArrayExpression() Expression {
 	p.expect(ttLeftBracket)
 
 	for {
-		elem := p.parseExpression()
+		elem := p.parseExpression(ttQuestion)
 		if elem == nil {
 			break
 		}
