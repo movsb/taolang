@@ -4,4 +4,76 @@ function main() {
     println(a.length);
     println(a[3]);
     println([9][0]);
+
+    {
+        let a = [1,3,5,7,9];
+        let n = a.unshift(-1,-2);
+        println(a, n);
+    }
+
+    {
+        let myFish = ["angel", "clown", "mandarin", "sturgeon"];
+        let removed = myFish.splice(2, 0, "drum");
+        println(myFish);
+        println(removed);
+    }
+    {
+        let myFish = ["angel", "clown", "drum", "mandarin", "sturgeon"];
+        let removed = myFish.splice(3, 1);
+        println(myFish);
+        println(removed);
+    }
+    {
+        let myFish = ["angel", "clown", "drum", "sturgeon"];
+        let removed = myFish.splice(2, 1, "trumpet");
+        println(myFish);
+        println(removed);
+    }
+    {
+        let myFish = ["angel", "clown", "trumpet", "sturgeon"];
+        let removed = myFish.splice(0, 2, "parrot", "anemone", "blue");
+        println(myFish);
+        println(removed);
+    }
+    {
+        let myFish = ["parrot", "anemone", "blue", "trumpet", "sturgeon"];
+        let removed = myFish.splice(myFish.length - 3, 2);
+        println(myFish);
+        println(removed);
+    }
+    {
+        let myFish = ["angel", "clown", "mandarin", "sturgeon"];
+        let removed = myFish.splice(-2, 1);
+        println(myFish);
+        println(removed);
+    }
+    {
+        let myFish = ["angel", "clown", "mandarin", "sturgeon"];
+        let removed = myFish.splice(2);
+        println(myFish);
+        println(removed);
+    }
+    {
+        let a = [1,2,3];
+        a.push(4);
+        a.push("5");
+        a.push([1,2,3]);
+        a.push({a:8});
+        a.push(1,true,[],{},"s");
+        println(a);
+    }
+    {
+        let a = [1,2,3];
+        println(a.pop());
+        println(a.pop());
+        println(a.pop());
+        println(a.pop());
+    }
+    {
+        println([1,2,3].join());
+        println([1,2,3].join(""));
+        println([1,2,3].join(true));
+        println([1,2,3].join(nil));
+        println([1,2,3].join({},[]));
+    }
 }
