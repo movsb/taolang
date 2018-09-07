@@ -30,10 +30,10 @@ func (p *Parser) Parse() (program *Program, err error) {
 
 	program = &Program{}
 	for {
-		stmt := p.parseStatement(true)
-		if stmt == nil {
+		if p.follow(ttEOF) {
 			break
 		}
+		stmt := p.parseStatement(true)
 		program.stmts = append(program.stmts, stmt)
 	}
 	tk := p.next()
@@ -124,7 +124,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 	}
 
 	if global {
-		return nil
+		panic("non-global statement")
 	}
 
 	switch tk.typ {
@@ -144,13 +144,14 @@ func (p *Parser) parseStatement(global bool) Statement {
 		return p.parseIfStatement()
 	}
 
-	if stmt := p.parseExpressionStatement(); stmt != nil {
+	if stmt := p.tryParseExpressionStatement(); stmt != nil {
 		return stmt
 	}
-	if stmt := p.parseAssignmentStatement(); stmt != nil {
+	if stmt := p.tryParseAssignmentStatement(); stmt != nil {
 		return stmt
 	}
 
+	panicf("unknown statement at line: %d", tk.line)
 	return nil
 }
 
@@ -166,9 +167,10 @@ func (p *Parser) parseVariableStatement() *VariableStatement {
 	return &v
 }
 
-func (p *Parser) parseAssignmentStatement() (stmt *AssignmentStatement) {
+func (p *Parser) tryParseAssignmentStatement() (stmt *AssignmentStatement) {
 	p.enter()
 	defer func() {
+		recover()
 		p.leave(stmt == nil)
 	}()
 
@@ -245,16 +247,15 @@ func (p *Parser) parseReturnStatement() *ReturnStatement {
 	}
 }
 
-func (p *Parser) parseExpressionStatement() (stmt *ExpressionStatement) {
+func (p *Parser) tryParseExpressionStatement() (stmt *ExpressionStatement) {
 	p.enter()
 	defer func() {
+		recover()
 		p.leave(stmt == nil)
 	}()
 
 	expr := p.parseExpression(ttQuestion)
-	if expr == nil {
-		return nil
-	}
+
 	stmt = &ExpressionStatement{
 		expr: expr,
 	}
@@ -265,17 +266,13 @@ func (p *Parser) parseExpressionStatement() (stmt *ExpressionStatement) {
 }
 
 func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
-	if !p.follow(ttLeftBrace) {
-		return nil
-	}
-
 	block := &BlockStatement{}
 	p.expect(ttLeftBrace)
 	for {
-		stmt := p.parseStatement(false)
-		if stmt == nil {
+		if p.follow(ttRightBrace) {
 			break
 		}
+		stmt := p.parseStatement(false)
 		block.stmts = append(block.stmts, stmt)
 	}
 	p.expect(ttRightBrace)
@@ -286,6 +283,7 @@ func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
 // All three parts of for-stmt (init, test, incr) can be omitted.
 // If all these parts are omitted, the two semicolons can be omitted.
 //   for [init]; [test]; [incr] {}
+//   for expr {}
 //   for {}
 func (p *Parser) parseForStatement() *ForStatement {
 	p.expect(ttFor)
@@ -310,11 +308,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 		// test
 		if !p.follow(ttSemicolon) {
 			fs.test = p.parseExpression(ttQuestion)
-			if fs.test == nil {
-				panic("expr expected")
-			} else {
-				p.expect(ttSemicolon)
-			}
+			p.expect(ttSemicolon)
 		} else {
 			p.next()
 			// no test
@@ -334,7 +328,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 			if fs.incr == nil {
 				p.enter()
 				p.skipSemicolon = true
-				fs.incr = p.parseAssignmentStatement()
+				fs.incr = p.tryParseAssignmentStatement()
 				if !p.follow(ttLeftBrace) {
 					p.leave(true)
 					fs.incr = nil
@@ -397,21 +391,18 @@ func (p *Parser) parseIfStatement() *IfStatement {
 }
 
 func (p *Parser) parseExpression(level TokenType) Expression {
-	var expr Expression
+	var left Expression
 	switch next := p.peek(); next.typ {
 	case ttNot, ttAddition, ttSubstraction:
 		p.next()
 		right := p.parseExpression(ttIncrement)
-		expr = NewUnaryExpression(next.typ, right)
+		left = NewUnaryExpression(next.typ, right)
 	case ttIncrement, ttDecrement:
 		p.next()
 		right := p.parseExpression(ttIncrement)
-		expr = NewIncrementDecrementExpression(next, true, right)
+		left = NewIncrementDecrementExpression(next.typ, true, right)
 	default:
-		expr = p.parsePrimaryExpression()
-	}
-	if expr == nil {
-		return nil
+		left = p.parsePrimaryExpression()
 	}
 
 	for {
@@ -419,6 +410,15 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 		if !p.isOp(op) || op.typ < level {
 			p.undo(op)
 			break
+		}
+
+		switch op.typ {
+		case ttQuestion:
+			left = p.parseTernaryExpression(left)
+			continue
+		case ttIncrement, ttDecrement:
+			left = NewIncrementDecrementExpression(op.typ, false, left)
+			continue
 		}
 
 		var right Expression
@@ -440,18 +440,17 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 			right = p.parseExpression(ttStarStar)
 		case ttStarStar:
 			right = p.parseExpression(ttStarStar)
-		case ttQuestion:
-			expr = p.parseTernaryExpression(expr)
-		case ttIncrement, ttDecrement:
-			expr = NewIncrementDecrementExpression(op, false, expr)
 		}
 
-		if right != nil {
-			expr = NewBinaryExpression(expr, op.typ, right)
+		// just in case that an operator is not processed
+		if right == nil {
+			panic("bad right expr")
 		}
+
+		left = NewBinaryExpression(left, op.typ, right)
 	}
 
-	return expr
+	return left
 }
 
 func (p *Parser) parseTernaryExpression(cond Expression) Expression {
@@ -487,7 +486,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		expr = ValueFromString(next.str)
 	case ttLeftParen:
 		p.undo(next)
-		if lambda := p.parseLambdaExpression(); lambda != nil {
+		if lambda := p.tryParseLambdaExpression(false); lambda != nil {
 			return lambda
 		}
 		p.next()
@@ -496,11 +495,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	case ttIdentifier:
 		if p.follow(ttLambda) {
 			p.undo(next)
-			lambda := p.parseLambdaExpression()
-			if lambda == nil {
-				panic("bad lambda expression")
-			}
-			return lambda
+			return p.tryParseLambdaExpression(true)
 		}
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
@@ -513,15 +508,19 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		expr = p.parseArrayExpression()
 	default:
 		p.undo(next)
-		return nil
+		expr = nil
+	}
+
+	if expr == nil {
+		panicf("unknown expression at line: %d", next.line)
 	}
 
 	for {
-		if index := p.parseIndexExpression(expr); index != nil {
+		if index := p.tryParseIndexExpression(expr); index != nil {
 			expr = index
 			continue
 		}
-		if call := p.parseCallExpression(expr); call != nil {
+		if call := p.tryParseCallExpression(expr); call != nil {
 			expr = call
 			continue
 		}
@@ -531,10 +530,19 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	return expr
 }
 
-func (p *Parser) parseLambdaExpression() (expr *FunctionExpression) {
-	params := &Parameters{}
+// tryParseLambdaExpression tries to parse a lambda expression.
+// If must, and no lambda can be parsed, it will panic.
+// otherwise, it simply returns nil and leaves the tokens unchanged.
+func (p *Parser) tryParseLambdaExpression(must bool) (expr *FunctionExpression) {
+	defer func() {
+		if must && expr == nil {
+			panic("bad lambda expression")
+		}
+	}()
 
 	p.enter()
+
+	params := &Parameters{}
 
 	if _, ok := p.match(ttLeftParen); ok {
 		for {
@@ -578,20 +586,19 @@ func (p *Parser) parseLambdaExpression() (expr *FunctionExpression) {
 		block = p.parseBlockStatement()
 	} else {
 		expr := p.parseExpression(ttQuestion)
-		if expr == nil {
-			panic("cannot parse lambda body expr")
-		}
 		ret := NewReturnStatement(expr)
 		block = NewBlockStatement(ret)
 	}
 
+	// a lambda expression is just an anonymous function
 	return &FunctionExpression{
+		name:   "",
 		params: params,
 		block:  block,
 	}
 }
 
-func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
+func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
 	switch token := p.next(); token.typ {
 	case ttDot:
 		if ident := p.next(); ident.typ == ttIdentifier {
@@ -600,7 +607,6 @@ func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
 				key:       ValueFromString(ident.str),
 			}
 		}
-		// panic("unknown token after expr")
 	case ttLeftBracket:
 		keyExpr := p.parseExpression(ttQuestion)
 		if keyExpr == nil {
@@ -619,7 +625,7 @@ func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
 	return nil
 }
 
-func (p *Parser) parseCallExpression(left Expression) Expression {
+func (p *Parser) tryParseCallExpression(left Expression) Expression {
 	if paren := p.next(); paren.typ != ttLeftParen {
 		p.undo(paren)
 		return nil
@@ -630,14 +636,19 @@ func (p *Parser) parseCallExpression(left Expression) Expression {
 		Args:     &Arguments{},
 	}
 
-	for {
-		arg := p.parseExpression(ttQuestion)
-		if arg == nil {
-			break
-		}
-		call.Args.PutArgument(arg)
-		if !p.skip(ttComma) {
-			break
+	if !p.follow(ttRightParen) {
+		for {
+			arg := p.parseExpression(ttQuestion)
+			call.Args.PutArgument(arg)
+			sep := p.next()
+			if sep.typ == ttComma {
+				continue
+			} else if sep.typ == ttRightParen {
+				p.undo(sep)
+				break
+			} else {
+				panic("bad arguments")
+			}
 		}
 	}
 
@@ -690,19 +701,17 @@ func (p *Parser) parseFunctionExpression() *FunctionExpression {
 func (p *Parser) parseObjectExpression() Expression {
 	objexpr := NewObjectExpression()
 
-	var key string
-	var expr Expression
-
 	p.expect(ttLeftBrace)
 
 	for {
-		token := p.next()
-		if token.typ == ttRightBrace {
-			p.undo(token)
+		if p.follow(ttRightBrace) {
 			break
 		}
 
-		switch token.typ {
+		var key string
+		var expr Expression
+
+		switch token := p.next(); token.typ {
 		case ttString:
 			key = token.str
 		case ttIdentifier:
@@ -716,8 +725,8 @@ func (p *Parser) parseObjectExpression() Expression {
 		expr = p.parseExpression(ttQuestion)
 		objexpr.props[key] = expr
 
+		// allow last comma
 		p.skip(ttComma)
-
 		if p.follow(ttRightBrace) {
 			break
 		}
@@ -734,11 +743,13 @@ func (p *Parser) parseArrayExpression() Expression {
 	p.expect(ttLeftBracket)
 
 	for {
-		elem := p.parseExpression(ttQuestion)
-		if elem == nil {
+		if p.follow(ttRightBracket) {
 			break
 		}
+
+		elem := p.parseExpression(ttQuestion)
 		arrExpr.elements = append(arrExpr.elements, elem)
+		// allow last comma
 		p.skip(ttComma)
 		if p.follow(ttRightBracket) {
 			break
