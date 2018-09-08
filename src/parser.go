@@ -126,6 +126,9 @@ func (p *Parser) parseStatement(global bool) Statement {
 		// }
 		// p.leave(false)
 		return fn
+	case ttSemicolon:
+		p.next()
+		return &EmptyStatement{}
 	}
 
 	if global {

@@ -5,6 +5,15 @@ type Statement interface {
 	Execute(ctx *Context)
 }
 
+// EmptyStatement is an empty statement.
+type EmptyStatement struct {
+}
+
+// Execute implements Statement.
+func (e *EmptyStatement) Execute(ctx *Context) {
+	// nop
+}
+
 // VariableStatement is a let ... statement, which defines and inits variables.
 type VariableStatement struct {
 	Name string
