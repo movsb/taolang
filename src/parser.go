@@ -47,7 +47,12 @@ func (p *Parser) Parse() (program *Program, err error) {
 func (p *Parser) expect(tt TokenType) Token {
 	token := p.next()
 	if token.typ != tt {
-		panicf("unexpected token: %v (expect: %v)", token, Token{typ: tt})
+		exp := Token{typ: tt}.String()
+		switch tt {
+		case ttIdentifier:
+			exp = "`identifier'"
+		}
+		panicf("unexpected token: %v (expect: %v)", token, exp)
 	}
 	return token
 }
@@ -645,7 +650,7 @@ func (p *Parser) tryParseCallExpression(left Expression) Expression {
 				p.undo(sep)
 				break
 			} else {
-				panic("bad arguments")
+				panicf("unexpected token: %v", sep)
 			}
 		}
 	}
@@ -665,15 +670,19 @@ func (p *Parser) parseFunctionExpression() *FunctionExpression {
 	}
 
 	p.expect(ttLeftParen)
-	for {
-		tk := p.next()
-		if tk.typ == ttIdentifier {
-			params.PutParam(tk.str)
-		} else if tk.typ == ttComma {
-			continue
-		} else if tk.typ == ttRightParen {
-			p.undo(tk)
-			break
+	if !p.follow(ttRightParen) {
+		for {
+			name := p.expect(ttIdentifier).str
+			params.PutParam(name)
+			sep := p.next()
+			if sep.typ == ttComma {
+				continue
+			} else if sep.typ == ttRightParen {
+				p.undo(sep)
+				break
+			} else {
+				panicf("unexpected token: %v", sep)
+			}
 		}
 	}
 	p.expect(ttRightParen)
