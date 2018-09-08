@@ -239,7 +239,12 @@ type CaseGroup struct {
 func (c *CaseGroup) Satisfy(ctx *Context, test Value) bool {
 	for _, esac := range c.cases {
 		value := esac.Evaluate(ctx)
-		if value == test {
+		if _, ok := esac.(Value); ok {
+			if value == test {
+				return true
+			}
+		}
+		if value.Truth(ctx) {
 			return true
 		}
 	}

@@ -13,5 +13,16 @@ function main() {
     default:
         println("?");
     }
+    {
+        let a = 1;
+        switch a {
+        case +a:
+            println("+a");
+        case a > 0:
+            println("a > 0");
+        case 1:
+            println("1");
+        }
+    }
     println("end main");
 }
