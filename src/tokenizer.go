@@ -98,11 +98,14 @@ const (
 
 	// Keywords
 	ttBreak
+	ttCase
+	ttDefault
 	ttElse
 	ttFor
 	ttFunction
 	ttIf
 	ttLet
+	ttSwitch
 	ttReturn
 )
 
@@ -111,11 +114,14 @@ var keywords map[string]TokenType
 func init() {
 	keywords = map[string]TokenType{
 		"break":    ttBreak,
+		"case":     ttCase,
+		"default":  ttDefault,
 		"else":     ttElse,
 		"for":      ttFor,
 		"function": ttFunction,
 		"if":       ttIf,
 		"let":      ttLet,
+		"switch":   ttSwitch,
 		"return":   ttReturn,
 		"nil":      ttNil,
 		"true":     ttBoolean,
@@ -190,11 +196,14 @@ func init() {
 		ttNil: "nil",
 
 		ttBreak:    "break",
+		ttCase:     "case",
+		ttDefault:  "default",
 		ttElse:     "else",
 		ttFor:      "for",
 		ttFunction: "function",
 		ttIf:       "if",
 		ttLet:      "let",
+		ttSwitch:   "switch",
 		ttReturn:   "return",
 	}
 }
@@ -339,7 +348,7 @@ func (t *Tokenizer) next() (token Token) {
 				typ: ttNumber,
 				num: n,
 			}
-		} else if ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' {
+		} else if ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch == '_' {
 			t.unread()
 			name := t.readIdentifier()
 			t.checkFollow()

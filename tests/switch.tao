@@ -1,0 +1,17 @@
+function main() {
+    switch 1 {
+    case 1:
+        switch 2 {
+        case 1,2,3:
+            println(__case);
+            break;
+            println("won't go here");
+        default:
+            println("2d");
+        }
+        println("11");
+    default:
+        println("?");
+    }
+    println("end main");
+}
