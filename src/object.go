@@ -274,7 +274,7 @@ func (o *Object) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
 		return ctx.MustFind(data.variable(), true)
 	case vtFunction:
 		fn := data.function()
-		newCtx := NewContext(fn.expr.name, nil)
+		newCtx := NewContext(fn.fn.name, nil)
 		fn.BindArguments(newCtx, args...)
 		return fn.Execute(newCtx)
 	case vtBuiltin:

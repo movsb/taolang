@@ -89,7 +89,7 @@ func ValueFromFunction(fn *FunctionExpression, this *Context) Value {
 		Type: vtFunction,
 		value: &EvaluatedFunctionExpression{
 			this: this,
-			expr: fn,
+			fn:   fn,
 		},
 	}
 }
@@ -199,7 +199,7 @@ func (v Value) Evaluate(ctx *Context) Value {
 // Assign implements Addresser.
 func (v Value) Assign(ctx *Context, val Value) {
 	if v.isVariable() {
-		ctx.SetValue(v.variable(), val)
+		ctx.SetSymbol(v.variable(), val)
 		return
 	}
 	panicf("not assignable: %v (type: %s)", v.value, v.TypeName())
@@ -226,7 +226,7 @@ func (v Value) String() string {
 		return v.str()
 	case vtFunction:
 		expr := v.function()
-		name := expr.expr.name
+		name := expr.fn.name
 		if name == "" {
 			name = "<anonymous>"
 		}
@@ -237,7 +237,7 @@ func (v Value) String() string {
 	return fmt.Sprintf("unknown value")
 }
 
-// Truth return true if value represents a true value.
+// Truth returns true if value represents a true value.
 // A value is considered true when:
 func (v Value) Truth(ctx *Context) bool {
 	switch v.Type {

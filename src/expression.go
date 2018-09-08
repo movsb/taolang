@@ -16,22 +16,22 @@ type Assigner interface {
 
 // UnaryExpression is a unary expression.
 type UnaryExpression struct {
-	tt   TokenType
+	op   TokenType
 	expr Expression
 }
 
-// NewUnaryExpression new a UnaryExpression.
-func NewUnaryExpression(tt TokenType, expr Expression) *UnaryExpression {
+// NewUnaryExpression news a UnaryExpression.
+func NewUnaryExpression(op TokenType, expr Expression) *UnaryExpression {
 	return &UnaryExpression{
-		tt:   tt,
+		op:   op,
 		expr: expr,
 	}
 }
 
-// Evaluate implements
+// Evaluate implements Expression.
 func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	value := u.expr.Evaluate(ctx)
-	switch u.tt {
+	switch u.op {
 	case ttAddition:
 		if value.Type != vtNumber {
 			panic("+value is invalid")
@@ -50,18 +50,18 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 		}
 		return ValueFromNumber(^value.number())
 	}
-	panicf("unknown unary operator: %v", u.tt) // TODO
+	panicf("unknown unary operator: %v", u.op)
 	return ValueFromNil()
 }
 
-// IncrementDecrementExpression is a++ / a-- / ++a / --a expressions.
+// IncrementDecrementExpression is an a++ / a-- / ++a / --a expressions.
 type IncrementDecrementExpression struct {
 	prefix bool
 	op     TokenType
 	expr   Expression
 }
 
-// NewIncrementDecrementExpression new an IncrementDecrementExpression.
+// NewIncrementDecrementExpression news an IncrementDecrementExpression.
 func NewIncrementDecrementExpression(op TokenType, prefix bool, expr Expression) *IncrementDecrementExpression {
 	return &IncrementDecrementExpression{
 		prefix: prefix,
@@ -70,7 +70,7 @@ func NewIncrementDecrementExpression(op TokenType, prefix bool, expr Expression)
 	}
 }
 
-// Evaluate implements
+// Evaluate implements Expression.
 func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 	oldval := i.expr.Evaluate(ctx)
 	if oldval.isNumber() {
@@ -118,11 +118,13 @@ func NewBinaryExpression(left Expression, op TokenType, right Expression) *Binar
 func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	op := b.op
 	lv, rv := Value{}, Value{}
-	// Logical values are evaluated shortcutted
+
+	// Logical values are evaluated "short-circuit"-ly.
 	if op != ttAndAnd && op != ttOrOr {
 		lv = b.left.Evaluate(ctx)
 		rv = b.right.Evaluate(ctx)
 	}
+
 	lt, rt := lv.Type, rv.Type
 
 	if lt == vtNil && rt == vtNil {
@@ -213,7 +215,7 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	panic("unknown binary operator and operands")
 }
 
-// TernaryExpression is `?:` expression.
+// TernaryExpression is the conditional(`?:`) expression.
 type TernaryExpression struct {
 	cond  Expression
 	left  Expression
@@ -277,7 +279,7 @@ func (p *Parameters) BindArguments(ctx *Context, args ...Value) {
 		if index < len(args) {
 			arg = args[index]
 		}
-		ctx.AddValue(name, arg)
+		ctx.AddSymbol(name, arg)
 	}
 }
 
@@ -287,18 +289,18 @@ func (p *Parameters) BindArguments(ctx *Context, args ...Value) {
 //  Execute(EvaluatedFunctionExpression) -> Execute(FunctionExpression, this)
 type EvaluatedFunctionExpression struct {
 	this *Context // this is the scope where the function expression is defined
-	expr *FunctionExpression
+	fn   *FunctionExpression
 }
 
 // Execute evaluates the function expression within closure.
 // This is not a statement interface implementation.
 func (e *EvaluatedFunctionExpression) Execute(ctx *Context) Value {
-	return e.expr.Execute(e.this, ctx)
+	return e.fn.Execute(e.this, ctx)
 }
 
 // BindArguments binds actual arguments from call expression.
 func (e *EvaluatedFunctionExpression) BindArguments(ctx *Context, args ...Value) {
-	e.expr.params.BindArguments(ctx, args...)
+	e.fn.params.BindArguments(ctx, args...)
 }
 
 // FunctionExpression is
@@ -311,8 +313,9 @@ type FunctionExpression struct {
 // Evaluate is
 func (f *FunctionExpression) Evaluate(ctx *Context) Value {
 	value := ValueFromFunction(f, ctx)
+	// a lambda function or an anonymous function doesn't have a name.
 	if f.name != "" {
-		ctx.AddValue(f.name, value)
+		ctx.AddSymbol(f.name, value)
 	}
 	return value
 }
@@ -400,7 +403,7 @@ func (i *IndexExpression) Assign(ctx *Context, val Value) {
 	panic("not assignable")
 }
 
-// CallExpression wrap a method call.
+// CallExpression wraps a call.
 type CallExpression struct {
 	Callable Expression
 	Args     *Arguments
@@ -427,7 +430,7 @@ func (f *CallExpression) Evaluate(ctx *Context) Value {
 	switch callable.Type {
 	case vtFunction:
 		fn := callable.function()
-		newCtx := NewContext(fn.expr.name, nil)
+		newCtx := NewContext(fn.fn.name, nil)
 		args := f.Args.EvaluateAll(ctx)
 		fn.BindArguments(newCtx, args.values...)
 		return fn.Execute(newCtx)

@@ -1,29 +1,26 @@
 package main
 
-// var usedContexts map[string]uint
-//
-// func init() {
-// 	usedContexts = make(map[string]uint)
-// }
-
-// Symbol is a name value in the context scopes.
+// Symbol is a named value in the context.
 type Symbol struct {
-	Name  string
-	Value Value
+	Name  string // symbol name
+	Value Value  // symbol value
 }
 
-// Context chains named values in call frames.
+// Context is a place where named symbols are saved for current scope.
+// A context will be created when:
+//   - calls a tao function (includes lambda)
+//   - calls a builtin function
+//   - executes a block statement (if, for, etc.)
 type Context struct {
-	// the name of the context, for debug purpose
-	name    string
-	parent  *Context
-	symbols []*Symbol
-	broke   bool  // a break statement has executed
-	hasret  bool  // Is retval set?
-	retval  Value // a return statement has executed
+	name    string    // the name of the Context, for debug only
+	parent  *Context  // the parent of the context, for scope chain
+	symbols []*Symbol // symbols defined in this scope
+	broke   bool      // a break statement has executed
+	hasret  bool      // Is retval set?
+	retval  Value     // a return statement has executed
 }
 
-// NewContext news a context from parent.
+// NewContext news a context.
 // name: who this context is created for.
 // parent: the parent scope or the parent closure chain.
 func NewContext(name string, parent *Context) *Context {
@@ -33,32 +30,34 @@ func NewContext(name string, parent *Context) *Context {
 	}
 }
 
-// FindValue finds a value from context frames.
-func (c *Context) FindValue(name string, outer bool) (Value, bool) {
+// FindSymbol finds a symbol from context chains.
+func (c *Context) FindSymbol(name string, outer bool) (Value, bool) {
 	for _, symbol := range c.symbols {
 		if symbol.Name == name {
 			return symbol.Value, true
 		}
 	}
+	// If not found, find outer scope.
 	if outer && c.parent != nil {
-		return c.parent.FindValue(name, true)
+		return c.parent.FindSymbol(name, true)
 	}
 	return Value{}, false
 }
 
-// MustFind must find a named value.
+// MustFind must find a symbol.
 // Upon failure, it panics.
 func (c *Context) MustFind(name string, outer bool) Value {
-	value, ok := c.FindValue(name, outer)
+	value, ok := c.FindSymbol(name, outer)
 	if !ok {
 		panicf("name `%s' not defined", name)
 	}
 	return value
 }
 
-// AddValue adds a new value in current context.
-func (c *Context) AddValue(name string, value Value) {
-	if _, ok := c.FindValue(name, false); ok {
+// AddSymbol adds a new value in current context.
+// If a symbol with given name does exist, It will panic.
+func (c *Context) AddSymbol(name string, value Value) {
+	if _, ok := c.FindSymbol(name, false); ok {
 		panicf("name `%s' redefined", name)
 	}
 	c.symbols = append(c.symbols, &Symbol{
@@ -67,8 +66,8 @@ func (c *Context) AddValue(name string, value Value) {
 	})
 }
 
-// SetValue sets value of an existed name.
-func (c *Context) SetValue(name string, value Value) {
+// SetSymbol sets the value of a symbol.
+func (c *Context) SetSymbol(name string, value Value) {
 	for _, symbol := range c.symbols {
 		if symbol.Name == name {
 			symbol.Value = value
@@ -76,24 +75,24 @@ func (c *Context) SetValue(name string, value Value) {
 		}
 	}
 	if c.parent != nil {
-		c.parent.SetValue(name, value)
+		c.parent.SetSymbol(name, value)
 		return
 	}
 	panicf("name `%s' not defined", name)
 }
 
-// SetParent sets parent context.
+// SetParent sets the parent context.
 func (c *Context) SetParent(parent *Context) {
 	c.parent = parent
 }
 
-// SetReturn sets block return value.
+// SetReturn sets the block return value.
 func (c *Context) SetReturn(retval Value) {
 	c.hasret = true
 	c.retval = retval
 }
 
-// SetBreak sets break flag.
+// SetBreak sets the break flag.
 func (c *Context) SetBreak() {
 	c.broke = true
 }

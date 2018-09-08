@@ -1,15 +1,15 @@
 nothing:
 
-.PHONY: test
-test: ./bin/tao
-	@cd tests && ../tools/run_test.sh
-
 .PHONY: tao
 tao: ./bin/tao
 	@cd src && go build -o ../bin/tao
 
+.PHONY: test
+test: tao
+	@cd tests && ../tools/run_test.sh
+
 .PHONY: main
-main: ./bin/tao
+main: tao
 	@./bin/tao main.tao
 
 .PHONY: web

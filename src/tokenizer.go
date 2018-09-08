@@ -97,26 +97,26 @@ const (
 	ttIdentifier
 
 	// Keywords
-	ttLet
-	ttFunction
-	ttReturn
-	ttFor
 	ttBreak
-	ttIf
 	ttElse
+	ttFor
+	ttFunction
+	ttIf
+	ttLet
+	ttReturn
 )
 
 var keywords map[string]TokenType
 
 func init() {
 	keywords = map[string]TokenType{
-		"let":      ttLet,
-		"function": ttFunction,
-		"return":   ttReturn,
-		"for":      ttFor,
 		"break":    ttBreak,
-		"if":       ttIf,
 		"else":     ttElse,
+		"for":      ttFor,
+		"function": ttFunction,
+		"if":       ttIf,
+		"let":      ttLet,
+		"return":   ttReturn,
 		"nil":      ttNil,
 		"true":     ttBoolean,
 		"false":    ttBoolean,
@@ -189,13 +189,13 @@ func init() {
 
 		ttNil: "nil",
 
-		ttLet:      "let",
-		ttFunction: "function",
-		ttReturn:   "return",
-		ttFor:      "for",
 		ttBreak:    "break",
-		ttIf:       "if",
 		ttElse:     "else",
+		ttFor:      "for",
+		ttFunction: "function",
+		ttIf:       "if",
+		ttLet:      "let",
+		ttReturn:   "return",
 	}
 }
 

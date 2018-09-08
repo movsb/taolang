@@ -442,11 +442,8 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 			right = p.parseExpression(ttStarStar)
 		case ttStarStar:
 			right = p.parseExpression(ttStarStar)
-		}
-
-		// just in case that an operator is not processed
-		if right == nil {
-			panic("bad right expr")
+		default:
+			panicf("unhandled operator: %v", op)
 		}
 
 		left = NewBinaryExpression(left, op.typ, right)

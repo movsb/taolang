@@ -25,7 +25,7 @@ func InitBuiltins(ctx *Context) {
 		{"println", println},
 	}
 	for _, b := range builtins {
-		ctx.AddValue(b.name, ValueFromBuiltin(b.name, b.fn))
+		ctx.AddSymbol(b.name, ValueFromBuiltin(b.name, b.fn))
 	}
 }
 

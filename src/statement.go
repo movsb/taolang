@@ -17,11 +17,11 @@ func (v *VariableStatement) Execute(ctx *Context) {
 	if v.Expr != nil {
 		value = v.Expr.Evaluate(ctx)
 	}
-	ctx.AddValue(v.Name, value)
+	ctx.AddSymbol(v.Name, value)
 }
 
 // AssignmentStatement assigns right to left
-// address(left) <- evaluate(right)
+// assigner(left) <- evaluate(right)
 type AssignmentStatement struct {
 	left  Expression
 	right Expression
