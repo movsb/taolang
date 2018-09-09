@@ -5,6 +5,15 @@ type Statement interface {
 	Execute(ctx *Context)
 }
 
+// EmptyStatement is an empty statement.
+type EmptyStatement struct {
+}
+
+// Execute implements Statement.
+func (e *EmptyStatement) Execute(ctx *Context) {
+	// nop
+}
+
 // VariableStatement is a let ... statement, which defines and inits variables.
 type VariableStatement struct {
 	Name string
@@ -102,8 +111,7 @@ func (b *BlockStatement) Execute(ctx *Context) {
 			break
 		}
 		if newCtx.hasret {
-			ctx.hasret = true
-			ctx.retval = newCtx.retval
+			ctx.SetReturn(newCtx.retval)
 			return
 		}
 	}
@@ -195,8 +203,7 @@ func (i *IfStatement) Execute(ctx *Context) {
 			return
 		}
 		if newCtx.hasret {
-			ctx.hasret = true
-			ctx.retval = newCtx.retval
+			ctx.SetReturn(newCtx.retval)
 			return
 		}
 	} else {
@@ -216,8 +223,66 @@ func (i *IfStatement) Execute(ctx *Context) {
 			return
 		}
 		if newCtx.hasret {
-			ctx.hasret = true
-			ctx.retval = newCtx.retval
+			ctx.SetReturn(newCtx.retval)
+			return
+		}
+	}
+}
+
+// CaseGroup is a switch-case case group.
+type CaseGroup struct {
+	cases []Expression
+	block *BlockStatement
+}
+
+// Satisfy tests all cases.
+func (c *CaseGroup) Satisfy(ctx *Context, test Value) bool {
+	for _, esac := range c.cases {
+		value := esac.Evaluate(ctx)
+		if _, ok := esac.(Value); ok {
+			if value == test {
+				return true
+			}
+		}
+		if value.Truth(ctx) {
+			return true
+		}
+	}
+	return false
+}
+
+// Execute executes case block.
+func (c *CaseGroup) Execute(ctx *Context) {
+	c.block.Execute(ctx)
+}
+
+// SwitchStatement is a switch-case statement.
+type SwitchStatement struct {
+	cond  Expression
+	cases []*CaseGroup
+	def   *CaseGroup
+}
+
+// Execute implements Statement.
+func (s *SwitchStatement) Execute(ctx *Context) {
+	cond := s.cond.Evaluate(ctx)
+	group := s.def
+	for _, esac := range s.cases {
+		if esac.Satisfy(ctx, cond) {
+			group = esac
+			break
+		}
+	}
+	// Do we need to check this?
+	if group != nil {
+		newCtx := NewContext("--case--", ctx)
+		newCtx.AddSymbol("__case", cond)
+		group.Execute(newCtx)
+		if newCtx.broke {
+			// nop
+		}
+		if newCtx.hasret {
+			ctx.SetReturn(newCtx.retval)
 			return
 		}
 	}

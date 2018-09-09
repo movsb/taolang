@@ -4,9 +4,9 @@ package main
 type Parser struct {
 	tokenizer *Tokenizer
 
-	// how many loops the parser is in.
-	// a positive loopCount means we can break.
-	loopCount uint
+	// how many breakable state the parser is in.
+	// a positive breakCount means we can break breakCount times.
+	breakCount uint
 
 	// if we want to parse a statement without eating out the end semicolon,
 	// set it to true. And it will be cleared immediately after a statement is parsed.
@@ -17,7 +17,7 @@ type Parser struct {
 func NewParser(tokenizer *Tokenizer) *Parser {
 	return &Parser{
 		tokenizer:     tokenizer,
-		loopCount:     0,
+		breakCount:    0,
 		skipSemicolon: false,
 	}
 }
@@ -126,6 +126,9 @@ func (p *Parser) parseStatement(global bool) Statement {
 		// }
 		// p.leave(false)
 		return fn
+	case ttSemicolon:
+		p.next()
+		return &EmptyStatement{}
 	}
 
 	if global {
@@ -141,12 +144,14 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttFor:
 		return p.parseForStatement()
 	case ttBreak:
-		if p.loopCount <= 0 {
-			panic("break statement must be in loop")
+		if p.breakCount <= 0 {
+			panic("break statement must be in for-loop or switch")
 		}
 		return p.parseBreakStatement()
 	case ttIf:
 		return p.parseIfStatement()
+	case ttSwitch:
+		return p.parseSwitchStatement()
 	}
 
 	if stmt := p.tryParseExpressionStatement(); stmt != nil {
@@ -355,14 +360,14 @@ func (p *Parser) parseForStatement() *ForStatement {
 		}
 	}
 
-	p.loopCount++
+	p.breakCount++
 
 	fs.block = p.parseBlockStatement()
 	if fs.block == nil {
 		panic("for needs body")
 	}
 
-	p.loopCount--
+	p.breakCount--
 
 	return &fs
 }
@@ -395,6 +400,64 @@ func (p *Parser) parseIfStatement() *IfStatement {
 		ifBlock:   ifBlock,
 		elseBlock: elseBlock,
 	}
+}
+
+func (p *Parser) parseSwitchStatement() *SwitchStatement {
+	p.expect(ttSwitch)
+	ss := SwitchStatement{}
+	ss.cond = p.parseExpression(ttQuestion)
+	p.expect(ttLeftBrace)
+	// empty cases
+	if p.follow(ttRightBrace) {
+		p.next()
+		return &ss
+	}
+	// parse cases
+	for {
+		var group *CaseGroup
+		switch esac := p.next(); esac.typ {
+		case ttDefault:
+			if ss.def != nil {
+				panic("duplicate default")
+			}
+			p.expect(ttColon)
+			group = &CaseGroup{}
+			ss.def = group
+		case ttCase:
+			group = &CaseGroup{}
+			ss.cases = append(ss.cases, group)
+			for {
+				expr := p.parseExpression(ttQuestion)
+				group.cases = append(group.cases, expr)
+				p.skip(ttComma)
+				if p.follow(ttColon) {
+					p.next()
+					break
+				}
+			}
+		default:
+			panicf("unexpected token: %v", esac)
+		}
+		// no need to be real block.
+		// but we construct a block since statements are executed in scope.
+		group.block = &BlockStatement{}
+		// we can break in switch statement
+		p.breakCount++
+		for {
+			if tk, ok := p.match(ttCase, ttDefault, ttRightBrace); ok {
+				p.undo(tk)
+				break
+			}
+			stmt := p.parseStatement(false)
+			group.block.stmts = append(group.block.stmts, stmt)
+		}
+		p.breakCount--
+		if p.follow(ttRightBrace) {
+			p.next()
+			break
+		}
+	}
+	return &ss
 }
 
 func (p *Parser) parseExpression(level TokenType) Expression {
@@ -691,12 +754,12 @@ func (p *Parser) parseFunctionExpression() *FunctionExpression {
 		panic("function needs a body")
 	}
 
-	saveLoopCount := p.loopCount
-	p.loopCount = 0
+	saveBreakCount := p.breakCount
+	p.breakCount = 0
 
 	block = p.parseBlockStatement()
 
-	p.loopCount = saveLoopCount
+	p.breakCount = saveBreakCount
 
 	return &FunctionExpression{
 		name:   name,

@@ -295,7 +295,8 @@ type EvaluatedFunctionExpression struct {
 // Execute evaluates the function expression within closure.
 // This is not a statement interface implementation.
 func (e *EvaluatedFunctionExpression) Execute(ctx *Context) Value {
-	return e.fn.Execute(e.this, ctx)
+	ctx.SetParent(e.this) // this is how closure works
+	return e.fn.Execute(ctx)
 }
 
 // BindArguments binds actual arguments from call expression.
@@ -322,8 +323,7 @@ func (f *FunctionExpression) Evaluate(ctx *Context) Value {
 
 // Execute executes function statements.
 // This is not a statement interface implementation.
-func (f *FunctionExpression) Execute(this *Context, ctx *Context) Value {
-	ctx.SetParent(this) // this is how closure works
+func (f *FunctionExpression) Execute(ctx *Context) Value {
 	f.block.Execute(ctx)
 	if ctx.hasret {
 		return ctx.retval
