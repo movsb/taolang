@@ -16,7 +16,7 @@ func NewString(s string) *String {
 
 // Key implements KeyIndexer.
 func (s *String) Key(key string) Value {
-	if fn, ok := _globalStringMethods[key]; ok {
+	if fn, ok := _stringMethods[key]; ok {
 		return ValueFromBuiltin(s, key, fn)
 	}
 	return ValueFromNil()
@@ -27,10 +27,10 @@ func (s *String) SetKey(key string, val Value) {
 	panic("not assignable")
 }
 
-var _globalStringMethods map[string]BuiltinFunction
+var _stringMethods map[string]BuiltinFunction
 
 func init() {
-	_globalStringMethods = map[string]BuiltinFunction{
+	_stringMethods = map[string]BuiltinFunction{
 		"lower": _stringLower,
 	}
 }

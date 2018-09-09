@@ -79,17 +79,17 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 		if !ok {
 			panicf("not assignable: %v (type: %s)", oldval, oldval.TypeName())
 		}
-		newval := Value{}
+		newnum := 0
 		switch i.op {
 		case ttIncrement:
-			newval = ValueFromNumber(oldval.number() + 1)
-			assigner.Assign(ctx, newval)
+			newnum = oldval.number() + 1
 		case ttDecrement:
-			newval = ValueFromNumber(oldval.number() - 1)
-			assigner.Assign(ctx, newval)
+			newnum = oldval.number() - 1
 		default:
-			panic("bad op")
+			panic("won't go here")
 		}
+		newval := ValueFromNumber(newnum)
+		assigner.Assign(ctx, newval)
 		if i.prefix {
 			return newval
 		}

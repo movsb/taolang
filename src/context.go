@@ -42,7 +42,7 @@ func (c *Context) FindSymbol(name string, outer bool) (Value, bool) {
 		if c.parent != nil {
 			return c.parent.FindSymbol(name, true)
 		}
-		return c.FromGlobal(name), true
+		return c.FromGlobal(name)
 	}
 	return Value{}, false
 }
@@ -58,13 +58,17 @@ func (c *Context) MustFind(name string, outer bool) Value {
 }
 
 // FromGlobal finds a symbol from global.
-func (c *Context) FromGlobal(name string) Value {
+func (c *Context) FromGlobal(name string) (Value, bool) {
 	// This is the global context
 	global := c.MustFind("global", false)
 	if !global.isObject() {
 		panic("global is not an object")
 	}
-	return global.object().Key(name)
+	if obj, ok := global.object().(*Global); ok {
+		val, ok := obj.Object.props[name]
+		return val, ok
+	}
+	return Value{}, false
 }
 
 // AddSymbol adds a new value in current context.
