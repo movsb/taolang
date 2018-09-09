@@ -76,8 +76,8 @@ func ValueFromVariable(name string) Value {
 	}
 }
 
-// ValueFromObject creates an array | object value.
-func ValueFromObject(obj *Object) Value {
+// ValueFromObject creates a KeyIndexer value.
+func ValueFromObject(obj KeyIndexer) Value {
 	return Value{
 		Type:  vtObject,
 		value: obj,
@@ -165,9 +165,9 @@ func (v Value) variable() string {
 	return v.value.(string)
 }
 
-func (v Value) object() *Object {
+func (v Value) object() KeyIndexer {
 	v.checkType(vtObject)
-	return v.value.(*Object)
+	return v.value.(KeyIndexer)
 }
 
 func (v Value) function() *EvaluatedFunctionExpression {
@@ -267,10 +267,12 @@ func (v Value) Truth(ctx *Context) bool {
 		return ctx.MustFind(v.variable(), true).Truth(ctx)
 	case vtObject:
 		obj := v.object()
-		if obj.array {
-			return obj.Len() > 0
+		if obj, ok := obj.(*Object); ok {
+			if obj.array {
+				return len(obj.elems) > 0
+			}
+			return len(obj.props) > 0
 		}
-		return len(obj.props) > 0
 	}
 	panicf("unknown truth type")
 	return false

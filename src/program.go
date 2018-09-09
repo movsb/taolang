@@ -11,12 +11,12 @@ func (p *Program) Execute() (ret Value, err error) {
 		err = toErr(recover())
 	}()
 
-	global := NewContext("--global--", nil)
-
-	InitBuiltins(global)
+	globalObject := NewGlobal()
+	globalContext := NewContext("--global--", nil)
+	globalContext.AddObject("global", globalObject)
 
 	for _, stmt := range p.stmts {
-		stmt.Execute(global)
+		stmt.Execute(globalContext)
 	}
 
 	main := &CallExpression{
@@ -24,5 +24,5 @@ func (p *Program) Execute() (ret Value, err error) {
 		Args:     &Arguments{},
 	}
 
-	return main.Evaluate(global), nil
+	return main.Evaluate(globalContext), nil
 }
