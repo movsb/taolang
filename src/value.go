@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 )
 
 // ValueType is the type of a value.
@@ -75,8 +76,8 @@ func ValueFromVariable(name string) Value {
 	}
 }
 
-// ValueFromObject creates an array | object value.
-func ValueFromObject(obj *Object) Value {
+// ValueFromObject creates a KeyIndexer value.
+func ValueFromObject(obj KeyIndexer) Value {
 	return Value{
 		Type:  vtObject,
 		value: obj,
@@ -95,11 +96,12 @@ func ValueFromFunction(fn *FunctionExpression, this *Context) Value {
 }
 
 // ValueFromBuiltin creates a builtin function value.
-func ValueFromBuiltin(name string, fn func(*Context, *Values) Value) Value {
+func ValueFromBuiltin(this interface{}, name string, fn func(interface{}, *Context, *Values) Value) Value {
 	return Value{
 		Type: vtBuiltin,
 		value: &Builtin{
 			name: name,
+			this: this,
 			fn:   fn,
 		},
 	}
@@ -163,9 +165,9 @@ func (v Value) variable() string {
 	return v.value.(string)
 }
 
-func (v Value) object() *Object {
+func (v Value) object() KeyIndexer {
 	v.checkType(vtObject)
-	return v.value.(*Object)
+	return v.value.(KeyIndexer)
 }
 
 func (v Value) function() *EvaluatedFunctionExpression {
@@ -198,6 +200,10 @@ func (v Value) Evaluate(ctx *Context) Value {
 
 // Assign implements Addresser.
 func (v Value) Assign(ctx *Context, val Value) {
+	// TODO find a better way to do this
+	if val.isBuiltin() && val.builtin().this != nil {
+		panic("method is not allowed to be rvalue")
+	}
 	if v.isVariable() {
 		ctx.SetSymbol(v.variable(), val)
 		return
@@ -232,7 +238,13 @@ func (v Value) String() string {
 		}
 		return fmt.Sprintf("function(%s)", name)
 	case vtBuiltin:
-		return fmt.Sprintf("builtin(%s)", v.builtin().name)
+		fn := v.builtin()
+		name := fn.name
+		if fn.this != nil {
+			typeName := reflect.TypeOf(fn.this).Elem().Name()
+			name = fmt.Sprintf("%s.%s", typeName, name)
+		}
+		return fmt.Sprintf("builtin(%s)", name)
 	}
 	return fmt.Sprintf("unknown value")
 }
@@ -255,10 +267,12 @@ func (v Value) Truth(ctx *Context) bool {
 		return ctx.MustFind(v.variable(), true).Truth(ctx)
 	case vtObject:
 		obj := v.object()
-		if obj.array {
-			return obj.Len() > 0
+		if obj, ok := obj.(*Object); ok {
+			if obj.array {
+				return len(obj.elems) > 0
+			}
+			return len(obj.props) > 0
 		}
-		return len(obj.props) > 0
 	}
 	panicf("unknown truth type")
 	return false

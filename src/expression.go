@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"reflect"
 )
 
 // Expression is the interface that is implemented by all expressions.
@@ -78,17 +79,17 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 		if !ok {
 			panicf("not assignable: %v (type: %s)", oldval, oldval.TypeName())
 		}
-		newval := Value{}
+		newnum := 0
 		switch i.op {
 		case ttIncrement:
-			newval = ValueFromNumber(oldval.number() + 1)
-			assigner.Assign(ctx, newval)
+			newnum = oldval.number() + 1
 		case ttDecrement:
-			newval = ValueFromNumber(oldval.number() - 1)
-			assigner.Assign(ctx, newval)
+			newnum = oldval.number() - 1
 		default:
-			panic("bad op")
+			panic("won't go here")
 		}
+		newval := ValueFromNumber(newnum)
+		assigner.Assign(ctx, newval)
 		if i.prefix {
 			return newval
 		}
@@ -210,6 +211,19 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return lv
 		}
 		return b.right.Evaluate(ctx)
+	}
+
+	if lt == vtBuiltin && rt == vtBuiltin {
+		p1 := reflect.ValueOf(lv.builtin().fn).Pointer()
+		p2 := reflect.ValueOf(rv.builtin().fn).Pointer()
+		switch op {
+		case ttEqual:
+			return ValueFromBoolean(p1 == p2)
+		case ttNotEqual:
+			return ValueFromBoolean(p1 != p2)
+		default:
+			panic("not supported operator on two builtins")
+		}
 	}
 
 	panic("unknown binary operator and operands")
@@ -371,7 +385,13 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 	keyable, ok1 := value.value.(KeyIndexer)
 	elemable, ok2 := value.value.(ElemIndexer)
 	if !ok1 && !ok2 {
-		panicf("not indexable: %v (type: %s)", value, value.TypeName())
+		switch value.Type {
+		case vtString:
+			// TODO this is a hack
+			keyable = KeyIndexer(NewString(value.str()))
+		default:
+			panicf("not indexable: %v (type: %s)", value, value.TypeName())
+		}
 	}
 	key := i.key.Evaluate(ctx)
 	if key.Type == vtString && keyable != nil {
@@ -438,7 +458,7 @@ func (f *CallExpression) Evaluate(ctx *Context) Value {
 		fn := callable.builtin()
 		newCtx := NewContext(fn.name, nil)
 		args := f.Args.EvaluateAll(ctx)
-		return fn.fn(newCtx, &args)
+		return fn.Execute(newCtx, &args)
 	default:
 		panic("bad call")
 	}

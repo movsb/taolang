@@ -49,25 +49,6 @@ func NewArray(elems ...Value) *Object {
 	o := NewObject()
 	o.array = true
 	o.elems = elems
-
-	builtins := map[string]func(*Context, *Values) Value{
-		"each":    o.Each,
-		"filter":  o.Filter,
-		"find":    o.Find,
-		"join":    o.Join,
-		"map":     o.Map,
-		"push":    o.Push,
-		"pop":     o.Pop,
-		"reduce":  o.Reduce,
-		"splice":  o.Splice,
-		"unshift": o.Unshift,
-		"where":   o.Where,
-	}
-
-	for k, v := range builtins {
-		o.props[k] = ValueFromBuiltin(k, v)
-	}
-
 	return o
 }
 
@@ -78,8 +59,11 @@ func (o *Object) Key(key string) Value {
 			return ValueFromNumber(o.Len())
 		}
 	}
-	if val, ok := o.props[key]; ok {
-		return val
+	if prop, ok := o.props[key]; ok {
+		return prop
+	}
+	if fn, ok := _arrayMethods[key]; ok {
+		return ValueFromBuiltin(o, key, fn)
 	}
 	return ValueFromNil()
 }
@@ -165,12 +149,32 @@ func (o *Object) String() string {
 	return buf.String()
 }
 
+/// Array function implementations below
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
-/// Javascript array methods.
+// Javascript array methods.
+
+var _arrayMethods map[string]BuiltinFunction
+
+func init() {
+	_arrayMethods = map[string]BuiltinFunction{
+		"each":    _arrayEach,
+		"filter":  _arrayFilter,
+		"find":    _arrayFind,
+		"join":    _arrayJoin,
+		"map":     _arrayMap,
+		"push":    _arrayPush,
+		"pop":     _arrayPop,
+		"reduce":  _arrayReduce,
+		"splice":  _arraySplice,
+		"unshift": _arrayUnshift,
+		"where":   _arrayWhere,
+	}
+}
 
 // Splice changes the contents of an array by removing existing elements and/or adding new elements.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice
-func (o *Object) Splice(ctx *Context, args *Values) Value {
+func _arraySplice(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	start := 0
 	if args.Len() < 1 || !args.At(0).isNumber() {
 		panic("splice: start must be number")
@@ -218,7 +222,8 @@ func (o *Object) Splice(ctx *Context, args *Values) Value {
 
 // Unshift adds elements to the beginning of the array and returns the new length of the array.
 // https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
-func (o *Object) Unshift(ctx *Context, args *Values) Value {
+func _arrayUnshift(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	for _, v := range args.values {
 		o.elems = append([]Value{v}, o.elems...)
 	}
@@ -227,14 +232,16 @@ func (o *Object) Unshift(ctx *Context, args *Values) Value {
 
 // Push adds one or more elements to the end of an array and returns the new length of the array.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push
-func (o *Object) Push(ctx *Context, args *Values) Value {
+func _arrayPush(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	o.elems = append(o.elems, args.values...)
 	return ValueFromNumber(o.Len())
 }
 
 // Pop removes the last element from an array and returns that element.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/pop
-func (o *Object) Pop(ctx *Context, args *Values) Value {
+func _arrayPop(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	if o.Len() > 0 {
 		value := o.elems[o.Len()-1]
 		o.elems = o.elems[:o.Len()-1]
@@ -245,7 +252,8 @@ func (o *Object) Pop(ctx *Context, args *Values) Value {
 
 // Join joins all elements of an array into a string and returns this string.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
-func (o *Object) Join(ctx *Context, args *Values) Value {
+func _arrayJoin(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	if o.Len() <= 0 {
 		return ValueFromString("")
 	}
@@ -265,7 +273,7 @@ func (o *Object) Join(ctx *Context, args *Values) Value {
 
 /// functional methods implementations below.
 
-func (o *Object) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
+func _arrayCall(ctx *Context, lambdaValue Value, args ...Value) Value {
 	ctx = NewContext("--lambda--", nil)
 	lambda := lambdaValue.function()
 	lambda.BindArguments(ctx, args...)
@@ -278,36 +286,39 @@ func (o *Object) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
 		fn.BindArguments(newCtx, args...)
 		return fn.Execute(newCtx)
 	case vtBuiltin:
-		builtin := data.builtin()
-		newCtx := NewContext(builtin.name, nil)
-		return builtin.fn(newCtx, NewValues(args...))
+		fn := data.builtin()
+		newCtx := NewContext(fn.name, nil)
+		return fn.Execute(newCtx, NewValues(args...))
 	default:
 		return data
 	}
 }
 
-func (o *Object) _Each(callback func(elem Value, index Value) bool) {
+// Each iterates each element of the array and invokes callback.
+func (o *Object) Each(callback func(elem Value, index Value) bool) {
 	for i, n, next := 0, o.Len(), true; i < n && next; i++ {
 		next = callback(o.elems[i], ValueFromNumber(i))
 	}
 }
 
 // Each iterates over a list of elements, yielding each in turn to an iteratee function.
-func (o *Object) Each(ctx *Context, args *Values) Value {
+func _arrayEach(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	object := ValueFromObject(o)
-	o._Each(func(elem Value, index Value) bool {
-		o._Call(ctx, args.At(0), elem, index, object)
+	o.Each(func(elem Value, index Value) bool {
+		_arrayCall(ctx, args.At(0), elem, index, object)
 		return true
 	})
 	return ValueFromNil()
 }
 
 // Map produces a new array of values by mapping each value.
-func (o *Object) Map(ctx *Context, args *Values) Value {
+func _arrayMap(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	object := ValueFromObject(o)
 	values := make([]Value, 0, o.Len())
-	o._Each(func(elem Value, index Value) bool {
-		data := o._Call(ctx, args.At(0), elem, index, object)
+	o.Each(func(elem Value, index Value) bool {
+		data := _arrayCall(ctx, args.At(0), elem, index, object)
 		values = append(values, data)
 		return true
 	})
@@ -315,24 +326,26 @@ func (o *Object) Map(ctx *Context, args *Values) Value {
 }
 
 // Reduce boils down the array into a single value.
-func (o *Object) Reduce(ctx *Context, args *Values) Value {
+func _arrayReduce(this interface{}, ctx *Context, args *Values) Value {
 	if args.Len() < 2 {
 		panic("usage: reduce(lambda, init)")
 	}
+	o := this.(*Object)
 	object := ValueFromObject(o)
 	memo := args.At(1)
-	o._Each(func(elem Value, index Value) bool {
-		memo = o._Call(ctx, args.At(0), memo, elem, index, object)
+	o.Each(func(elem Value, index Value) bool {
+		memo = _arrayCall(ctx, args.At(0), memo, elem, index, object)
 		return true
 	})
 	return memo
 }
 
 // Find finds the first value.
-func (o *Object) Find(ctx *Context, args *Values) Value {
+func _arrayFind(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	found := Value{}
-	o._Each(func(elem Value, index Value) bool {
-		if o._Call(ctx, args.At(0), elem).Truth(ctx) {
+	o.Each(func(elem Value, index Value) bool {
+		if _arrayCall(ctx, args.At(0), elem).Truth(ctx) {
 			found = elem
 			return false
 		}
@@ -342,10 +355,11 @@ func (o *Object) Find(ctx *Context, args *Values) Value {
 }
 
 // Filter filters values.
-func (o *Object) Filter(ctx *Context, args *Values) Value {
+func _arrayFilter(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	values := make([]Value, 0, o.Len())
-	o._Each(func(elem Value, index Value) bool {
-		if o._Call(ctx, args.At(0), elem).Truth(ctx) {
+	o.Each(func(elem Value, index Value) bool {
+		if _arrayCall(ctx, args.At(0), elem).Truth(ctx) {
 			values = append(values, elem)
 		}
 		return true
@@ -355,10 +369,11 @@ func (o *Object) Filter(ctx *Context, args *Values) Value {
 
 // Where filters objects by column conditions.
 // save as Filter currently.
-func (o *Object) Where(ctx *Context, args *Values) Value {
+func _arrayWhere(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
 	values := make([]Value, 0, o.Len())
-	o._Each(func(elem Value, index Value) bool {
-		if o._Call(ctx, args.At(0), elem).Truth(ctx) {
+	o.Each(func(elem Value, index Value) bool {
+		if _arrayCall(ctx, args.At(0), elem).Truth(ctx) {
 			values = append(values, elem)
 		}
 		return true
