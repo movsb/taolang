@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"reflect"
 )
 
 // ValueType is the type of a value.
@@ -95,11 +96,12 @@ func ValueFromFunction(fn *FunctionExpression, this *Context) Value {
 }
 
 // ValueFromBuiltin creates a builtin function value.
-func ValueFromBuiltin(name string, fn func(*Context, *Values) Value) Value {
+func ValueFromBuiltin(this interface{}, name string, fn func(interface{}, *Context, *Values) Value) Value {
 	return Value{
 		Type: vtBuiltin,
 		value: &Builtin{
 			name: name,
+			this: this,
 			fn:   fn,
 		},
 	}
@@ -198,6 +200,10 @@ func (v Value) Evaluate(ctx *Context) Value {
 
 // Assign implements Addresser.
 func (v Value) Assign(ctx *Context, val Value) {
+	// TODO find a better way to do this
+	if val.isBuiltin() && val.builtin().this != nil {
+		panic("method is not allowed to be rvalue")
+	}
 	if v.isVariable() {
 		ctx.SetSymbol(v.variable(), val)
 		return
@@ -232,7 +238,13 @@ func (v Value) String() string {
 		}
 		return fmt.Sprintf("function(%s)", name)
 	case vtBuiltin:
-		return fmt.Sprintf("builtin(%s)", v.builtin().name)
+		fn := v.builtin()
+		name := fn.name
+		if fn.this != nil {
+			typeName := reflect.TypeOf(fn.this).Elem().Name()
+			name = fmt.Sprintf("%s.%s", typeName, name)
+		}
+		return fmt.Sprintf("builtin(%s)", name)
 	}
 	return fmt.Sprintf("unknown value")
 }

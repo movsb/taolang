@@ -25,6 +25,10 @@ func (v *VariableStatement) Execute(ctx *Context) {
 	value := ValueFromNil()
 	if v.Expr != nil {
 		value = v.Expr.Evaluate(ctx)
+		// TODO find a better way to do this
+		if value.isBuiltin() && value.builtin().this != nil {
+			panic("method is not allowed to be rvalue")
+		}
 	}
 	ctx.AddSymbol(v.Name, value)
 }

@@ -50,7 +50,7 @@ func NewArray(elems ...Value) *Object {
 	o.array = true
 	o.elems = elems
 
-	builtins := map[string]func(*Context, *Values) Value{
+	builtins := map[string]BuiltinFunction{
 		"each":    o.Each,
 		"filter":  o.Filter,
 		"find":    o.Find,
@@ -65,7 +65,7 @@ func NewArray(elems ...Value) *Object {
 	}
 
 	for k, v := range builtins {
-		o.props[k] = ValueFromBuiltin(k, v)
+		o.props[k] = ValueFromBuiltin(nil, k, v)
 	}
 
 	return o
@@ -170,7 +170,7 @@ func (o *Object) String() string {
 
 // Splice changes the contents of an array by removing existing elements and/or adding new elements.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/splice
-func (o *Object) Splice(ctx *Context, args *Values) Value {
+func (o *Object) Splice(this interface{}, ctx *Context, args *Values) Value {
 	start := 0
 	if args.Len() < 1 || !args.At(0).isNumber() {
 		panic("splice: start must be number")
@@ -218,7 +218,7 @@ func (o *Object) Splice(ctx *Context, args *Values) Value {
 
 // Unshift adds elements to the beginning of the array and returns the new length of the array.
 // https://github.com/golang/go/wiki/SliceTricks#push-frontunshift
-func (o *Object) Unshift(ctx *Context, args *Values) Value {
+func (o *Object) Unshift(this interface{}, ctx *Context, args *Values) Value {
 	for _, v := range args.values {
 		o.elems = append([]Value{v}, o.elems...)
 	}
@@ -227,14 +227,14 @@ func (o *Object) Unshift(ctx *Context, args *Values) Value {
 
 // Push adds one or more elements to the end of an array and returns the new length of the array.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/push
-func (o *Object) Push(ctx *Context, args *Values) Value {
+func (o *Object) Push(this interface{}, ctx *Context, args *Values) Value {
 	o.elems = append(o.elems, args.values...)
 	return ValueFromNumber(o.Len())
 }
 
 // Pop removes the last element from an array and returns that element.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/pop
-func (o *Object) Pop(ctx *Context, args *Values) Value {
+func (o *Object) Pop(this interface{}, ctx *Context, args *Values) Value {
 	if o.Len() > 0 {
 		value := o.elems[o.Len()-1]
 		o.elems = o.elems[:o.Len()-1]
@@ -245,7 +245,7 @@ func (o *Object) Pop(ctx *Context, args *Values) Value {
 
 // Join joins all elements of an array into a string and returns this string.
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/join
-func (o *Object) Join(ctx *Context, args *Values) Value {
+func (o *Object) Join(this interface{}, ctx *Context, args *Values) Value {
 	if o.Len() <= 0 {
 		return ValueFromString("")
 	}
@@ -265,7 +265,7 @@ func (o *Object) Join(ctx *Context, args *Values) Value {
 
 /// functional methods implementations below.
 
-func (o *Object) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
+func (o *Object) _Call(this interface{}, ctx *Context, lambdaValue Value, args ...Value) Value {
 	ctx = NewContext("--lambda--", nil)
 	lambda := lambdaValue.function()
 	lambda.BindArguments(ctx, args...)
@@ -278,9 +278,9 @@ func (o *Object) _Call(ctx *Context, lambdaValue Value, args ...Value) Value {
 		fn.BindArguments(newCtx, args...)
 		return fn.Execute(newCtx)
 	case vtBuiltin:
-		builtin := data.builtin()
-		newCtx := NewContext(builtin.name, nil)
-		return builtin.fn(newCtx, NewValues(args...))
+		fn := data.builtin()
+		newCtx := NewContext(fn.name, nil)
+		return fn.Execute(newCtx, NewValues(args...))
 	default:
 		return data
 	}
@@ -293,21 +293,21 @@ func (o *Object) _Each(callback func(elem Value, index Value) bool) {
 }
 
 // Each iterates over a list of elements, yielding each in turn to an iteratee function.
-func (o *Object) Each(ctx *Context, args *Values) Value {
+func (o *Object) Each(this interface{}, ctx *Context, args *Values) Value {
 	object := ValueFromObject(o)
 	o._Each(func(elem Value, index Value) bool {
-		o._Call(ctx, args.At(0), elem, index, object)
+		o._Call(this, ctx, args.At(0), elem, index, object)
 		return true
 	})
 	return ValueFromNil()
 }
 
 // Map produces a new array of values by mapping each value.
-func (o *Object) Map(ctx *Context, args *Values) Value {
+func (o *Object) Map(this interface{}, ctx *Context, args *Values) Value {
 	object := ValueFromObject(o)
 	values := make([]Value, 0, o.Len())
 	o._Each(func(elem Value, index Value) bool {
-		data := o._Call(ctx, args.At(0), elem, index, object)
+		data := o._Call(this, ctx, args.At(0), elem, index, object)
 		values = append(values, data)
 		return true
 	})
@@ -315,24 +315,24 @@ func (o *Object) Map(ctx *Context, args *Values) Value {
 }
 
 // Reduce boils down the array into a single value.
-func (o *Object) Reduce(ctx *Context, args *Values) Value {
+func (o *Object) Reduce(this interface{}, ctx *Context, args *Values) Value {
 	if args.Len() < 2 {
 		panic("usage: reduce(lambda, init)")
 	}
 	object := ValueFromObject(o)
 	memo := args.At(1)
 	o._Each(func(elem Value, index Value) bool {
-		memo = o._Call(ctx, args.At(0), memo, elem, index, object)
+		memo = o._Call(this, ctx, args.At(0), memo, elem, index, object)
 		return true
 	})
 	return memo
 }
 
 // Find finds the first value.
-func (o *Object) Find(ctx *Context, args *Values) Value {
+func (o *Object) Find(this interface{}, ctx *Context, args *Values) Value {
 	found := Value{}
 	o._Each(func(elem Value, index Value) bool {
-		if o._Call(ctx, args.At(0), elem).Truth(ctx) {
+		if o._Call(this, ctx, args.At(0), elem).Truth(ctx) {
 			found = elem
 			return false
 		}
@@ -342,10 +342,10 @@ func (o *Object) Find(ctx *Context, args *Values) Value {
 }
 
 // Filter filters values.
-func (o *Object) Filter(ctx *Context, args *Values) Value {
+func (o *Object) Filter(this interface{}, ctx *Context, args *Values) Value {
 	values := make([]Value, 0, o.Len())
 	o._Each(func(elem Value, index Value) bool {
-		if o._Call(ctx, args.At(0), elem).Truth(ctx) {
+		if o._Call(this, ctx, args.At(0), elem).Truth(ctx) {
 			values = append(values, elem)
 		}
 		return true
@@ -355,10 +355,10 @@ func (o *Object) Filter(ctx *Context, args *Values) Value {
 
 // Where filters objects by column conditions.
 // save as Filter currently.
-func (o *Object) Where(ctx *Context, args *Values) Value {
+func (o *Object) Where(this interface{}, ctx *Context, args *Values) Value {
 	values := make([]Value, 0, o.Len())
 	o._Each(func(elem Value, index Value) bool {
-		if o._Call(ctx, args.At(0), elem).Truth(ctx) {
+		if o._Call(this, ctx, args.At(0), elem).Truth(ctx) {
 			values = append(values, elem)
 		}
 		return true

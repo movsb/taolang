@@ -1,0 +1,9 @@
+function main() {
+    println("".lower != "".lower);
+
+    lower();
+}
+
+function lower() {
+    println("AbC".lower());
+}
