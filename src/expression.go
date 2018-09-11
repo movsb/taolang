@@ -429,6 +429,24 @@ type CallExpression struct {
 	Args     *Arguments
 }
 
+// NewCallExpression news a call expression.
+func NewCallExpression(callable Expression, args *Arguments) *CallExpression {
+	c := &CallExpression{
+		Callable: callable,
+		Args:     args,
+	}
+	if c.Args == nil {
+		c.Args = &Arguments{}
+	}
+	return c
+}
+
+// CallFunc calls user function.
+func CallFunc(ctx *Context, callable Expression, args ...Expression) Value {
+	c := NewCallExpression(callable, &Arguments{args})
+	return c.Evaluate(ctx)
+}
+
 // Evaluate implements Expression.
 // It calls the callable.
 func (f *CallExpression) Evaluate(ctx *Context) Value {

@@ -1,12 +1,24 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"os"
+	"time"
 )
 
-func exec(input io.Reader) {
+// the message queue.
+var queue = make(chan func(), 16)
+
+// Sync calls callback within main thread.
+func Sync(callback func()) {
+	queue <- callback
+}
+
+func exec(input io.ReadCloser) {
+	defer input.Close()
 	tokenizer := NewTokenizer(input)
 	parser := NewParser(tokenizer)
 	program, err := parser.Parse()
@@ -23,14 +35,34 @@ func exec(input io.Reader) {
 }
 
 func main() {
-	if len(os.Args) == 1 {
-		exec(os.Stdin)
+	var wait bool
+	flag.BoolVar(&wait, "wait", false, "wait to exit")
+	flag.Parse()
+
+	var err error
+	var file io.ReadCloser
+
+	if flag.NArg() == 0 || flag.NArg() == 1 && flag.Arg(0) == "-" {
+		file = ioutil.NopCloser(os.Stdin)
 	} else {
-		file, err := os.Open(os.Args[1])
+		file, err = os.Open(flag.Arg(0))
 		if err != nil {
 			panic(err)
 		}
-		defer file.Close()
+	}
+
+	if wait {
+		queue <- func() {
+			exec(file)
+		}
+		for {
+			select {
+			case fn := <-queue:
+				fn()
+			case <-time.After(time.Hour):
+			}
+		}
+	} else {
 		exec(file)
 	}
 }
