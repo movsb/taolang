@@ -12,6 +12,10 @@ test: tao
 main: tao
 	@./bin/tao main.tao
 
+.PHONY: wait
+wait: tao
+	@./bin/tao --wait main.tao
+
 .PHONY: web
 web:
 	@cd web/src && go build -o ../../bin/web
