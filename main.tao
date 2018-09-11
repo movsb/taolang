@@ -1,12 +1,5 @@
 function main() {
-    let a;
-    let b;
-    a = setTimeout(() => {
-        println("AbC".lower());
-        b.stop();
+    setTimeout(() => {
+        println("111");
     }, 300);
-    b = setTimeout(() => {
-        println("AbC".lower());
-    }, 3000);
-    println(setTimeout);
 }

@@ -19,10 +19,6 @@ func (p *Program) Execute() (ret Value, err error) {
 		stmt.Execute(globalContext)
 	}
 
-	main := &CallExpression{
-		Callable: ValueFromVariable("main"),
-		Args:     &Arguments{},
-	}
-
-	return main.Evaluate(globalContext), nil
+	main := ValueFromVariable("main")
+	return CallFunc(globalContext, main), nil
 }

@@ -83,28 +83,21 @@ func _globalSetTimeout(this interface{}, ctx *Context, args *Values) Value {
 
 // Timer is a timer.
 type Timer struct {
-	*time.Timer
-	callback Value
-	ctx      *Context
+	timer *time.Timer
 }
 
 // NewTimer news a timer.
 func NewTimer(ctx *Context, callback Value, timeout int) *Timer {
-	t := &Timer{
-		callback: callback,
-		Timer:    time.NewTimer(time.Millisecond * time.Duration(timeout)),
-		ctx:      ctx,
-	}
+	t := time.NewTimer(time.Millisecond * time.Duration(timeout))
 	go func() {
 		select {
 		case <-t.C:
-			queue <- Message{
-				mt:   mtTimer,
-				data: t,
-			}
+			Sync(func() {
+				CallFunc(ctx, callback)
+			})
 		}
 	}()
-	return t
+	return &Timer{timer: t}
 }
 
 // Key implements KeyIndexer.
@@ -129,6 +122,6 @@ func init() {
 }
 
 func _timerStop(this interface{}, ctx *Context, args *Values) Value {
-	t := this.(*Timer)
+	t := this.(*Timer).timer
 	return ValueFromBoolean(t.Stop())
 }
