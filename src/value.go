@@ -314,6 +314,15 @@ func (v *Values) All() []interface{} {
 	return i
 }
 
+// Exprs returns the values as expressions.
+func (v *Values) Exprs() []Expression {
+	var e []Expression
+	for _, value := range v.values {
+		e = append(e, value)
+	}
+	return e
+}
+
 // Shift shifts out one element from left.
 func (v *Values) Shift() (rv Value) {
 	if v.Len() >= 1 {

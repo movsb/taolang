@@ -12,8 +12,8 @@ import (
 // the message queue.
 var queue = make(chan func(), 16)
 
-// Sync calls callback within main thread.
-func Sync(callback func()) {
+// Async queues and calls the callback within main thread.
+func Async(callback func()) {
 	queue <- callback
 }
 
