@@ -245,7 +245,10 @@ func (v Value) String() string {
 			name = fmt.Sprintf("%s.%s", typeName, name)
 		}
 		return fmt.Sprintf("builtin(%s)", name)
+	case vtObject:
+		return reflect.TypeOf(v.value).Elem().Name()
 	}
+
 	return fmt.Sprintf("unknown value")
 }
 

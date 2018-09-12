@@ -38,6 +38,7 @@ func NewGlobal() *Global {
 		"println":    ValueFromBuiltin(g, "println", _globalPrintln),
 		"setTimeout": ValueFromBuiltin(g, "setTimeout", _globalSetTimeout),
 		"newPromise": ValueFromBuiltin(g, "newPromise", _globalNewPromise),
+		"httpGet":    ValueFromBuiltin(g, "httpGet", _globalHTTPGet),
 	}
 	return g
 }
@@ -88,6 +89,23 @@ func _globalNewPromise(this interface{}, ctx *Context, args *Values) Value {
 	return ValueFromObject(NewPromise(ctx, args.At(0)))
 }
 
+func _globalHTTPGet(this interface{}, ctx *Context, args *Values) Value {
+	promise := &Promise{}
+	go func() {
+		url := args.Shift().str()
+		//resp, err := http.Get(url)
+		//if err != nil {
+		//	panic(err)
+		//	return
+		//}
+		//bys, _ := ioutil.ReadAll(resp.Body)
+		Async(func() {
+			promise.Resolve(ValueFromString(url + url))
+		})
+	}()
+	return ValueFromObject(promise)
+}
+
 // Timer is a timer.
 type Timer struct {
 	timer *time.Timer
@@ -136,10 +154,11 @@ func _timerStop(this interface{}, ctx *Context, args *Values) Value {
 // Promise is a promise.
 type Promise struct {
 	resolvedValue *Value
-	rejectedValue *Value
 	resolvedFunc  Value
+	rejectedValue *Value
 	rejectedFunc  Value
-	thenPromise   *Promise
+	thenPromise   *Promise // if this promise is thened
+	toPromise     *Promise // if the resolver/rejector returns a promise, forward to this
 }
 
 // NewPromise news a promise.
@@ -165,80 +184,76 @@ func (p *Promise) SetKey(key string, val Value) {
 }
 
 // Resolve resolves the promise.
-func (p *Promise) Resolve(ctx *Context, args *Values) Value {
-	v := args.Shift() // maybe no value
-	p.resolvedValue = &v
-	Async(func() {
-		if p.resolvedFunc.isFunction() || p.resolvedFunc.isBuiltin() {
-			result := CallFunc(
-				NewContext("--promise-resolve--", ctx),
-				p.resolvedFunc, p.resolvedValue,
-			)
-			if p.thenPromise != nil {
-				if promise, ok := result.value.(*Promise); ok {
-					if promise.resolvedValue == nil && promise.rejectedValue == nil {
-						promise.resolvedFunc = p.thenPromise.resolvedFunc
-						promise.rejectedFunc = p.thenPromise.rejectedFunc
-					} else {
-						if promise.resolvedValue != nil {
-							p.thenPromise.Resolve(ctx, NewValues(*promise.resolvedValue))
-						}
-						if promise.rejectedValue != nil {
-							p.thenPromise.Reject(ctx, NewValues(*promise.rejectedValue))
-						}
-					}
-				} else {
-					p.thenPromise.Resolve(ctx, NewValues(result))
-				}
-			}
-		}
-	})
+func (p *Promise) Resolve(resolvedValue Value) Value {
+	p.resolvedValue = &resolvedValue
+	Async(func() { p.invokeResolver() })
 	return ValueFromNil()
 }
 
 // Reject rejects the promise.
-func (p *Promise) Reject(ctx *Context, args *Values) Value {
-	v := args.Shift() // maybe no value
-	p.rejectedValue = &v
-	Async(func() {
-		if p.rejectedFunc.isFunction() || p.rejectedFunc.isBuiltin() {
-			result := CallFunc(
-				NewContext("--promise-reject--", ctx),
-				p.rejectedFunc, p.rejectedValue,
-			)
-			if p.thenPromise != nil {
-				if promise, ok := result.value.(*Promise); ok {
-					if promise.resolvedValue == nil && promise.rejectedValue == nil {
-						promise.resolvedFunc = p.thenPromise.resolvedFunc
-						promise.rejectedFunc = p.thenPromise.rejectedFunc
-					} else {
-						if promise.resolvedValue != nil {
-							p.thenPromise.Resolve(ctx, NewValues(*promise.resolvedValue))
-						}
-						if promise.rejectedValue != nil {
-							p.thenPromise.Reject(ctx, NewValues(*promise.rejectedValue))
-						}
-					}
-				} else {
-					p.thenPromise.Reject(ctx, NewValues(result))
-				}
-			}
-		}
-	})
+func (p *Promise) Reject(rejectedValue Value) Value {
+	p.rejectedValue = &rejectedValue
+	Async(func() { p.invokeRejecter() })
 	return ValueFromNil()
 }
 
 // Then chains promises.
-func (p *Promise) Then(ctx *Context, args *Values) Value {
-	if args.Len() >= 1 {
-		p.resolvedFunc = args.Shift()
-	}
-	if args.Len() >= 1 {
-		p.rejectedFunc = args.Shift()
-	}
+func (p *Promise) Then(resolve Value, reject Value) Value {
+	p.resolvedFunc = resolve
+	p.rejectedFunc = reject
 	np := &Promise{}
 	p.thenPromise = np
 	return ValueFromObject(np)
+}
+
+func (p *Promise) invokeResolver() {
+	// forward to p.then
+	if p.toPromise != nil {
+		p.toPromise.resolvedValue = p.resolvedValue
+		p.toPromise.invokeResolver()
+		return
+	}
+
+	// not then-ed
+	if p.resolvedFunc.isNil() {
+		return
+	}
+
+	result := CallFunc(
+		NewContext("--promise-resolve--", nil),
+		p.resolvedFunc, p.resolvedValue,
+	)
+
+	if promise, ok := result.value.(*Promise); ok {
+		promise.toPromise = p.thenPromise
+	} else {
+		p.thenPromise.Resolve(result)
+	}
+}
+
+func (p *Promise) invokeRejecter() {
+	// forward to p.then
+	if p.toPromise != nil {
+		p.toPromise.rejectedValue = p.rejectedValue
+		p.toPromise.invokeRejecter()
+		return
+	}
+
+	// not then-ed
+	if p.rejectedFunc.isNil() {
+		return
+	}
+
+	result := CallFunc(
+		NewContext("--promise-reject--", nil),
+		p.rejectedFunc, p.rejectedValue,
+	)
+
+	if promise, ok := result.value.(*Promise); ok {
+		promise.toPromise = p.thenPromise
+	} else {
+		p.thenPromise.Reject(result)
+	}
 }
 
 var _promiseMethods map[string]BuiltinFunction
@@ -250,13 +265,13 @@ func init() {
 }
 
 func _promiseResolve(this interface{}, ctx *Context, args *Values) Value {
-	return this.(*Promise).Resolve(ctx, args)
+	return this.(*Promise).Resolve(args.Shift())
 }
 
 func _promiseReject(this interface{}, ctx *Context, args *Values) Value {
-	return this.(*Promise).Reject(ctx, args)
+	return this.(*Promise).Reject(args.Shift())
 }
 
 func _promiseThen(this interface{}, ctx *Context, args *Values) Value {
-	return this.(*Promise).Then(ctx, args)
+	return this.(*Promise).Then(args.Shift(), args.Shift())
 }
