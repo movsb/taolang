@@ -245,7 +245,10 @@ func (v Value) String() string {
 			name = fmt.Sprintf("%s.%s", typeName, name)
 		}
 		return fmt.Sprintf("builtin(%s)", name)
+	case vtObject:
+		return reflect.TypeOf(v.value).Elem().Name()
 	}
+
 	return fmt.Sprintf("unknown value")
 }
 
@@ -312,6 +315,15 @@ func (v *Values) All() []interface{} {
 		i = append(i, value)
 	}
 	return i
+}
+
+// Exprs returns the values as expressions.
+func (v *Values) Exprs() []Expression {
+	var e []Expression
+	for _, value := range v.values {
+		e = append(e, value)
+	}
+	return e
 }
 
 // Shift shifts out one element from left.
