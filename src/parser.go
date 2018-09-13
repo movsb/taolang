@@ -252,11 +252,12 @@ func (p *Parser) parseFunctionStatement() *FunctionStatement {
 
 func (p *Parser) parseReturnStatement() *ReturnStatement {
 	p.expect(ttReturn)
-	expr := p.parseExpression(ttQuestion)
-	p.expect(ttSemicolon)
-	return &ReturnStatement{
-		expr: expr,
+	ret := &ReturnStatement{}
+	if !p.follow(ttSemicolon) {
+		ret.expr = p.parseExpression(ttQuestion)
 	}
+	p.expect(ttSemicolon)
+	return ret
 }
 
 func (p *Parser) tryParseExpressionStatement() (stmt *ExpressionStatement) {
