@@ -11,11 +11,17 @@ type Promise struct {
 }
 
 // NewPromise news a promise.
-func NewPromise(ctx *Context, executor Value) *Promise {
+// executor can be either a callable or a non-callable.
+func NewPromise(executor Value) *Promise {
 	promise := &Promise{}
-	resolve := ValueFromBuiltin(promise, "resolve", _promiseResolve)
-	reject := ValueFromBuiltin(promise, "reject", _promiseReject)
-	CallFunc(NewContext("--promise-executor--", ctx), executor, resolve, reject)
+	switch executor.Type {
+	case vtFunction, vtBuiltin:
+		resolve := ValueFromBuiltin(promise, "resolve", _promiseResolve)
+		reject := ValueFromBuiltin(promise, "reject", _promiseReject)
+		CallFunc(NewContext("--promise-executor--", nil), executor, resolve, reject)
+	default:
+		promise.Resolve(executor)
+	}
 	return promise
 }
 
@@ -33,17 +39,15 @@ func (p *Promise) SetKey(key string, val Value) {
 }
 
 // Resolve resolves the promise.
-func (p *Promise) Resolve(resolvedValue Value) Value {
+func (p *Promise) Resolve(resolvedValue Value) {
 	p.resolvedValue = &resolvedValue
 	Async(func() { p.invokeResolver() })
-	return ValueFromNil()
 }
 
 // Reject rejects the promise.
-func (p *Promise) Reject(rejectedValue Value) Value {
+func (p *Promise) Reject(rejectedValue Value) {
 	p.rejectedValue = &rejectedValue
 	Async(func() { p.invokeRejecter() })
-	return ValueFromNil()
 }
 
 // Then chains promises.
@@ -114,11 +118,13 @@ func init() {
 }
 
 func _promiseResolve(this interface{}, ctx *Context, args *Values) Value {
-	return this.(*Promise).Resolve(args.Shift())
+	this.(*Promise).Resolve(args.Shift())
+	return ValueFromNil()
 }
 
 func _promiseReject(this interface{}, ctx *Context, args *Values) Value {
-	return this.(*Promise).Reject(args.Shift())
+	this.(*Promise).Reject(args.Shift())
+	return ValueFromNil()
 }
 
 func _promiseThen(this interface{}, ctx *Context, args *Values) Value {

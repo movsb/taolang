@@ -62,7 +62,7 @@ func _globalSetTimeout(this interface{}, ctx *Context, args *Values) Value {
 }
 
 func _globalNewPromise(this interface{}, ctx *Context, args *Values) Value {
-	return ValueFromObject(NewPromise(ctx, args.At(0)))
+	return ValueFromObject(NewPromise(args.At(0)))
 }
 
 func _globalHTTPGet(this interface{}, ctx *Context, args *Values) Value {
@@ -72,7 +72,6 @@ func _globalHTTPGet(this interface{}, ctx *Context, args *Values) Value {
 		resp, err := http.Get(url)
 		if err != nil {
 			panic(err)
-			return
 		}
 
 		bys, _ := ioutil.ReadAll(resp.Body)
