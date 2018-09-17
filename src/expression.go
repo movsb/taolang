@@ -38,7 +38,7 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 			panic("+value is invalid")
 		}
 		return ValueFromNumber(+value.number())
-	case ttSubstraction:
+	case ttSubtraction:
 		if value.Type != vtNumber {
 			panic("-value is invalid")
 		}
@@ -149,7 +149,7 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 		switch op {
 		case ttAddition:
 			return ValueFromNumber(lv.number() + rv.number())
-		case ttSubstraction:
+		case ttSubtraction:
 			return ValueFromNumber(lv.number() - rv.number())
 		case ttMultiply:
 			return ValueFromNumber(lv.number() * rv.number())

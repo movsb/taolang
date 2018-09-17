@@ -211,7 +211,7 @@ func (p *Parser) tryParseAssignmentStatement() (stmt *AssignmentStatement) {
 		case ttPlusAssign:
 			binOp = ttAddition
 		case ttMinusAssign:
-			binOp = ttSubstraction
+			binOp = ttSubtraction
 		case ttLeftShiftAssign:
 			binOp = ttLeftShift
 		case ttRightShiftAssign:
@@ -464,7 +464,7 @@ func (p *Parser) parseSwitchStatement() *SwitchStatement {
 func (p *Parser) parseExpression(level TokenType) Expression {
 	var left Expression
 	switch next := p.peek(); next.typ {
-	case ttNot, ttBitXor, ttAddition, ttSubstraction:
+	case ttNot, ttBitXor, ttAddition, ttSubtraction:
 		p.next()
 		right := p.parseExpression(ttIncrement)
 		left = NewUnaryExpression(next.typ, right)
@@ -505,7 +505,7 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 			right = p.parseExpression(ttLeftShift)
 		case ttLeftShift, ttRightShift:
 			right = p.parseExpression(ttAddition)
-		case ttAddition, ttSubstraction:
+		case ttAddition, ttSubtraction:
 			right = p.parseExpression(ttMultiply)
 		case ttMultiply, ttDivision, ttPercent:
 			right = p.parseExpression(ttStarStar)

@@ -79,7 +79,7 @@ const (
 
 	// arithmetic
 	ttAddition
-	ttSubstraction
+	ttSubtraction
 	ttMultiply
 	ttDivision
 	ttPercent
@@ -183,12 +183,12 @@ func init() {
 		ttLeftShift:  "<<",
 		ttRightShift: ">>",
 
-		ttAddition:     "+",
-		ttSubstraction: "-",
-		ttMultiply:     "*",
-		ttDivision:     "/",
-		ttPercent:      "%",
-		ttStarStar:     "**",
+		ttAddition:    "+",
+		ttSubtraction: "-",
+		ttMultiply:    "*",
+		ttDivision:    "/",
+		ttPercent:     "%",
+		ttStarStar:    "**",
 
 		ttIncrement: "++",
 		ttDecrement: "--",
@@ -398,7 +398,7 @@ func (t *Tokenizer) next() (token Token) {
 		case '+':
 			return t.iiif('+', '=', ttIncrement, ttPlusAssign, ttAddition)
 		case '-':
-			return t.iiif('-', '=', ttDecrement, ttMinusAssign, ttSubstraction)
+			return t.iiif('-', '=', ttDecrement, ttMinusAssign, ttSubtraction)
 		case '*':
 			switch next := t.read(); next {
 			case '*':
