@@ -208,7 +208,7 @@ func (v Value) Assign(ctx *Context, val Value) {
 		ctx.SetSymbol(v.variable(), val)
 		return
 	}
-	panicf("not assignable: %v (type: %s)", v.value, v.TypeName())
+	panic(NewNotAssignableError(v))
 }
 
 // TypeName returns the value type as string.

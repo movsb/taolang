@@ -77,7 +77,7 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 	if oldval.isNumber() {
 		assigner, ok := i.expr.(Assigner)
 		if !ok {
-			panicf("not assignable: %v (type: %s)", oldval, oldval.TypeName())
+			panic(NewNotAssignableError(oldval))
 		}
 		newnum := 0
 		switch i.op {
@@ -95,8 +95,7 @@ func (i *IncrementDecrementExpression) Evaluate(ctx *Context) Value {
 		}
 		return oldval
 	}
-	panicf("not assignable: %v (type: %s)", oldval, oldval.TypeName())
-	return Value{}
+	panic(NewNotAssignableError(oldval))
 }
 
 // BinaryExpression is a binary expression.
@@ -381,26 +380,44 @@ type IndexExpression struct {
 
 // Evaluate implements Expression.
 func (i *IndexExpression) Evaluate(ctx *Context) Value {
-	value := i.indexable.Evaluate(ctx)
-	keyable, ok1 := value.value.(KeyIndexer)
-	elemable, ok2 := value.value.(ElemIndexer)
-	if !ok1 && !ok2 {
-		switch value.Type {
+	key := i.key.Evaluate(ctx)
+	indexable := i.indexable.Evaluate(ctx)
+
+	// both obj.key, obj[0] are correct.
+	// so, we need to query both interfaces.
+	keyable, _ := indexable.value.(KeyIndexer)
+	elemable, _ := indexable.value.(ElemIndexer)
+
+	// convert from primitives to object when needed
+	if keyable == nil && elemable == nil {
+		switch indexable.Type {
 		case vtString:
-			// TODO this is a hack
-			keyable = KeyIndexer(NewString(value.str()))
-		default:
-			panicf("not indexable: %v (type: %s)", value, value.TypeName())
+			keyable = KeyIndexer(NewString(indexable.str()))
 		}
 	}
-	key := i.key.Evaluate(ctx)
+
+	// get property
 	if key.Type == vtString && keyable != nil {
 		return keyable.Key(key.str())
 	}
+
+	// get element
 	if key.Type == vtNumber && elemable != nil {
 		return elemable.Elem(key.number())
 	}
-	panic("not indexable")
+
+	if keyable == nil && elemable == nil {
+		panic(NewNotIndexableError(indexable))
+	}
+
+	if keyable != nil && key.Type != vtString {
+		panic(NewKeyTypeError(key))
+	}
+	if elemable != nil && key.Type != vtNumber {
+		panic(NewKeyTypeError(key))
+	}
+
+	panic("won't go here")
 }
 
 // Assign implements Assigner.
@@ -409,7 +426,7 @@ func (i *IndexExpression) Assign(ctx *Context, val Value) {
 	keyable, ok1 := value.value.(KeyAssigner)
 	elemable, ok2 := value.value.(ElemAssigner)
 	if !ok1 && !ok2 {
-		panicf("not assignable: %v (type: %s)", value, value.TypeName())
+		panic(NewNotIndexableError(value))
 	}
 	key := i.key.Evaluate(ctx)
 	if key.isString() && keyable != nil {
@@ -420,7 +437,7 @@ func (i *IndexExpression) Assign(ctx *Context, val Value) {
 		elemable.ElemAssign(key.number(), val)
 		return
 	}
-	panic("not assignable")
+	panic(NewKeyTypeError(key))
 }
 
 // CallExpression wraps a call.
@@ -458,15 +475,6 @@ func (f *CallExpression) Evaluate(ctx *Context) Value {
 
 	switch callable.Type {
 	case vtFunction:
-		break
-	case vtBuiltin:
-		break
-	default:
-		panicf("not callable: %v (type: %s)", callable, callable.TypeName())
-	}
-
-	switch callable.Type {
-	case vtFunction:
 		fn := callable.function()
 		newCtx := NewContext(fn.fn.name, nil)
 		args := f.Args.EvaluateAll(ctx)
@@ -478,7 +486,7 @@ func (f *CallExpression) Evaluate(ctx *Context) Value {
 		args := f.Args.EvaluateAll(ctx)
 		return fn.Execute(newCtx, &args)
 	default:
-		panic("bad call")
+		panic(NewNotCallableError(callable))
 	}
 }
 

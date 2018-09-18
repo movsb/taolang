@@ -24,7 +24,7 @@ func (s *String) Key(key string) Value {
 
 // SetKey implements KeyIndexer.
 func (s *String) SetKey(key string, val Value) {
-	panic("not assignable")
+	panic(NewNotAssignableError(ValueFromObject(s)))
 }
 
 var _stringMethods map[string]BuiltinFunction

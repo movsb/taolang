@@ -35,7 +35,7 @@ func (p *Promise) Key(key string) Value {
 
 // SetKey implements KeyIndexer.
 func (p *Promise) SetKey(key string, val Value) {
-	panic("not assignable")
+	panic(NewNotAssignableError(ValueFromObject(p)))
 }
 
 // Resolve resolves the promise.

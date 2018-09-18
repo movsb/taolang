@@ -31,7 +31,7 @@ func (t *Timer) Key(key string) Value {
 
 // SetKey implements KeyIndexer.
 func (t *Timer) SetKey(key string, val Value) {
-	panic("not assignable")
+	panic(NewNotAssignableError(ValueFromObject(t)))
 }
 
 var _timerMethods map[string]BuiltinFunction
