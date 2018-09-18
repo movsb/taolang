@@ -104,23 +104,9 @@ func (p *Parser) parseStatement(global bool) Statement {
 
 	switch tk.typ {
 	case ttLet:
-		return p.parseVariableStatement()
+		return p.parseLetStatement()
 	case ttFunction:
-		// // don't know whether it is a function statement or function expression.
-		// // but, if a function doesn't have a name, it must be function expression.
-		// p.enter()
-		fn := p.parseFunctionStatement()
-		// if fn.expr.name == "" {
-		// 	p.leave(true)
-		// 	// TODO we should directly parse function expression statement since we knew it is.
-		// 	stmt := p.parseExpressionStatement()
-		// 	if stmt == nil {
-		//
-		// 		panic("anonymous function expression must be called immediately")
-		// 	}
-		// }
-		// p.leave(false)
-		return fn
+		return p.parseFunctionStatement()
 	case ttSemicolon:
 		p.next()
 		return &EmptyStatement{}
@@ -165,16 +151,16 @@ func (p *Parser) parseStatement(global bool) Statement {
 	return nil
 }
 
-func (p *Parser) parseVariableStatement() *VariableStatement {
-	var v VariableStatement
+func (p *Parser) parseLetStatement() *LetStatement {
+	var l LetStatement
 	p.expect(ttLet)
-	v.Name = p.expect(ttIdentifier).str
+	l.Name = p.expect(ttIdentifier).str
 	if p.follow(ttAssign) {
 		p.next()
-		v.Expr = p.parseExpression(ttQuestion)
+		l.Expr = p.parseExpression(ttQuestion)
 	}
 	p.expect(ttSemicolon)
-	return &v
+	return &l
 }
 
 func (p *Parser) parseFunctionStatement() *FunctionStatement {
@@ -225,7 +211,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 	if p.follow(ttLet) {
 		hasInit = true
 		// TODO init can be assignment
-		fs.init = p.parseVariableStatement()
+		fs.init = p.parseLetStatement()
 	} else if p.follow(ttSemicolon) {
 		hasInit = true
 		p.expect(ttSemicolon)

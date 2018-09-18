@@ -14,23 +14,23 @@ func (e *EmptyStatement) Execute(ctx *Context) {
 	// nop
 }
 
-// VariableStatement is a let ... statement, which defines and inits variables.
-type VariableStatement struct {
+// LetStatement is a let ... statement, which defines and inits variables.
+type LetStatement struct {
 	Name string
 	Expr Expression
 }
 
 // Execute implements Statement.
-func (v *VariableStatement) Execute(ctx *Context) {
+func (l *LetStatement) Execute(ctx *Context) {
 	value := ValueFromNil()
-	if v.Expr != nil {
-		value = v.Expr.Evaluate(ctx)
+	if l.Expr != nil {
+		value = l.Expr.Evaluate(ctx)
 		// TODO find a better way to do this
 		if value.isBuiltin() && value.builtin().this != nil {
 			panic("method is not allowed to be rvalue")
 		}
 	}
-	ctx.AddSymbol(v.Name, value)
+	ctx.AddSymbol(l.Name, value)
 }
 
 // FunctionStatement is a function definition statement.
