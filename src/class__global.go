@@ -45,17 +45,17 @@ func _globalPrintln(this interface{}, ctx *Context, args *Values) Value {
 
 func _globalSetTimeout(this interface{}, ctx *Context, args *Values) Value {
 	if args.Len() < 1 {
-		panic("setTimeout: callback expected")
+		panic(NewTypeError("setTimeout: callback expected"))
 	} else if args.Len() < 2 {
-		panic("setTimeout: timeout expected")
+		panic(NewTypeError("setTimeout: timeout expected"))
 	}
 	var callback = args.Shift()
 	if !callback.isFunction() && !callback.isBuiltin() {
-		panic("setTimeout: callback must be a function")
+		panic(NewTypeError("setTimeout: callback must be a function"))
 	}
 	timeout := args.Shift()
 	if !timeout.isNumber() {
-		panic("setTimeout: timeout must be a number")
+		panic(NewTypeError("setTimeout: timeout must be a number"))
 	}
 	t := NewTimer(ctx, callback, timeout.number())
 	return ValueFromObject(t)
@@ -71,6 +71,7 @@ func _globalHTTPGet(this interface{}, ctx *Context, args *Values) Value {
 		url := args.Shift().str()
 		resp, err := http.Get(url)
 		if err != nil {
+			// TODO
 			panic(err)
 		}
 

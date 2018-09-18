@@ -27,7 +27,8 @@ func (l *LetStatement) Execute(ctx *Context) {
 		value = l.Expr.Evaluate(ctx)
 		// TODO find a better way to do this
 		if value.isBuiltin() && value.builtin().this != nil {
-			panic("method is not allowed to be rvalue")
+			// TODO
+			panic(NewSyntaxError("method is not allowed to be rvalue"))
 		}
 	}
 	ctx.AddSymbol(l.Name, value)
@@ -202,7 +203,7 @@ func (i *IfStatement) Execute(ctx *Context) {
 		case *BlockStatement:
 			typed.Execute(newCtx)
 		default:
-			panic("bad else stmt")
+			panic("won't go here")
 		}
 		if newCtx.broke {
 			ctx.broke = true

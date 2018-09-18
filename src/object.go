@@ -86,7 +86,7 @@ func (o *Object) Len() int {
 // Elem implements ElemIndexer.
 func (o *Object) Elem(pos int) Value {
 	if pos < 0 || pos > len(o.elems)-1 {
-		panic("array index out of range")
+		panic(NewRangeError("array index out of range"))
 	}
 	return o.elems[pos]
 }
@@ -94,7 +94,7 @@ func (o *Object) Elem(pos int) Value {
 // SetElem implements ElemIndexer.
 func (o *Object) SetElem(pos int, val Value) {
 	if pos < 0 || pos > len(o.elems)-1 {
-		panic("array index out of range")
+		panic(NewRangeError("array index out of range"))
 	}
 	o.elems[pos] = val
 }
@@ -177,7 +177,7 @@ func _arraySplice(this interface{}, ctx *Context, args *Values) Value {
 	o := this.(*Object)
 	start := 0
 	if args.Len() < 1 || !args.At(0).isNumber() {
-		panic("splice: start must be number")
+		panic(NewTypeError("splice: start must be number"))
 	}
 	start = args.Shift().number()
 	if start > o.Len() {
@@ -192,7 +192,7 @@ func _arraySplice(this interface{}, ctx *Context, args *Values) Value {
 	deleteCount := 0
 	if args.Len() >= 1 {
 		if !args.At(0).isNumber() {
-			panic("splice: deleteCount must be number")
+			panic(NewTypeError("splice: deleteCount must be number"))
 		}
 		deleteCount = args.Shift().number()
 		if deleteCount > o.Len()-start {
@@ -328,7 +328,8 @@ func _arrayMap(this interface{}, ctx *Context, args *Values) Value {
 // Reduce boils down the array into a single value.
 func _arrayReduce(this interface{}, ctx *Context, args *Values) Value {
 	if args.Len() < 2 {
-		panic("usage: reduce(lambda, init)")
+		// TODO arguments error
+		panic(NewTypeError("usage: reduce(lambda, init)"))
 	}
 	o := this.(*Object)
 	object := ValueFromObject(o)

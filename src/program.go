@@ -6,9 +6,9 @@ type Program struct {
 }
 
 // Execute executes the program.
-func (p *Program) Execute() (ret Value, err error) {
+func (p *Program) Execute() (ret Value, err interface{}) {
 	defer func() {
-		err = toErr(recover())
+		err = recover()
 	}()
 
 	globalObject := NewGlobal()

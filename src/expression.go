@@ -35,24 +35,23 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 	switch u.op {
 	case ttAddition:
 		if value.Type != vtNumber {
-			panic("+value is invalid")
+			panic(NewTypeError("+value is invalid"))
 		}
 		return ValueFromNumber(+value.number())
 	case ttSubtraction:
 		if value.Type != vtNumber {
-			panic("-value is invalid")
+			panic(NewTypeError("-value is invalid"))
 		}
 		return ValueFromNumber(-value.number())
 	case ttNot:
 		return ValueFromBoolean(!value.Truth(ctx))
 	case ttBitXor:
 		if value.Type != vtNumber {
-			panic("^value is invalid")
+			panic(NewTypeError("^value is invalid"))
 		}
 		return ValueFromNumber(^value.number())
 	}
-	panicf("unknown unary operator: %v", u.op)
-	return ValueFromNil()
+	panic(NewSyntaxError("unknown unary operator: %v", u.op))
 }
 
 // IncrementDecrementExpression is an a++ / a-- / ++a / --a expressions.
@@ -154,7 +153,8 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 			return ValueFromNumber(lv.number() * rv.number())
 		case ttDivision:
 			if rv.number() == 0 {
-				panic("divide by zero")
+				// TODO
+				panic(NewTypeError("divide by zero"))
 			}
 			return ValueFromNumber(lv.number() / rv.number())
 		case ttGreaterThan:
@@ -195,7 +195,7 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 		case ttAddition:
 			return ValueFromString(lv.str() + rv.str())
 		default:
-			panic("not supported operator on two strings")
+			panic(NewSyntaxError("not supported operator on two strings"))
 		}
 	}
 
@@ -221,11 +221,11 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 		case ttNotEqual:
 			return ValueFromBoolean(p1 != p2)
 		default:
-			panic("not supported operator on two builtins")
+			panic(NewSyntaxError("not supported operator on two builtins"))
 		}
 	}
 
-	panic("unknown binary operator and operands")
+	panic(NewSyntaxError("unknown binary operator and operands"))
 }
 
 // TernaryExpression is the `cond ? left : right` expression.
@@ -301,7 +301,7 @@ func (p *Parameters) Len() int {
 // GetAt gets n-th parameter.
 func (p *Parameters) GetAt(index int) string {
 	if index > len(p.names)-1 {
-		panic("parameter index out of range")
+		panic(NewRangeError("parameter index out of range"))
 	}
 	return p.names[index]
 }

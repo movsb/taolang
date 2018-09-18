@@ -52,7 +52,7 @@ func (c *Context) FindSymbol(name string, outer bool) (Value, bool) {
 func (c *Context) MustFind(name string, outer bool) Value {
 	value, ok := c.FindSymbol(name, outer)
 	if !ok {
-		panicf("name `%s' not defined", name)
+		panic(NewNameError("name `%s' not defined", name))
 	}
 	return value
 }
@@ -62,7 +62,7 @@ func (c *Context) FromGlobal(name string) (Value, bool) {
 	// This is the global context
 	global := c.MustFind("global", false)
 	if !global.isObject() {
-		panic("global is not an object")
+		panic(NewTypeError("global is not an object"))
 	}
 	if obj, ok := global.object().(*Global); ok {
 		val, ok := obj.Object.props[name]
@@ -75,7 +75,7 @@ func (c *Context) FromGlobal(name string) (Value, bool) {
 // If a symbol with given name does exist, It will panic.
 func (c *Context) AddSymbol(name string, value Value) {
 	if _, ok := c.FindSymbol(name, false); ok {
-		panicf("name `%s' redefined", name)
+		panic(NewNameError("name `%s' redefined", name))
 	}
 	c.symbols = append(c.symbols, &Symbol{
 		Name:  name,
@@ -100,7 +100,7 @@ func (c *Context) SetSymbol(name string, value Value) {
 		c.parent.SetSymbol(name, value)
 		return
 	}
-	panicf("name `%s' not defined", name)
+	panic(NewNameError("name `%s' not defined", name))
 }
 
 // SetParent sets the parent context.

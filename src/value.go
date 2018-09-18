@@ -194,7 +194,8 @@ func (v Value) Evaluate(ctx *Context) Value {
 	case vtBuiltin:
 		return v
 	default:
-		panic("cannot evaluate value on type")
+		// TODO
+		panic(NewTypeError("cannot evaluate value on type"))
 	}
 }
 
@@ -202,7 +203,7 @@ func (v Value) Evaluate(ctx *Context) Value {
 func (v Value) Assign(ctx *Context, val Value) {
 	// TODO find a better way to do this
 	if val.isBuiltin() && val.builtin().this != nil {
-		panic("method is not allowed to be rvalue")
+		panic(NewTypeError("method is not allowed to be rvalue"))
 	}
 	if v.isVariable() {
 		ctx.SetSymbol(v.variable(), val)
@@ -277,8 +278,7 @@ func (v Value) Truth(ctx *Context) bool {
 			return len(obj.props) > 0
 		}
 	}
-	panicf("unknown truth type")
-	return false
+	panic(NewSyntaxError("unknown truth type"))
 }
 
 // Values is a collection of values.
@@ -298,7 +298,7 @@ func NewValues(values ...Value) *Values {
 // At returns
 func (v *Values) At(i int) Value {
 	if i < 0 && i > v.Len()-1 {
-		panic("Values' index out of range")
+		panic(NewRangeError("Values' index out of range"))
 	}
 	return v.values[i]
 }

@@ -18,9 +18,9 @@ func NewParser(tokenizer *Tokenizer) *Parser {
 }
 
 // Parse does parse the input tokens.
-func (p *Parser) Parse() (program *Program, err error) {
+func (p *Parser) Parse() (program *Program, err interface{}) {
 	defer func() {
-		err = toErr(recover())
+		err = recover()
 	}()
 
 	program = &Program{}
@@ -33,7 +33,7 @@ func (p *Parser) Parse() (program *Program, err error) {
 	}
 	tk := p.next()
 	if tk.typ != ttEOF {
-		panicf("unexpected token: %v", tk)
+		panic(NewSyntaxError("unexpected token: %v", tk))
 	}
 
 	return program, nil
@@ -47,7 +47,7 @@ func (p *Parser) expect(tt TokenType) Token {
 		case ttIdentifier:
 			exp = "`identifier'"
 		}
-		panicf("unexpected token: %v (expect: %v)", token, exp)
+		panic(NewSyntaxError("unexpected token: %v (expect: %v)", token, exp))
 	}
 	return token
 }
@@ -113,7 +113,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 	}
 
 	if global {
-		panic("non-global statement")
+		panic(NewSyntaxError("non-global statement"))
 	}
 
 	switch tk.typ {
@@ -126,7 +126,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 		return p.parseForStatement()
 	case ttBreak:
 		if p.breakCount <= 0 {
-			panic("break statement must be in for-loop or switch")
+			panic(NewSyntaxError("break statement must be in for-loop or switch"))
 		}
 		return p.parseBreakStatement()
 	case ttIf:
@@ -147,8 +147,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 		}
 	}
 
-	panicf("unknown statement at line: %d", tk.line)
-	return nil
+	panic(NewSyntaxError("unknown statement at line: %d", tk.line))
 }
 
 func (p *Parser) parseLetStatement() *LetStatement {
@@ -237,7 +236,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 		}
 	} else {
 		if !p.follow(ttLeftBrace) {
-			panic("for needs body")
+			panic(NewSyntaxError("for needs body"))
 		}
 	}
 
@@ -245,7 +244,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 
 	fs.block = p.parseBlockStatement()
 	if fs.block == nil {
-		panic("for needs body")
+		panic(NewSyntaxError("for needs body"))
 	}
 
 	p.breakCount--
@@ -273,7 +272,7 @@ func (p *Parser) parseIfStatement() *IfStatement {
 		case ttLeftBrace:
 			elseBlock = p.parseBlockStatement()
 		default:
-			panic("else expect if or block to follow")
+			panic(NewSyntaxError("else expect if or block to follow"))
 		}
 	}
 	return &IfStatement{
@@ -299,7 +298,7 @@ func (p *Parser) parseSwitchStatement() *SwitchStatement {
 		switch esac := p.next(); esac.typ {
 		case ttDefault:
 			if ss.def != nil {
-				panic("duplicate default")
+				panic(NewSyntaxError("duplicate default"))
 			}
 			p.expect(ttColon)
 			group = &CaseGroup{}
@@ -317,7 +316,7 @@ func (p *Parser) parseSwitchStatement() *SwitchStatement {
 				}
 			}
 		default:
-			panicf("unexpected token: %v", esac)
+			panic(NewSyntaxError("unexpected token: %v", esac))
 		}
 		// no need to be real block.
 		// but we construct a block since statements are executed in scope.
@@ -394,7 +393,7 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 		case ttStarStar:
 			right = p.parseExpression(ttStarStar)
 		default:
-			panicf("unhandled operator: %v", op)
+			panic(NewSyntaxError("unhandled operator: %v", op))
 		}
 
 		left = NewBinaryExpression(left, op.typ, right)
@@ -411,10 +410,10 @@ func (p *Parser) parseTernaryExpression(cond Expression) Expression {
 	p.expect(ttColon)
 	right = p.parseExpression(ttQuestion)
 	if _, ok := left.(*TernaryExpression); ok {
-		panic("nested ?: is not allowed")
+		panic(NewSyntaxError("nested ?: is not allowed"))
 	}
 	if _, ok := right.(*TernaryExpression); ok {
-		panic("nested ?: is not allowed")
+		panic(NewSyntaxError("nested ?: is not allowed"))
 	}
 	return NewTernaryExpression(cond, left, right)
 }
@@ -506,7 +505,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	}
 
 	if expr == nil {
-		panicf("unknown expression at line: %d", next.line)
+		panic(NewSyntaxError("unknown expression at line: %d", next.line))
 	}
 
 	for {
@@ -530,7 +529,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 func (p *Parser) tryParseLambdaExpression(must bool) (expr *FunctionExpression) {
 	defer func() {
 		if must && expr == nil {
-			panic("bad lambda expression")
+			panic(NewSyntaxError("bad lambda expression"))
 		}
 	}()
 
@@ -595,11 +594,14 @@ func (p *Parser) tryParseLambdaExpression(must bool) (expr *FunctionExpression) 
 func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
 	switch token := p.next(); token.typ {
 	case ttDot:
-		key := p.expect(ttIdentifier).str
-		return &IndexExpression{
-			indexable: left,
-			key:       ValueFromString(key),
+		key := p.next()
+		if key.typ == ttIdentifier {
+			return &IndexExpression{
+				indexable: left,
+				key:       ValueFromString(key.str),
+			}
 		}
+		panic(NewSyntaxError("unexpected %v", key))
 	case ttLeftBracket:
 		keyExpr := p.parseExpression(ttQuestion)
 		if keyExpr == nil {
@@ -640,7 +642,7 @@ func (p *Parser) tryParseCallExpression(left Expression) Expression {
 				p.undo(sep)
 				break
 			} else {
-				panicf("unexpected token: %v", sep)
+				panic(NewSyntaxError("unexpected token: %v", sep))
 			}
 		}
 	}
@@ -671,14 +673,14 @@ func (p *Parser) parseFunctionExpression() *FunctionExpression {
 				p.undo(sep)
 				break
 			} else {
-				panicf("unexpected token: %v", sep)
+				panic(NewSyntaxError("unexpected token: %v", sep))
 			}
 		}
 	}
 	p.expect(ttRightParen)
 
 	if !p.follow(ttLeftBrace) {
-		panic("function needs a body")
+		panic(NewSyntaxError("function needs a body"))
 	}
 
 	saveBreakCount := p.breakCount
@@ -714,7 +716,7 @@ func (p *Parser) parseObjectExpression() Expression {
 		case ttIdentifier:
 			key = token.str
 		default:
-			panic("unsupported key type")
+			panic(NewTypeError("unsupported key type"))
 		}
 
 		p.expect(ttColon)
