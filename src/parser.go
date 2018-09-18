@@ -4,21 +4,16 @@ package main
 type Parser struct {
 	tokenizer *Tokenizer
 
-	// how many breakable state the parser is in.
+	// how many breakable states the parser is in.
 	// a positive breakCount means we can break breakCount times.
 	breakCount uint
-
-	// if we want to parse a statement without eating out the end semicolon,
-	// set it to true. And it will be cleared immediately after a statement is parsed.
-	skipSemicolon bool
 }
 
 // NewParser news a parser.
 func NewParser(tokenizer *Tokenizer) *Parser {
 	return &Parser{
-		tokenizer:     tokenizer,
-		breakCount:    0,
-		skipSemicolon: false,
+		tokenizer:  tokenizer,
+		breakCount: 0,
 	}
 }
 
@@ -69,7 +64,7 @@ func (p *Parser) match(tts ...TokenType) (Token, bool) {
 }
 
 func (p *Parser) isOp(t Token) bool {
-	return t.typ >= ttQuestion && t.typ <= ttDecrement
+	return t.typ >= ttAssign && t.typ <= ttDecrement
 }
 
 func (p *Parser) next() Token {
@@ -154,11 +149,16 @@ func (p *Parser) parseStatement(global bool) Statement {
 		return p.parseSwitchStatement()
 	}
 
-	if stmt := p.tryParseExpressionStatement(); stmt != nil {
-		return stmt
-	}
-	if stmt := p.tryParseAssignmentStatement(); stmt != nil {
-		return stmt
+	// At last, try to parse all another statements we've known.
+	//   - expr;                    expression statement
+	{
+		expr := p.parseExpression(ttAssign)
+		// it is an expression statement
+		if _, ok := p.match(ttSemicolon); ok {
+			return &ExpressionStatement{
+				expr: expr,
+			}
+		}
 	}
 
 	panicf("unknown statement at line: %d", tk.line)
@@ -177,71 +177,6 @@ func (p *Parser) parseVariableStatement() *VariableStatement {
 	return &v
 }
 
-func (p *Parser) tryParseAssignmentStatement() (stmt *AssignmentStatement) {
-	p.enter()
-	defer func() {
-		recover()
-		p.leave(stmt == nil)
-	}()
-
-	var as AssignmentStatement
-
-	as.left = p.parseExpression(ttQuestion)
-
-	if _, ok := p.match(ttAssign); ok {
-		as.right = p.parseExpression(ttQuestion)
-	} else if op, ok := p.match(
-		ttStarStarAssign,
-		ttStarAssign, ttDivideAssign, ttPercentAssign,
-		ttPlusAssign, ttMinusAssign,
-		ttLeftShiftAssign, ttRightShiftAssign,
-		ttAndAssign, ttOrAssign, ttXorAssign, ttAndNotAssign,
-	); ok {
-		right := p.parseExpression(ttQuestion)
-		var binOp TokenType
-		switch op.typ {
-		case ttStarStarAssign:
-			binOp = ttStarStar
-		case ttStarAssign:
-			binOp = ttMultiply
-		case ttDivideAssign:
-			binOp = ttDivision
-		case ttPercentAssign:
-			binOp = ttPercent
-		case ttPlusAssign:
-			binOp = ttAddition
-		case ttMinusAssign:
-			binOp = ttSubtraction
-		case ttLeftShiftAssign:
-			binOp = ttLeftShift
-		case ttRightShiftAssign:
-			binOp = ttRightShift
-		case ttAndAssign:
-			binOp = ttBitAnd
-		case ttOrAssign:
-			binOp = ttBitOr
-		case ttXorAssign:
-			binOp = ttBitXor
-		case ttAndNotAssign:
-			binOp = ttBitAndNot
-		default:
-			panic("won't go here")
-		}
-		as.right = NewBinaryExpression(as.left, binOp, right)
-	} else {
-		return nil
-	}
-
-	if !p.skipSemicolon {
-		// hah? !skip? skip?
-		p.skip(ttSemicolon)
-	} else {
-		p.skipSemicolon = false
-	}
-
-	return &as
-}
-
 func (p *Parser) parseFunctionStatement() *FunctionStatement {
 	var fn FunctionStatement
 	p.expect(ttFunction)
@@ -258,24 +193,6 @@ func (p *Parser) parseReturnStatement() *ReturnStatement {
 	}
 	p.expect(ttSemicolon)
 	return ret
-}
-
-func (p *Parser) tryParseExpressionStatement() (stmt *ExpressionStatement) {
-	p.enter()
-	defer func() {
-		recover()
-		p.leave(stmt == nil)
-	}()
-
-	expr := p.parseExpression(ttQuestion)
-
-	stmt = &ExpressionStatement{
-		expr: expr,
-	}
-	if p.skip(ttSemicolon) {
-		return stmt
-	}
-	return nil
 }
 
 func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
@@ -328,30 +245,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 		}
 		// incr
 		if !p.follow(ttLeftBrace) {
-			// is expr?
-			p.enter()
-			fs.incr = p.parseExpression(ttQuestion)
-			if !p.follow(ttLeftBrace) {
-				p.leave(true)
-				fs.incr = nil
-			} else {
-				p.leave(false)
-			}
-			// is assignment?
-			if fs.incr == nil {
-				p.enter()
-				p.skipSemicolon = true
-				fs.incr = p.tryParseAssignmentStatement()
-				if !p.follow(ttLeftBrace) {
-					p.leave(true)
-					fs.incr = nil
-				} else {
-					p.leave(false)
-				}
-			}
-			if fs.incr == nil {
-				panic("incr expected")
-			}
+			fs.incr = p.parseExpression(ttAssign)
 		} else {
 			// no incr
 		}
@@ -483,13 +377,15 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 			break
 		}
 
+		if op.typ >= ttAssign && op.typ < ttQuestion {
+			return p.parseAssignmentExpression(left, op.typ)
+		}
+
 		switch op.typ {
 		case ttQuestion:
-			left = p.parseTernaryExpression(left)
-			continue
+			return p.parseTernaryExpression(left)
 		case ttIncrement, ttDecrement:
-			left = NewIncrementDecrementExpression(op.typ, false, left)
-			continue
+			return NewIncrementDecrementExpression(op.typ, false, left)
 		}
 
 		var right Expression
@@ -535,6 +431,51 @@ func (p *Parser) parseTernaryExpression(cond Expression) Expression {
 		panic("nested ?: is not allowed")
 	}
 	return NewTernaryExpression(cond, left, right)
+}
+
+func (p *Parser) parseAssignmentExpression(left Expression, op TokenType) Expression {
+	var ae AssignmentExpression
+	ae.left = left
+
+	// ttQuestion: disable continuous assignment style
+	ae.right = p.parseExpression(ttQuestion)
+
+	if op == ttAssign {
+		return &ae
+	}
+
+	var binOp TokenType
+	switch op {
+	case ttStarStarAssign:
+		binOp = ttStarStar
+	case ttStarAssign:
+		binOp = ttMultiply
+	case ttDivideAssign:
+		binOp = ttDivision
+	case ttPercentAssign:
+		binOp = ttPercent
+	case ttPlusAssign:
+		binOp = ttAddition
+	case ttMinusAssign:
+		binOp = ttSubtraction
+	case ttLeftShiftAssign:
+		binOp = ttLeftShift
+	case ttRightShiftAssign:
+		binOp = ttRightShift
+	case ttAndAssign:
+		binOp = ttBitAnd
+	case ttOrAssign:
+		binOp = ttBitOr
+	case ttXorAssign:
+		binOp = ttBitXor
+	case ttAndNotAssign:
+		binOp = ttBitAndNot
+	default:
+		panic("won't go here")
+	}
+
+	ae.right = NewBinaryExpression(ae.left, binOp, ae.right)
+	return &ae
 }
 
 func (p *Parser) parsePrimaryExpression() Expression {
@@ -668,11 +609,10 @@ func (p *Parser) tryParseLambdaExpression(must bool) (expr *FunctionExpression) 
 func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
 	switch token := p.next(); token.typ {
 	case ttDot:
-		if ident := p.next(); ident.typ == ttIdentifier {
-			return &IndexExpression{
-				indexable: left,
-				key:       ValueFromString(ident.str),
-			}
+		key := p.expect(ttIdentifier).str
+		return &IndexExpression{
+			indexable: left,
+			key:       ValueFromString(key),
 		}
 	case ttLeftBracket:
 		keyExpr := p.parseExpression(ttQuestion)

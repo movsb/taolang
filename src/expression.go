@@ -228,7 +228,7 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	panic("unknown binary operator and operands")
 }
 
-// TernaryExpression is the conditional(`?:`) expression.
+// TernaryExpression is the `cond ? left : right` expression.
 type TernaryExpression struct {
 	cond  Expression
 	left  Expression
@@ -250,6 +250,33 @@ func (t *TernaryExpression) Evaluate(ctx *Context) Value {
 		return t.left.Evaluate(ctx)
 	}
 	return t.right.Evaluate(ctx)
+}
+
+// AssignmentExpression is an assignment expression.
+// Notice: In tao, assignment is not actually an expression.
+type AssignmentExpression struct {
+	left  Expression
+	right Expression
+}
+
+// NewAssignmentExpression news an assignment expression.
+func NewAssignmentExpression(left Expression, right Expression) *AssignmentExpression {
+	return &AssignmentExpression{
+		left:  left,
+		right: right,
+	}
+}
+
+// Evaluate implements Expression.
+func (a *AssignmentExpression) Evaluate(ctx *Context) Value {
+	assigner, ok := a.left.(Assigner)
+	if !ok {
+		val := a.left.Evaluate(ctx)
+		panic(NewNotAssignableError(val))
+	}
+	value := a.right.Evaluate(ctx)
+	assigner.Assign(ctx, value)
+	return value
 }
 
 // Parameters is a collection of function parameters.

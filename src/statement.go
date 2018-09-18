@@ -33,24 +33,6 @@ func (v *VariableStatement) Execute(ctx *Context) {
 	ctx.AddSymbol(v.Name, value)
 }
 
-// AssignmentStatement assigns right to left
-// assigner(left) <- evaluate(right)
-type AssignmentStatement struct {
-	left  Expression
-	right Expression
-}
-
-// Execute implements Statement.
-func (v *AssignmentStatement) Execute(ctx *Context) {
-	assigner, ok := v.left.(Assigner)
-	if !ok {
-		val := v.left.Evaluate(ctx)
-		panicf("not assignable: %v (type: %s)", val, val.TypeName())
-	}
-	value := v.right.Evaluate(ctx)
-	assigner.Assign(ctx, value)
-}
-
 // FunctionStatement is a function definition statement.
 // Because Tao treats functions as first-class values.
 // We call it a function expression.

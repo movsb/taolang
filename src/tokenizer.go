@@ -11,7 +11,7 @@ import (
 
 // TokenType is the type of a token.
 // Operators are listed by precedence groups from lowest to highest.
-// ttQuestion -> ttIncrement
+// ttAssign -> ttQuestion -> ttIncrement
 type TokenType uint
 
 const (
