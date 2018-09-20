@@ -11,15 +11,13 @@ type Promise struct {
 }
 
 // NewPromise news a promise.
-// executor can be either a callable or a non-callable.
 func NewPromise(executor Value) *Promise {
 	promise := &Promise{}
-	switch executor.Type {
-	case vtFunction, vtBuiltin:
+	if executor.isCallable() {
 		resolve := ValueFromBuiltin(promise, "resolve", _promiseResolve)
 		reject := ValueFromBuiltin(promise, "reject", _promiseReject)
 		CallFunc(NewContext("--promise-executor--", nil), executor, resolve, reject)
-	default:
+	} else {
 		promise.Resolve(executor)
 	}
 	return promise

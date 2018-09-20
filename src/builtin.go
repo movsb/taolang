@@ -20,7 +20,7 @@ func NewBuiltin(this interface{}, name string, fn BuiltinFunction) *Builtin {
 }
 
 // Execute executes the builtin.
-// This is not a Statement implementation.
+// It implements Callable.
 func (b *Builtin) Execute(ctx *Context, args *Values) Value {
 	return b.fn(b.this, ctx, args)
 }

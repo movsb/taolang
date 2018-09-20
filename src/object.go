@@ -30,6 +30,11 @@ type ElemAssigner interface {
 	ElemAssign(elem int, val Value)
 }
 
+// Callable is a callable.
+type Callable interface {
+	Execute(ctx *Context, args *Values) Value
+}
+
 // Object is either an object or an array.
 type Object struct {
 	elems []Value          // array elements
@@ -273,25 +278,12 @@ func _arrayJoin(this interface{}, ctx *Context, args *Values) Value {
 
 /// functional methods implementations below.
 
-func _arrayCall(ctx *Context, lambdaValue Value, args ...Value) Value {
+func _arrayCall(ctx *Context, lambda Value, args ...Value) Value {
 	ctx = NewContext("--lambda--", nil)
-	lambda := lambdaValue.function()
-	lambda.BindArguments(ctx, args...)
-	switch data := lambda.Execute(ctx); data.Type {
-	case vtVariable:
-		return ctx.MustFind(data.variable(), true)
-	case vtFunction:
-		fn := data.function()
-		newCtx := NewContext(fn.fn.name, nil)
-		fn.BindArguments(newCtx, args...)
-		return fn.Execute(newCtx)
-	case vtBuiltin:
-		fn := data.builtin()
-		newCtx := NewContext(fn.name, nil)
-		return fn.Execute(newCtx, NewValues(args...))
-	default:
-		return data
+	if !lambda.isCallable() {
+		panic(NewNotCallableError(lambda))
 	}
+	return lambda.callable().Execute(ctx, NewValues(args...))
 }
 
 // Each iterates each element of the array and invokes callback.

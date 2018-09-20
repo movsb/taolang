@@ -50,8 +50,8 @@ func _globalSetTimeout(this interface{}, ctx *Context, args *Values) Value {
 		panic(NewTypeError("setTimeout: timeout expected"))
 	}
 	var callback = args.Shift()
-	if !callback.isFunction() && !callback.isBuiltin() {
-		panic(NewTypeError("setTimeout: callback must be a function"))
+	if !callback.isCallable() {
+		panic(NewTypeError("setTimeout: callback must be a callable"))
 	}
 	timeout := args.Shift()
 	if !timeout.isNumber() {

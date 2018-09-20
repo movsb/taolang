@@ -333,15 +333,10 @@ type EvaluatedFunctionExpression struct {
 }
 
 // Execute evaluates the function expression within closure.
-// This is not a statement interface implementation.
-func (e *EvaluatedFunctionExpression) Execute(ctx *Context) Value {
+// It implements Callable.
+func (e *EvaluatedFunctionExpression) Execute(ctx *Context, args *Values) Value {
 	ctx.SetParent(e.this) // this is how closure works
-	return e.fn.Execute(ctx)
-}
-
-// BindArguments binds actual arguments from call expression.
-func (e *EvaluatedFunctionExpression) BindArguments(ctx *Context, args ...Value) {
-	e.fn.params.BindArguments(ctx, args...)
+	return e.fn.Execute(ctx, args)
 }
 
 // FunctionExpression is
@@ -362,8 +357,9 @@ func (f *FunctionExpression) Evaluate(ctx *Context) Value {
 }
 
 // Execute executes function statements.
-// This is not a statement interface implementation.
-func (f *FunctionExpression) Execute(ctx *Context) Value {
+// It implements Callable.
+func (f *FunctionExpression) Execute(ctx *Context, args *Values) Value {
+	f.params.BindArguments(ctx, args.values...)
 	f.block.Execute(ctx)
 	if ctx.hasret {
 		return ctx.retval
@@ -500,21 +496,13 @@ func (f *CallExpression) Evaluate(ctx *Context) Value {
 		callable = callable.Evaluate(ctx)
 	}
 
-	switch callable.Type {
-	case vtFunction:
-		fn := callable.function()
-		newCtx := NewContext(fn.fn.name, nil)
+	if callable.isCallable() {
+		newCtx := NewContext("", nil)
 		args := f.Args.EvaluateAll(ctx)
-		fn.BindArguments(newCtx, args.values...)
-		return fn.Execute(newCtx)
-	case vtBuiltin:
-		fn := callable.builtin()
-		newCtx := NewContext(fn.name, nil)
-		args := f.Args.EvaluateAll(ctx)
-		return fn.Execute(newCtx, &args)
-	default:
-		panic(NewNotCallableError(callable))
+		return callable.callable().Execute(newCtx, &args)
 	}
+
+	panic(NewNotCallableError(callable))
 }
 
 // ObjectExpression is the object literal expression.

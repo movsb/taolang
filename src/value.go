@@ -139,6 +139,10 @@ func (v Value) isBuiltin() bool {
 	return v.Type == vtBuiltin
 }
 
+func (v Value) isCallable() bool {
+	return v.callable() != nil
+}
+
 func (v Value) checkType(vt ValueType) {
 	if v.Type != vt {
 		panic("wrong use")
@@ -178,6 +182,17 @@ func (v Value) function() *EvaluatedFunctionExpression {
 func (v Value) builtin() *Builtin {
 	v.checkType(vtBuiltin)
 	return v.value.(*Builtin)
+}
+
+// callable returns a callable if value is callable.
+// Otherwise, it returns nil.
+func (v Value) callable() Callable {
+	switch v.Type {
+	case vtFunction, vtBuiltin:
+		return v.value.(Callable)
+	default:
+		panic(NewNotCallableError(v))
+	}
 }
 
 // Evaluate implements Expression.
@@ -315,15 +330,6 @@ func (v *Values) All() []interface{} {
 		i = append(i, value)
 	}
 	return i
-}
-
-// Exprs returns the values as expressions.
-func (v *Values) Exprs() []Expression {
-	var e []Expression
-	for _, value := range v.values {
-		e = append(e, value)
-	}
-	return e
 }
 
 // Shift shifts out one element from left.
