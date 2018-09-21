@@ -6,16 +6,25 @@ import (
 	"sort"
 )
 
-// KeyIndexer is implemented by those who supports keyed values.
-type KeyIndexer interface {
-	Key(key string) Value
+// KeyGetter is implemented by those who supports key getters.
+type KeyGetter interface {
+	GetKey(key string) Value
+}
+
+// KeySetter is implemented by those who supports key setters.
+type KeySetter interface {
 	SetKey(key string, val Value)
 }
 
-// ElemIndexer is implemented by those who supports indexed values.
-type ElemIndexer interface {
+// ElemGetter is implemented by those who supports element getters.
+type ElemGetter interface {
 	Len() int
-	Elem(pos int) Value
+	GetElem(pos int) Value
+}
+
+// ElemSetter is implemented by those who supports element setters.
+type ElemSetter interface {
+	Len() int
 	SetElem(pos int, val Value)
 	PushElem(val Value)
 }
@@ -57,8 +66,8 @@ func NewArray(elems ...Value) *Object {
 	return o
 }
 
-// Key gets a value by key.
-func (o *Object) Key(key string) Value {
+// GetKey gets a value by key.
+func (o *Object) GetKey(key string) Value {
 	if o.array {
 		if key == "length" {
 			return ValueFromNumber(o.Len())
@@ -83,20 +92,20 @@ func (o *Object) KeyAssign(key string, val Value) {
 	o.SetKey(key, val)
 }
 
-// Len implements ElemIndexer.
+// Len implements ElemGetter/ElemSetter.
 func (o *Object) Len() int {
 	return len(o.elems)
 }
 
-// Elem implements ElemIndexer.
-func (o *Object) Elem(pos int) Value {
+// GetElem implements ElemGetter.
+func (o *Object) GetElem(pos int) Value {
 	if pos < 0 || pos > len(o.elems)-1 {
 		panic(NewRangeError("array index out of range"))
 	}
 	return o.elems[pos]
 }
 
-// SetElem implements ElemIndexer.
+// SetElem implements ElemSetter.
 func (o *Object) SetElem(pos int, val Value) {
 	if pos < 0 || pos > len(o.elems)-1 {
 		panic(NewRangeError("array index out of range"))
@@ -109,7 +118,7 @@ func (o *Object) ElemAssign(elem int, val Value) {
 	o.SetElem(elem, val)
 }
 
-// PushElem implements ElemIndexer.
+// PushElem implements ElemSetter.
 func (o *Object) PushElem(val Value) {
 	o.elems = append(o.elems, val)
 }
@@ -130,7 +139,7 @@ func (o *Object) String() string {
 		buf := bytes.NewBuffer(nil)
 		buf.WriteString("[")
 		for i, n := 0, o.Len(); i < n; i++ {
-			elem := o.Elem(i)
+			elem := o.GetElem(i)
 			buf.WriteString(elem.String())
 			if i != n-1 {
 				buf.WriteString(",")

@@ -408,25 +408,25 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 
 	// both obj.key, obj[0] are correct.
 	// so, we need to query both interfaces.
-	keyable, _ := indexable.value.(KeyIndexer)
-	elemable, _ := indexable.value.(ElemIndexer)
+	keyable, _ := indexable.value.(KeyGetter)
+	elemable, _ := indexable.value.(ElemGetter)
 
 	// convert from primitives to object when needed
 	if keyable == nil && elemable == nil {
 		switch indexable.Type {
 		case vtString:
-			keyable = KeyIndexer(NewString(indexable.str()))
+			keyable = KeyGetter(NewString(indexable.str()))
 		}
 	}
 
 	// get property
 	if key.Type == vtString && keyable != nil {
-		return keyable.Key(key.str())
+		return keyable.GetKey(key.str())
 	}
 
 	// get element
 	if key.Type == vtNumber && elemable != nil {
-		return elemable.Elem(key.number())
+		return elemable.GetElem(key.number())
 	}
 
 	if keyable == nil && elemable == nil {

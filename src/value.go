@@ -76,8 +76,8 @@ func ValueFromVariable(name string) Value {
 	}
 }
 
-// ValueFromObject creates a KeyIndexer value.
-func ValueFromObject(obj KeyIndexer) Value {
+// ValueFromObject creates a KeyGetter value.
+func ValueFromObject(obj KeyGetter) Value {
 	return Value{
 		Type:  vtObject,
 		value: obj,
@@ -169,9 +169,9 @@ func (v Value) variable() string {
 	return v.value.(string)
 }
 
-func (v Value) object() KeyIndexer {
+func (v Value) object() KeyGetter {
 	v.checkType(vtObject)
-	return v.value.(KeyIndexer)
+	return v.value.(KeyGetter)
 }
 
 func (v Value) function() *EvaluatedFunctionExpression {

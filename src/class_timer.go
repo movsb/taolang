@@ -21,17 +21,12 @@ func NewTimer(ctx *Context, callback Value, timeout int) *Timer {
 	return &Timer{timer: t}
 }
 
-// Key implements KeyIndexer.
-func (t *Timer) Key(key string) Value {
+// GetKey implements KeyGetter.
+func (t *Timer) GetKey(key string) Value {
 	if fn, ok := _timerMethods[key]; ok {
 		return ValueFromBuiltin(t, key, fn)
 	}
 	return ValueFromNil()
-}
-
-// SetKey implements KeyIndexer.
-func (t *Timer) SetKey(key string, val Value) {
-	panic(NewNotAssignableError(ValueFromObject(t)))
 }
 
 var _timerMethods map[string]BuiltinFunction

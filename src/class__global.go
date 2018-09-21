@@ -24,8 +24,8 @@ func NewGlobal() *Global {
 	return g
 }
 
-// Key implements KeyIndexer.
-func (g *Global) Key(key string) Value {
+// GetKey implements KeyGetter.
+func (g *Global) GetKey(key string) Value {
 	if prop, ok := g.props[key]; ok {
 		return prop
 	}

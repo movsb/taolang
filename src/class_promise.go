@@ -23,17 +23,12 @@ func NewPromise(executor Value) *Promise {
 	return promise
 }
 
-// Key implements KeyIndexer.
-func (p *Promise) Key(key string) Value {
+// GetKey implements KeyGetter.
+func (p *Promise) GetKey(key string) Value {
 	if fn, ok := _promiseMethods[key]; ok {
 		return ValueFromBuiltin(p, key, fn)
 	}
 	return ValueFromNil()
-}
-
-// SetKey implements KeyIndexer.
-func (p *Promise) SetKey(key string, val Value) {
-	panic(NewNotAssignableError(ValueFromObject(p)))
 }
 
 // Resolve resolves the promise.
