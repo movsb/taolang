@@ -5,6 +5,7 @@ function main() {
     find();
     filter();
     where();
+    select();
 }
 
 function each() {
@@ -44,4 +45,17 @@ function where() {
     ];
     let b = a.where(x=>x.a==1||x.b==1);
     println(b);
+}
+
+function select() {
+    let a = [
+        {name:"Alice",  age:10,},
+        {name:"Bob",    age:20,},
+        {name:"Celery", age:30,},
+        {name:"David",  age:40,},
+        {name:"Elle",   age:50,},
+    ];
+
+    let s = a.select(x=>x.name);
+    println(s);
 }

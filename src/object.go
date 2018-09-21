@@ -170,6 +170,7 @@ func init() {
 		"push":    _arrayPush,
 		"pop":     _arrayPop,
 		"reduce":  _arrayReduce,
+		"select":  _arraySelect,
 		"splice":  _arraySplice,
 		"unshift": _arrayUnshift,
 		"where":   _arrayWhere,
@@ -361,7 +362,7 @@ func _arrayFilter(this interface{}, ctx *Context, args *Values) Value {
 }
 
 // Where filters objects by column conditions.
-// save as Filter currently.
+// same as Filter currently.
 func _arrayWhere(this interface{}, ctx *Context, args *Values) Value {
 	o := this.(*Object)
 	values := make([]Value, 0, o.Len())
@@ -369,6 +370,18 @@ func _arrayWhere(this interface{}, ctx *Context, args *Values) Value {
 		if _arrayCall(ctx, args.At(0), elem).Truth(ctx) {
 			values = append(values, elem)
 		}
+		return true
+	})
+	return ValueFromObject(NewArray(values...))
+}
+
+// Select selects fields as array.
+func _arraySelect(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
+	values := make([]Value, 0, o.Len())
+	o.Each(func(elem Value, index Value) bool {
+		value := _arrayCall(ctx, args.At(0), elem)
+		values = append(values, value)
 		return true
 	})
 	return ValueFromObject(NewArray(values...))
