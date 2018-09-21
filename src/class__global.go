@@ -68,7 +68,7 @@ func _globalNewPromise(this interface{}, ctx *Context, args *Values) Value {
 func _globalHTTPGet(this interface{}, ctx *Context, args *Values) Value {
 	promise := &Promise{}
 	go func() {
-		url := args.Shift().str()
+		url := args.Shift().str().s
 		resp, err := http.Get(url)
 		if err != nil {
 			// TODO

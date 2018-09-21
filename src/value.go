@@ -59,11 +59,11 @@ func ValueFromNumber(num int) Value {
 	}
 }
 
-// ValueFromString creates a string value.
+// ValueFromString creates a string object value.
 func ValueFromString(str string) Value {
 	return Value{
 		Type:  vtString,
-		value: str,
+		value: NewString(str),
 	}
 }
 
@@ -159,9 +159,9 @@ func (v Value) number() int {
 	return v.value.(int)
 }
 
-func (v Value) str() string {
+func (v Value) str() *String {
 	v.checkType(vtString)
-	return v.value.(string)
+	return v.value.(*String)
 }
 
 func (v Value) variable() string {
@@ -245,7 +245,7 @@ func (v Value) String() string {
 	case vtNumber:
 		return fmt.Sprint(v.number())
 	case vtString:
-		return v.str()
+		return v.str().s
 	case vtFunction:
 		expr := v.function()
 		name := expr.fn.name
@@ -277,7 +277,7 @@ func (v Value) Truth(ctx *Context) bool {
 	case vtNumber:
 		return v.number() != 0
 	case vtString:
-		return v.str() != ""
+		return v.str().s != ""
 	case vtBoolean:
 		return v.boolean()
 	case vtFunction, vtBuiltin:

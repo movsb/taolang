@@ -193,7 +193,7 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	if lt == vtString && rt == vtString {
 		switch op {
 		case ttAddition:
-			return ValueFromString(lv.str() + rv.str())
+			return ValueFromString(lv.str().s + rv.str().s)
 		default:
 			panic(NewSyntaxError("not supported operator on two strings"))
 		}
@@ -411,17 +411,9 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 	keyable, _ := indexable.value.(KeyGetter)
 	elemable, _ := indexable.value.(ElemGetter)
 
-	// convert from primitives to object when needed
-	if keyable == nil && elemable == nil {
-		switch indexable.Type {
-		case vtString:
-			keyable = KeyGetter(NewString(indexable.str()))
-		}
-	}
-
 	// get property
 	if key.Type == vtString && keyable != nil {
-		return keyable.GetKey(key.str())
+		return keyable.GetKey(key.str().s)
 	}
 
 	// get element
@@ -449,11 +441,11 @@ func (i *IndexExpression) Assign(ctx *Context, val Value) {
 	keyable, ok1 := value.value.(KeyAssigner)
 	elemable, ok2 := value.value.(ElemAssigner)
 	if !ok1 && !ok2 {
-		panic(NewNotIndexableError(value))
+		panic(NewNotAssignableError(value))
 	}
 	key := i.key.Evaluate(ctx)
 	if key.isString() && keyable != nil {
-		keyable.KeyAssign(key.str(), val)
+		keyable.KeyAssign(key.str().s, val)
 		return
 	}
 	if key.isNumber() && elemable != nil {

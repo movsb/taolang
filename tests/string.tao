@@ -1,7 +1,12 @@
 function main() {
-    println("".lower != "".lower);
-
+    index();
     lower();
+}
+
+function index() {
+    let s = "我1A们";
+    println(s[0], s[1], s[2], s[3]);
+    println(s.len());
 }
 
 function lower() {
