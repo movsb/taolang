@@ -133,6 +133,8 @@ func (p *Parser) parseStatement(global bool) Statement {
 		return p.parseIfStatement()
 	case ttSwitch:
 		return p.parseSwitchStatement()
+	case ttTao:
+		return p.parseTaoStatement()
 	}
 
 	// At last, try to parse all another statements we've known.
@@ -336,6 +338,18 @@ func (p *Parser) parseSwitchStatement() *SwitchStatement {
 		}
 	}
 	return &ss
+}
+
+func (p *Parser) parseTaoStatement() *TaoStatement {
+	p.expect(ttTao)
+	ts := TaoStatement{}
+	expr := p.parseExpression(ttQuestion)
+	if _, ok := expr.(*CallExpression); !ok {
+		panic(NewSyntaxError("expression in tao must be function call"))
+	}
+	p.expect(ttSemicolon)
+	ts.call = expr.(*CallExpression)
+	return &ts
 }
 
 func (p *Parser) parseExpression(level TokenType) Expression {

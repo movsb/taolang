@@ -1,5 +1,9 @@
 function main() {
-    setTimeout(() => {
-        println("111");
-    }, 300);
+    tao println("taoroutine 1");
+    tao println("taoroutine 2");
+    tao println("taoroutine 3");
+    tao println("taoroutine 4");
+    tao function(s) {
+        println(s);
+    }("123");
 }

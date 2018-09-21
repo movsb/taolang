@@ -274,3 +274,15 @@ func (s *SwitchStatement) Execute(ctx *Context) {
 		}
 	}
 }
+
+// TaoStatement is a tao statement.
+type TaoStatement struct {
+	call *CallExpression
+}
+
+// Execute implements Statement.
+func (s *TaoStatement) Execute(ctx *Context) {
+	go func() {
+		s.call.Evaluate(ctx)
+	}()
+}
