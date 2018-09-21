@@ -165,6 +165,7 @@ func init() {
 		"each":    _arrayEach,
 		"filter":  _arrayFilter,
 		"find":    _arrayFind,
+		"groupBy": _arrayGroupBy,
 		"join":    _arrayJoin,
 		"map":     _arrayMap,
 		"push":    _arrayPush,
@@ -385,4 +386,27 @@ func _arraySelect(this interface{}, ctx *Context, args *Values) Value {
 		return true
 	})
 	return ValueFromObject(NewArray(values...))
+}
+
+// GroupBy groups objects by property.
+func _arrayGroupBy(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
+	maps := make(map[Value][]Value)
+	keys := make([]Value, 0) // make map output ordered
+	o.Each(func(elem Value, index Value) bool {
+		key := _arrayCall(ctx, args.At(0), elem)
+		if _, ok := maps[key]; !ok {
+			keys = append(keys, key)
+		}
+		maps[key] = append(maps[key], elem)
+		return true
+	})
+	group := NewArray()
+	for _, key := range keys {
+		obj := NewArray()
+		obj.SetKey("group", key)
+		obj.elems = maps[key]
+		group.PushElem(ValueFromObject(obj))
+	}
+	return ValueFromObject(group)
 }

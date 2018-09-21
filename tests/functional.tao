@@ -6,6 +6,7 @@ function main() {
     filter();
     where();
     select();
+    groupBy();
 }
 
 function each() {
@@ -58,4 +59,20 @@ function select() {
 
     let s = a.select(x=>x.name);
     println(s);
+}
+
+function groupBy() {
+    let a = [
+        "one", "One", "ONE",
+        "two", "Two", "TWO",
+        "three", "Three", "THREE",
+    ];
+
+    let b = a.groupBy(x=>x.lower());
+
+    b.each(x=>{
+        println("group:", x.group);
+        println("array:", x);
+        println();
+    });
 }

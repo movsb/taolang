@@ -9,3 +9,12 @@
 [2,4,6,8]
 [{a:1,b:3},{a:3,b:1}]
 [Alice,Bob,Celery,David,Elle]
+group: one
+array: [one,One,ONE]
+
+group: two
+array: [two,Two,TWO]
+
+group: three
+array: [three,Three,THREE]
+
