@@ -1,9 +1,13 @@
 function main() {
-    tao println("taoroutine 1");
-    tao println("taoroutine 2");
-    tao println("taoroutine 3");
-    tao println("taoroutine 4");
-    tao function(s) {
-        println(s);
-    }("123");
+    let ch = newChannel(0);
+    tao function() {
+        for {
+            println(ch.read());
+        }
+    }();
+    ch.write(1);
+    ch.write(2);
+    ch.write(3);
+    ch.write(4);
+    ch.write(5);
 }

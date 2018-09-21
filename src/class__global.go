@@ -19,6 +19,7 @@ func NewGlobal() *Global {
 		"println":    ValueFromBuiltin(g, "println", _globalPrintln),
 		"setTimeout": ValueFromBuiltin(g, "setTimeout", _globalSetTimeout),
 		"newPromise": ValueFromBuiltin(g, "newPromise", _globalNewPromise),
+		"newChannel": ValueFromBuiltin(g, "newChannel", _globalNewChannel),
 		"httpGet":    ValueFromBuiltin(g, "httpGet", _globalHTTPGet),
 	}
 	return g
@@ -63,6 +64,10 @@ func _globalSetTimeout(this interface{}, ctx *Context, args *Values) Value {
 
 func _globalNewPromise(this interface{}, ctx *Context, args *Values) Value {
 	return ValueFromObject(NewPromise(args.At(0)))
+}
+
+func _globalNewChannel(this interface{}, ctx *Context, args *Values) Value {
+	return ValueFromObject(NewChannel(args.At(0)))
 }
 
 func _globalHTTPGet(this interface{}, ctx *Context, args *Values) Value {
