@@ -164,9 +164,7 @@ func (p *Parser) parseLetStatement() *LetStatement {
 
 func (p *Parser) parseFunctionStatement() *FunctionStatement {
 	var fn FunctionStatement
-	p.expect(ttFunction)
-	expr := p.parseFunctionExpression()
-	fn.expr = expr
+	fn.expr = p.parseFunctionExpression()
 	return &fn
 }
 
@@ -492,6 +490,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		}
 		expr = ValueFromVariable(next.str)
 	case ttFunction:
+		p.undo(next)
 		expr = p.parseFunctionExpression()
 	case ttLeftBrace:
 		p.undo(next)
@@ -604,9 +603,6 @@ func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
 		panic(NewSyntaxError("unexpected %v", key))
 	case ttLeftBracket:
 		keyExpr := p.parseExpression(ttQuestion)
-		if keyExpr == nil {
-			return nil
-		}
 		if bracket := p.next(); bracket.typ != ttRightBracket {
 			return nil
 		}
@@ -616,8 +612,8 @@ func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
 		}
 	default:
 		p.undo(token)
+		return nil
 	}
-	return nil
 }
 
 func (p *Parser) tryParseCallExpression(left Expression) Expression {
@@ -655,7 +651,9 @@ func (p *Parser) tryParseCallExpression(left Expression) Expression {
 func (p *Parser) parseFunctionExpression() *FunctionExpression {
 	var name string
 	var block *BlockStatement
-	params := &Parameters{}
+	var params Parameters
+
+	p.expect(ttFunction)
 
 	if p.follow(ttIdentifier) {
 		name = p.next().str
@@ -692,7 +690,7 @@ func (p *Parser) parseFunctionExpression() *FunctionExpression {
 
 	return &FunctionExpression{
 		name:   name,
-		params: params,
+		params: &params,
 		block:  block,
 	}
 }

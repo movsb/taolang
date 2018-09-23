@@ -21,7 +21,7 @@ type Context struct {
 }
 
 // NewContext news a context.
-// name: who this context is created for.
+// name: whom this context is created for.
 // parent: the parent scope or the parent closure chain.
 func NewContext(name string, parent *Context) *Context {
 	return &Context{
@@ -30,7 +30,7 @@ func NewContext(name string, parent *Context) *Context {
 	}
 }
 
-// FindSymbol finds a symbol from context chains.
+// FindSymbol finds a symbol from context chain.
 func (c *Context) FindSymbol(name string, outer bool) (Value, bool) {
 	for _, symbol := range c.symbols {
 		if symbol.Name == name {
@@ -60,6 +60,7 @@ func (c *Context) MustFind(name string, outer bool) Value {
 // FromGlobal finds a symbol from global.
 func (c *Context) FromGlobal(name string) (Value, bool) {
 	// This is the global context
+	// TODO use global directly
 	global := c.MustFind("global", false)
 	if !global.isObject() {
 		panic(NewTypeError("global is not an object"))
@@ -71,7 +72,7 @@ func (c *Context) FromGlobal(name string) (Value, bool) {
 	return Value{}, false
 }
 
-// AddSymbol adds a new value in current context.
+// AddSymbol adds a new symbol in current context.
 // If a symbol with given name does exist, It will panic.
 func (c *Context) AddSymbol(name string, value Value) {
 	if _, ok := c.FindSymbol(name, false); ok {
