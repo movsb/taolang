@@ -174,11 +174,13 @@ func init() {
 		"each":    _arrayEach,
 		"filter":  _arrayFilter,
 		"find":    _arrayFind,
+		"groupBy": _arrayGroupBy,
 		"join":    _arrayJoin,
 		"map":     _arrayMap,
 		"push":    _arrayPush,
 		"pop":     _arrayPop,
 		"reduce":  _arrayReduce,
+		"select":  _arraySelect,
 		"splice":  _arraySplice,
 		"unshift": _arrayUnshift,
 		"where":   _arrayWhere,
@@ -370,7 +372,7 @@ func _arrayFilter(this interface{}, ctx *Context, args *Values) Value {
 }
 
 // Where filters objects by column conditions.
-// save as Filter currently.
+// same as Filter currently.
 func _arrayWhere(this interface{}, ctx *Context, args *Values) Value {
 	o := this.(*Object)
 	values := make([]Value, 0, o.Len())
@@ -381,4 +383,39 @@ func _arrayWhere(this interface{}, ctx *Context, args *Values) Value {
 		return true
 	})
 	return ValueFromObject(NewArray(values...))
+}
+
+// Select selects fields as array.
+func _arraySelect(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
+	values := make([]Value, 0, o.Len())
+	o.Each(func(elem Value, index Value) bool {
+		value := _arrayCall(ctx, args.At(0), elem)
+		values = append(values, value)
+		return true
+	})
+	return ValueFromObject(NewArray(values...))
+}
+
+// GroupBy groups objects by property.
+func _arrayGroupBy(this interface{}, ctx *Context, args *Values) Value {
+	o := this.(*Object)
+	maps := make(map[Value][]Value)
+	keys := make([]Value, 0) // make map output ordered
+	o.Each(func(elem Value, index Value) bool {
+		key := _arrayCall(ctx, args.At(0), elem)
+		if _, ok := maps[key]; !ok {
+			keys = append(keys, key)
+		}
+		maps[key] = append(maps[key], elem)
+		return true
+	})
+	group := NewArray()
+	for _, key := range keys {
+		obj := NewArray()
+		obj.SetKey("group", key)
+		obj.elems = maps[key]
+		group.PushElem(ValueFromObject(obj))
+	}
+	return ValueFromObject(group)
 }

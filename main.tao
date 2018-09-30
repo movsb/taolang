@@ -1,5 +1,0 @@
-function main() {
-    setTimeout(() => {
-        println("111");
-    }, 300);
-}
