@@ -15,8 +15,8 @@ func NewChannel(bufSize Value) *Channel {
 	}
 }
 
-// Key implements KeyIndexer.
-func (c *Channel) Key(key string) Value {
+// GetKey implements KeyGetter.
+func (c *Channel) GetKey(key string) Value {
 	if fn, ok := _channelMethods[key]; ok {
 		return ValueFromBuiltin(c, key, fn)
 	}

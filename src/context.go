@@ -89,6 +89,11 @@ func (c *Context) AddObject(name string, obj KeyGetter) {
 	c.AddSymbol(name, ValueFromObject(obj))
 }
 
+// AddClass adds a callable into context.
+func (c *Context) AddClass(name string, ctor Constructable) {
+	c.AddSymbol(name, ValueFromClass(name, ctor))
+}
+
 // SetSymbol sets the value of a symbol.
 func (c *Context) SetSymbol(name string, value Value) {
 	for _, symbol := range c.symbols {

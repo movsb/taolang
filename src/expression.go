@@ -252,6 +252,24 @@ func (t *TernaryExpression) Evaluate(ctx *Context) Value {
 	return t.right.Evaluate(ctx)
 }
 
+// NewExpression is the `new Type()` expression.
+type NewExpression struct {
+	Type string
+	Args *Arguments
+}
+
+// Evaluate implements Expression.
+func (e *NewExpression) Evaluate(ctx *Context) Value {
+	ctorValue := ctx.MustFind(e.Type, true)
+	if !ctorValue.isConstructor() {
+		panic(NewSyntaxError("%s is not a constructor", e.Type))
+	}
+	ctor := ctorValue.constructor().Ctor
+	args := e.Args.EvaluateAll(ctx)
+	obj := ctor.Construct(ctx, &args)
+	return ValueFromObject(obj)
+}
+
 // AssignmentExpression is an assignment expression.
 // Notice: In tao, assignment is not actually an expression.
 type AssignmentExpression struct {
