@@ -341,3 +341,8 @@ func (v *Values) Shift() (rv Value) {
 	}
 	return Value{}
 }
+
+// Push pushes a value to the end.
+func (v *Values) Push(value Value) {
+	v.values = append(v.values, value)
+}

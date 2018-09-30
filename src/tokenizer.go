@@ -107,6 +107,7 @@ const (
 	ttLet
 	ttSwitch
 	ttReturn
+	ttTao
 )
 
 var keywords map[string]TokenType
@@ -126,6 +127,7 @@ func init() {
 		"nil":      ttNil,
 		"true":     ttBoolean,
 		"false":    ttBoolean,
+		"tao":      ttTao,
 	}
 }
 
