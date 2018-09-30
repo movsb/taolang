@@ -349,6 +349,8 @@ func (p *Parser) parseExpression(level TokenType) Expression {
 		p.next()
 		right := p.parseExpression(ttIncrement)
 		left = NewIncrementDecrementExpression(next.typ, true, right)
+	case ttNew:
+		return p.parseNewExpression()
 	default:
 		left = p.parsePrimaryExpression()
 	}
@@ -520,6 +522,31 @@ func (p *Parser) parsePrimaryExpression() Expression {
 	}
 
 	return expr
+}
+
+func (p *Parser) parseNewExpression() *NewExpression {
+	ne := &NewExpression{}
+	p.expect(ttNew)
+	ne.Type = p.expect(ttIdentifier).str
+	ne.Args = &Arguments{}
+	p.expect(ttLeftParen)
+	if !p.follow(ttRightParen) {
+		for {
+			arg := p.parseExpression(ttQuestion)
+			ne.Args.PutArgument(arg)
+			sep := p.next()
+			if sep.typ == ttComma {
+				continue
+			} else if sep.typ == ttRightParen {
+				p.undo(sep)
+				break
+			} else {
+				panic(NewSyntaxError("unexpected token: %v", sep))
+			}
+		}
+	}
+	p.expect(ttRightParen)
+	return ne
 }
 
 // tryParseLambdaExpression tries to parse a lambda expression.

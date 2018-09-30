@@ -1,5 +1,4 @@
 function main() {
-    setTimeout(() => {
-        println("111");
-    }, 300);
+    let t = new Timer(()=>println(main), 1000);
+    println(t);
 }

@@ -21,6 +21,24 @@ func NewTimer(ctx *Context, callback Value, timeout int) *Timer {
 	return &Timer{timer: t}
 }
 
+func _NewTimer(this interface{}, ctx *Context, args *Values) Value {
+	if args.Len() < 1 {
+		panic(NewTypeError("Timer: callback expected"))
+	} else if args.Len() < 2 {
+		panic(NewTypeError("Timer: timeout expected"))
+	}
+	var callback = args.Shift()
+	if !callback.isCallable() {
+		panic(NewTypeError("Timer: callback must be a callable"))
+	}
+	timeout := args.Shift()
+	if !timeout.isNumber() {
+		panic(NewTypeError("Timer: timeout must be a number"))
+	}
+	t := NewTimer(ctx, callback, timeout.number())
+	return ValueFromObject(t)
+}
+
 // Key implements KeyIndexer.
 func (t *Timer) Key(key string) Value {
 	if fn, ok := _timerMethods[key]; ok {

@@ -15,6 +15,8 @@ func (p *Program) Execute() (ret Value, err interface{}) {
 	globalContext := NewContext("--global--", nil)
 	globalContext.AddObject("global", globalObject)
 
+	globalContext.AddClass("Timer", &BuiltinConstructor{_NewTimer})
+
 	for _, stmt := range p.stmts {
 		stmt.Execute(globalContext)
 	}

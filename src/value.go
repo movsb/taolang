@@ -17,6 +17,7 @@ const (
 	vtObject
 	vtFunction
 	vtBuiltin
+	vtClass
 )
 
 var typeNames = map[ValueType]string{
@@ -28,6 +29,7 @@ var typeNames = map[ValueType]string{
 	vtObject:   "object",
 	vtFunction: "function",
 	vtBuiltin:  "builtin",
+	vtClass:    "class",
 }
 
 // Value holds a union(dynamic) value identified by Type.
@@ -107,6 +109,17 @@ func ValueFromBuiltin(this interface{}, name string, fn BuiltinFunction) Value {
 	}
 }
 
+// ValueFromClass creates a class type value.
+func ValueFromClass(name string, ctor Constructable) Value {
+	return Value{
+		Type: vtClass,
+		value: &Constructor{
+			Name: name,
+			Ctor: ctor,
+		},
+	}
+}
+
 func (v Value) isNil() bool {
 	return v.Type == vtNil
 }
@@ -137,6 +150,10 @@ func (v Value) isFunction() bool {
 
 func (v Value) isBuiltin() bool {
 	return v.Type == vtBuiltin
+}
+
+func (v Value) isConstructor() bool {
+	return v.Type == vtClass
 }
 
 func (v Value) isCallable() bool {
@@ -184,6 +201,11 @@ func (v Value) builtin() *Builtin {
 	return v.value.(*Builtin)
 }
 
+func (v Value) constructor() *Constructor {
+	v.checkType(vtClass)
+	return v.value.(*Constructor)
+}
+
 // callable returns a callable if value is callable.
 // Otherwise, it returns nil.
 func (v Value) callable() Callable {
@@ -208,6 +230,8 @@ func (v Value) Evaluate(ctx *Context) Value {
 		return v
 	case vtBuiltin:
 		return v
+	case vtClass:
+		panic(NewSyntaxError("%s is a constructor", v.constructor().Name))
 	default:
 		// TODO
 		panic(NewTypeError("cannot evaluate value on type"))
@@ -263,6 +287,8 @@ func (v Value) String() string {
 		return fmt.Sprintf("builtin(%s)", name)
 	case vtObject:
 		return reflect.TypeOf(v.value).Elem().Name()
+	case vtClass:
+		return fmt.Sprintf("class(%s)", v.constructor().Name)
 	}
 
 	return fmt.Sprintf("unknown value")
