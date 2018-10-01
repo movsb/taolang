@@ -400,21 +400,21 @@ func _arraySelect(this interface{}, ctx *Context, args *Values) Value {
 // GroupBy groups objects by property.
 func _arrayGroupBy(this interface{}, ctx *Context, args *Values) Value {
 	o := this.(*Object)
-	maps := make(map[Value][]Value)
+	maps := make(map[interface{}][]Value)
 	keys := make([]Value, 0) // make map output ordered
 	o.Each(func(elem Value, index Value) bool {
 		key := _arrayCall(ctx, args.At(0), elem)
-		if _, ok := maps[key]; !ok {
+		if _, ok := maps[key.CmpKey()]; !ok {
 			keys = append(keys, key)
 		}
-		maps[key] = append(maps[key], elem)
+		maps[key.CmpKey()] = append(maps[key.CmpKey()], elem)
 		return true
 	})
 	group := NewArray()
 	for _, key := range keys {
 		obj := NewArray()
 		obj.SetKey("group", key)
-		obj.elems = maps[key]
+		obj.elems = maps[key.CmpKey()]
 		group.PushElem(ValueFromObject(obj))
 	}
 	return ValueFromObject(group)

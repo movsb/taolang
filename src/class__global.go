@@ -39,8 +39,7 @@ func _globalPrint(this interface{}, ctx *Context, args *Values) Value {
 }
 
 func _globalPrintln(this interface{}, ctx *Context, args *Values) Value {
-	args.Push(ValueFromString("\n"))
-	_globalPrint(this, ctx, args)
+	fmt.Println(args.All()...)
 	return ValueFromNil()
 }
 

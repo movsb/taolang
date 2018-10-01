@@ -85,7 +85,10 @@ func NewNotCallableError(value Value) NotCallableError {
 }
 
 func (e NotCallableError) Error() string {
-	return fmt.Sprintf("NotCallableError: %v (type: %s) is not callable", e.value, e.value.TypeName())
+	return fmt.Sprintf(
+		"NotCallableError: %v (type: %s) is not callable",
+		e.value, e.value.TypeName(),
+	)
 }
 
 // NotIndexableError is
@@ -101,7 +104,10 @@ func NewNotIndexableError(value Value) NotIndexableError {
 }
 
 func (e NotIndexableError) Error() string {
-	return fmt.Sprintf("NotIndexableError: %v (type: %s) is not indexable", e.value, e.value.TypeName())
+	return fmt.Sprintf(
+		"NotIndexableError: %v (type: %s) is not indexable",
+		e.value, e.value.TypeName(),
+	)
 }
 
 // NotAssignableError is
@@ -117,7 +123,10 @@ func NewNotAssignableError(value Value) NotAssignableError {
 }
 
 func (e NotAssignableError) Error() string {
-	return fmt.Sprintf("NotAssignableError: %v (type: %s) is not assignable", e.value, e.value.TypeName())
+	return fmt.Sprintf(
+		"NotAssignableError: %v (type: %s) is not assignable",
+		e.value, e.value.TypeName(),
+	)
 }
 
 // KeyTypeError is

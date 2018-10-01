@@ -322,6 +322,29 @@ func (v Value) Truth(ctx *Context) bool {
 	panic(NewSyntaxError("unknown truth type"))
 }
 
+// CmpKey returns the key for equality comparison.
+func (v Value) CmpKey() interface{} {
+	switch v.Type {
+	case vtNil:
+		return nil
+	case vtNumber:
+		return v.number()
+	case vtString:
+		return v.str().s
+	case vtBoolean:
+		return v.boolean()
+	case vtFunction:
+		return v.function().fn
+	case vtBuiltin:
+		return v.builtin().fn
+	case vtVariable:
+		return v.variable()
+	case vtObject:
+		return v.object()
+	}
+	panic(NewSyntaxError("unknown comparer key"))
+}
+
 // Values is a collection of values.
 type Values struct {
 	values []Value
