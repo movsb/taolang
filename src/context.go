@@ -66,7 +66,7 @@ func (c *Context) FromGlobal(name string) (Value, bool) {
 		panic(NewTypeError("global is not an object"))
 	}
 	if obj, ok := global.object().(*Global); ok {
-		val, ok := obj.Object.props[name]
+		val, ok := obj.props[name]
 		return val, ok
 	}
 	return Value{}, false

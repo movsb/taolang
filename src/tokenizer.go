@@ -10,8 +10,6 @@ import (
 )
 
 // TokenType is the type of a token.
-// Operators are listed by precedence groups from lowest to highest.
-// ttAssign -> ttQuestion -> ttIncrement
 type TokenType uint
 
 const (
@@ -53,9 +51,9 @@ const (
 	ttQuestion
 
 	// Logical
-	ttNot
-	ttAndAnd
-	ttOrOr
+	ttLogicalNot
+	ttLogicalAnd
+	ttLogicalOr
 
 	// Bit
 	ttBitAnd
@@ -167,9 +165,9 @@ func init() {
 
 		ttQuestion: "?",
 
-		ttNot:    "!",
-		ttAndAnd: "&&",
-		ttOrOr:   "||",
+		ttLogicalNot: "!",
+		ttLogicalAnd: "&&",
+		ttLogicalOr:  "||",
 
 		ttBitAnd:    "&",
 		ttBitOr:     "|",
@@ -450,11 +448,11 @@ func (t *Tokenizer) next() (token Token) {
 				return Token{typ: ttLessThan}
 			}
 		case '!':
-			return t.iif('=', ttNotEqual, ttNot)
+			return t.iif('=', ttNotEqual, ttLogicalNot)
 		case '&':
 			switch c := t.read(); c {
 			case '&':
-				return Token{typ: ttAndAnd}
+				return Token{typ: ttLogicalAnd}
 			case '=':
 				return Token{typ: ttAndAssign}
 			case '^':
@@ -464,7 +462,7 @@ func (t *Tokenizer) next() (token Token) {
 				return Token{typ: ttBitAnd}
 			}
 		case '|':
-			return t.iiif('|', '=', ttOrOr, ttOrAssign, ttBitOr)
+			return t.iiif('|', '=', ttLogicalOr, ttOrAssign, ttBitOr)
 		case '^':
 			return t.iif('=', ttXorAssign, ttBitXor)
 		}
