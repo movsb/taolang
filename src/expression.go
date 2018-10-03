@@ -43,7 +43,7 @@ func (u *UnaryExpression) Evaluate(ctx *Context) Value {
 			panic(NewTypeError("-value is invalid"))
 		}
 		return ValueFromNumber(-value.number())
-	case ttNot:
+	case ttLogicalNot:
 		return ValueFromBoolean(!value.Truth(ctx))
 	case ttBitXor:
 		if value.Type != vtNumber {
@@ -119,7 +119,7 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 	lv, rv := Value{}, Value{}
 
 	// Logical values are evaluated "short-circuit"-ly.
-	if op != ttAndAnd && op != ttOrOr {
+	if op != ttLogicalAnd && op != ttLogicalOr {
 		lv = b.left.Evaluate(ctx)
 		rv = b.right.Evaluate(ctx)
 	}
@@ -194,17 +194,21 @@ func (b *BinaryExpression) Evaluate(ctx *Context) Value {
 		switch op {
 		case ttAddition:
 			return ValueFromString(lv.str().s + rv.str().s)
+		case ttEqual:
+			return ValueFromBoolean(lv.str().s == rv.str().s)
+		case ttNotEqual:
+			return ValueFromBoolean(lv.str().s != rv.str().s)
 		default:
 			panic(NewSyntaxError("not supported operator on two strings"))
 		}
 	}
 
-	if op == ttAndAnd {
+	if op == ttLogicalAnd {
 		return ValueFromBoolean(
 			b.left.Evaluate(ctx).Truth(ctx) &&
 				b.right.Evaluate(ctx).Truth(ctx),
 		)
-	} else if op == ttOrOr {
+	} else if op == ttLogicalOr {
 		lv = b.left.Evaluate(ctx)
 		if lv.Truth(ctx) {
 			return lv
@@ -304,9 +308,8 @@ type Parameters struct {
 
 // NewParameters news
 func NewParameters(names ...string) *Parameters {
-	p := &Parameters{}
-	for _, name := range names {
-		p.names = append(p.names, name)
+	p := &Parameters{
+		names: names,
 	}
 	return p
 }
@@ -314,14 +317,6 @@ func NewParameters(names ...string) *Parameters {
 // Len returns the count of parameters.
 func (p *Parameters) Len() int {
 	return len(p.names)
-}
-
-// GetAt gets n-th parameter.
-func (p *Parameters) GetAt(index int) string {
-	if index > len(p.names)-1 {
-		panic(NewRangeError("parameter index out of range"))
-	}
-	return p.names[index]
 }
 
 // PutParam adds a parameter.
@@ -361,7 +356,7 @@ func (e *EvaluatedFunctionExpression) Execute(ctx *Context, args *Values) Value 
 type FunctionExpression struct {
 	name   string
 	params *Parameters
-	block  *BlockStatement
+	body   *BlockStatement
 }
 
 // Evaluate is
@@ -378,7 +373,7 @@ func (f *FunctionExpression) Evaluate(ctx *Context) Value {
 // It implements Callable.
 func (f *FunctionExpression) Execute(ctx *Context, args *Values) Value {
 	f.params.BindArguments(ctx, args.values...)
-	f.block.Execute(ctx)
+	f.body.Execute(ctx)
 	if ctx.hasret {
 		return ctx.retval
 	}
@@ -476,24 +471,20 @@ func (i *IndexExpression) Assign(ctx *Context, val Value) {
 // CallExpression wraps a call.
 type CallExpression struct {
 	Callable Expression
-	Args     *Arguments
+	Args     Arguments
 }
 
 // NewCallExpression news a call expression.
-func NewCallExpression(callable Expression, args *Arguments) *CallExpression {
-	c := &CallExpression{
-		Callable: callable,
-		Args:     args,
-	}
-	if c.Args == nil {
-		c.Args = &Arguments{}
-	}
+func NewCallExpression(callable Expression, args ...Expression) *CallExpression {
+	c := &CallExpression{}
+	c.Callable = callable
+	c.Args.exprs = args
 	return c
 }
 
 // CallFunc calls user function.
 func CallFunc(ctx *Context, callable Expression, args ...Expression) Value {
-	c := NewCallExpression(callable, &Arguments{args})
+	c := NewCallExpression(callable, args...)
 	return c.Evaluate(ctx)
 }
 

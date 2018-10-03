@@ -8,7 +8,7 @@ import (
 
 // Global is the global object.
 type Global struct {
-	Object
+	props map[string]Value
 }
 
 // NewGlobal news the global object.

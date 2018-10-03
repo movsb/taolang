@@ -1,5 +1,89 @@
 package main
 
+// Precedence is operator precedence table.
+type Precedence uint
+
+const (
+	_ Precedence = iota
+
+	precAssignment
+	precConditional
+	precLogicalOr
+	precLogicalAnd
+
+	precBitwiseAnd,
+	precBitwiseOr,
+	precBitwiseXor,
+	precBitwiseAndNot = iota, iota, iota, iota
+
+	precEquality = iota
+	precComparison
+	precBitwiseShift
+	precAddition
+	precMultiplication
+	precExponentiation
+
+	precLogicalNot,
+	precBitwiseNot,
+	precUnaryPlus,
+	precUnaryNegation = iota, iota, iota, iota
+
+	precPrefixIncrement,
+	precPrefixDecrement = iota, iota
+
+	precPostfixIncrement,
+	precPostfixDecrement = iota, iota
+
+	precIndexing,
+	precNew,
+	precCall = iota, iota, iota
+
+	precHighest = iota
+)
+
+// Precedence table.
+// Assignment is not in here.
+//
+// Operators that can be either unary or binary:
+//   +, -, ^
+// These operators map to two precedence.
+//
+// Increment / Decrement can be either:
+// 		prefix: ++a
+// or:
+//		postfix: a--
+//
+var precedenceTable = map[TokenType]Precedence{
+	ttQuestion:           precConditional,
+	ttLogicalNot:         precLogicalNot,
+	ttLogicalOr:          precLogicalOr,
+	ttLogicalAnd:         precLogicalAnd,
+	ttBitAnd:             precBitwiseAnd,
+	ttBitOr:              precBitwiseOr,
+	ttBitXor:             precBitwiseXor,
+	ttBitAndNot:          precBitwiseAndNot,
+	ttEqual:              precEquality,
+	ttNotEqual:           precEquality,
+	ttGreaterThan:        precComparison,
+	ttGreaterThanOrEqual: precComparison,
+	ttLessThan:           precComparison,
+	ttLessThanOrEqual:    precComparison,
+	ttLeftShift:          precBitwiseShift,
+	ttRightShift:         precBitwiseShift,
+	ttAddition:           precAddition,
+	ttSubtraction:        precAddition,
+	ttMultiply:           precMultiplication,
+	ttDivision:           precMultiplication,
+	ttPercent:            precMultiplication,
+	ttStarStar:           precExponentiation,
+	ttIncrement:          precPrefixIncrement,
+	ttDecrement:          precPrefixDecrement,
+	ttLeftBracket:        precIndexing,
+	ttDot:                precIndexing,
+	ttNew:                precNew,
+	ttLeftParen:          precCall,
+}
+
 // Parser parses tokens into AbstractSyntaxTree.
 type Parser struct {
 	tokenizer *Tokenizer
@@ -63,10 +147,6 @@ func (p *Parser) match(tts ...TokenType) (Token, bool) {
 	return Token{}, false
 }
 
-func (p *Parser) isOp(t Token) bool {
-	return t.typ >= ttAssign && t.typ <= ttDecrement
-}
-
 func (p *Parser) next() Token {
 	return p.tokenizer.Next()
 }
@@ -97,6 +177,16 @@ func (p *Parser) enter() {
 
 func (p *Parser) leave(putback bool) {
 	p.tokenizer.PopFrame(putback)
+}
+
+func (p *Parser) getPrecedence(op TokenType) (prec Precedence, ok bool) {
+	if op >= ttAssign && op <= ttAndNotAssign {
+		return precAssignment, true
+	}
+	if prec, ok = precedenceTable[op]; ok {
+		return
+	}
+	return
 }
 
 func (p *Parser) parseStatement(global bool) Statement {
@@ -140,7 +230,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 	// At last, try to parse all another statements we've known.
 	//   - expr;                    expression statement
 	{
-		expr := p.parseExpression(ttAssign)
+		expr := p.parseExpression(precAssignment)
 		// it is an expression statement
 		if _, ok := p.match(ttSemicolon); ok {
 			return &ExpressionStatement{
@@ -158,7 +248,7 @@ func (p *Parser) parseLetStatement() *LetStatement {
 	l.Name = p.expect(ttIdentifier).str
 	if p.follow(ttAssign) {
 		p.next()
-		l.Expr = p.parseExpression(ttQuestion)
+		l.Expr = p.parseExpression(precConditional)
 	}
 	p.expect(ttSemicolon)
 	return &l
@@ -174,7 +264,7 @@ func (p *Parser) parseReturnStatement() *ReturnStatement {
 	p.expect(ttReturn)
 	ret := &ReturnStatement{}
 	if !p.follow(ttSemicolon) {
-		ret.expr = p.parseExpression(ttQuestion)
+		ret.expr = p.parseExpression(precConditional)
 	}
 	p.expect(ttSemicolon)
 	return ret
@@ -215,14 +305,14 @@ func (p *Parser) parseForStatement() *ForStatement {
 		hasInit = true
 		p.expect(ttSemicolon)
 	} else if !p.follow(ttLeftBrace) {
-		fs.test = p.parseExpression(ttQuestion)
+		fs.test = p.parseExpression(precConditional)
 		hasInit = false
 	}
 
 	if hasInit {
 		// test
 		if !p.follow(ttSemicolon) {
-			fs.test = p.parseExpression(ttQuestion)
+			fs.test = p.parseExpression(precConditional)
 			p.expect(ttSemicolon)
 		} else {
 			p.next()
@@ -230,7 +320,7 @@ func (p *Parser) parseForStatement() *ForStatement {
 		}
 		// incr
 		if !p.follow(ttLeftBrace) {
-			fs.incr = p.parseExpression(ttAssign)
+			fs.incr = p.parseExpression(precAssignment)
 		} else {
 			// no incr
 		}
@@ -260,7 +350,7 @@ func (p *Parser) parseBreakStatement() *BreakStatement {
 
 func (p *Parser) parseIfStatement() *IfStatement {
 	p.expect(ttIf)
-	expr := p.parseExpression(ttQuestion)
+	expr := p.parseExpression(precConditional)
 	ifBlock := p.parseBlockStatement()
 	var elseBlock Statement
 	switch p.peek().typ {
@@ -285,7 +375,7 @@ func (p *Parser) parseIfStatement() *IfStatement {
 func (p *Parser) parseSwitchStatement() *SwitchStatement {
 	p.expect(ttSwitch)
 	ss := SwitchStatement{}
-	ss.cond = p.parseExpression(ttQuestion)
+	ss.cond = p.parseExpression(precConditional)
 	p.expect(ttLeftBrace)
 	// empty cases
 	if p.follow(ttRightBrace) {
@@ -307,7 +397,7 @@ func (p *Parser) parseSwitchStatement() *SwitchStatement {
 			group = &CaseGroup{}
 			ss.cases = append(ss.cases, group)
 			for {
-				expr := p.parseExpression(ttQuestion)
+				expr := p.parseExpression(precConditional)
 				group.cases = append(group.cases, expr)
 				p.skip(ttComma)
 				if p.follow(ttColon) {
@@ -343,7 +433,7 @@ func (p *Parser) parseSwitchStatement() *SwitchStatement {
 func (p *Parser) parseTaoStatement() *TaoStatement {
 	p.expect(ttTao)
 	ts := TaoStatement{}
-	expr := p.parseExpression(ttQuestion)
+	expr := p.parseExpression(precConditional)
 	if _, ok := expr.(*CallExpression); !ok {
 		panic(NewSyntaxError("expression in tao must be function call"))
 	}
@@ -352,65 +442,94 @@ func (p *Parser) parseTaoStatement() *TaoStatement {
 	return &ts
 }
 
-func (p *Parser) parseExpression(level TokenType) Expression {
+func (p *Parser) parseExpression(prec Precedence) Expression {
 	var left Expression
-	switch next := p.peek(); next.typ {
-	case ttNot, ttBitXor, ttAddition, ttSubtraction:
-		p.next()
-		right := p.parseExpression(ttIncrement)
-		left = NewUnaryExpression(next.typ, right)
-	case ttIncrement, ttDecrement:
-		p.next()
-		right := p.parseExpression(ttIncrement)
-		left = NewIncrementDecrementExpression(next.typ, true, right)
-	case ttNew:
-		return p.parseNewExpression()
-	default:
+	peek := p.peek()
+	if prec <= precUnaryPlus {
+		switch peek.typ {
+		case ttLogicalNot, ttBitXor, ttAddition, ttSubtraction:
+			p.next()
+			right := p.parseExpression(precUnaryPlus)
+			left = NewUnaryExpression(peek.typ, right)
+		}
+	}
+	if prec <= precPrefixIncrement {
+		switch peek.typ {
+		case ttIncrement, ttDecrement:
+			p.next()
+			right := p.parseExpression(precPrefixIncrement)
+			left = NewIncrementDecrementExpression(peek.typ, true, right)
+		}
+	}
+	if prec <= precNew {
+		if peek.typ == ttNew {
+			left = p.parseNewExpression()
+		}
+	}
+	if left == nil {
 		left = p.parsePrimaryExpression()
 	}
 
 	for {
 		op := p.next()
-		if !p.isOp(op) || op.typ < level {
+
+		nextPrec, ok := p.getPrecedence(op.typ)
+		if !ok || nextPrec < prec {
 			p.undo(op)
 			break
 		}
 
 		if op.typ >= ttAssign && op.typ < ttQuestion {
+			// return: cannot use assignment as expression
 			return p.parseAssignmentExpression(left, op.typ)
 		}
 
 		switch op.typ {
 		case ttQuestion:
-			return p.parseTernaryExpression(left)
+			left = p.parseTernaryExpression(left)
+			continue
 		case ttIncrement, ttDecrement:
-			return NewIncrementDecrementExpression(op.typ, false, left)
+			left = NewIncrementDecrementExpression(op.typ, false, left)
+			continue
+		case ttLeftParen:
+			p.undo(op)
+			left = p.parseCallExpression(left)
+			continue
+		case ttLeftBracket, ttDot:
+			p.undo(op)
+			left = p.parseIndexExpression(left)
+			continue
 		}
 
 		var right Expression
 
 		switch op.typ {
-		case ttAndAnd, ttOrOr:
-			right = p.parseExpression(ttBitAnd)
+		case ttLogicalOr:
+			right = p.parseExpression(precLogicalAnd)
+		case ttLogicalAnd:
+			right = p.parseExpression(precBitwiseAnd)
 		case ttBitAnd, ttBitOr, ttBitXor, ttBitAndNot:
-			right = p.parseExpression(ttEqual)
+			right = p.parseExpression(precEquality)
 		case ttEqual, ttNotEqual:
-			right = p.parseExpression(ttGreaterThan)
+			right = p.parseExpression(precComparison)
 		case ttGreaterThan, ttGreaterThanOrEqual, ttLessThan, ttLessThanOrEqual:
-			right = p.parseExpression(ttLeftShift)
+			right = p.parseExpression(precBitwiseShift)
 		case ttLeftShift, ttRightShift:
-			right = p.parseExpression(ttAddition)
+			right = p.parseExpression(precAddition)
 		case ttAddition, ttSubtraction:
-			right = p.parseExpression(ttMultiply)
+			right = p.parseExpression(precMultiplication)
 		case ttMultiply, ttDivision, ttPercent:
-			right = p.parseExpression(ttStarStar)
+			right = p.parseExpression(precExponentiation)
 		case ttStarStar:
-			right = p.parseExpression(ttStarStar)
-		default:
-			panic(NewSyntaxError("unhandled operator: %v", op))
+			right = p.parseExpression(precIndexing)
 		}
 
-		left = NewBinaryExpression(left, op.typ, right)
+		if right != nil {
+			left = NewBinaryExpression(left, op.typ, right)
+			continue
+		}
+
+		panic(NewSyntaxError("unknown operator: %v", op))
 	}
 
 	return left
@@ -420,14 +539,14 @@ func (p *Parser) parseTernaryExpression(cond Expression) Expression {
 	var left, right Expression
 	// Although we don't allow nested ternary expression, we parse it, we panic it, later.
 	// left = p.parseLogicalExpression()
-	left = p.parseExpression(ttQuestion)
+	left = p.parseExpression(precConditional)
 	p.expect(ttColon)
-	right = p.parseExpression(ttQuestion)
+	right = p.parseExpression(precConditional)
 	if _, ok := left.(*TernaryExpression); ok {
-		panic(NewSyntaxError("nested ?: is not allowed"))
+		panic(NewSyntaxError("nested `?:' is not allowed"))
 	}
 	if _, ok := right.(*TernaryExpression); ok {
-		panic(NewSyntaxError("nested ?: is not allowed"))
+		panic(NewSyntaxError("nested `?:' is not allowed"))
 	}
 	return NewTernaryExpression(cond, left, right)
 }
@@ -437,7 +556,7 @@ func (p *Parser) parseAssignmentExpression(left Expression, op TokenType) Expres
 	ae.left = left
 
 	// ttQuestion: disable continuous assignment style
-	ae.right = p.parseExpression(ttQuestion)
+	ae.right = p.parseExpression(precConditional)
 
 	if op == ttAssign {
 		return &ae
@@ -480,9 +599,7 @@ func (p *Parser) parseAssignmentExpression(left Expression, op TokenType) Expres
 func (p *Parser) parsePrimaryExpression() Expression {
 	var expr Expression
 
-	next := p.next()
-
-	switch next.typ {
+	switch next := p.next(); next.typ {
 	case ttNil:
 		expr = ValueFromNil()
 	case ttBoolean:
@@ -497,7 +614,7 @@ func (p *Parser) parsePrimaryExpression() Expression {
 			return lambda
 		}
 		p.next()
-		expr = p.parseExpression(ttQuestion)
+		expr = p.parseExpression(precConditional)
 		p.expect(ttRightParen)
 	case ttIdentifier:
 		if p.follow(ttLambda) {
@@ -515,26 +632,8 @@ func (p *Parser) parsePrimaryExpression() Expression {
 		p.undo(next)
 		expr = p.parseArrayExpression()
 	default:
-		p.undo(next)
-		expr = nil
+		panic(NewSyntaxError("unexpected token: %v", next))
 	}
-
-	if expr == nil {
-		panic(NewSyntaxError("unknown expression at line: %d", next.line))
-	}
-
-	for {
-		if index := p.tryParseIndexExpression(expr); index != nil {
-			expr = index
-			continue
-		}
-		if call := p.tryParseCallExpression(expr); call != nil {
-			expr = call
-			continue
-		}
-		break
-	}
-
 	return expr
 }
 
@@ -546,7 +645,7 @@ func (p *Parser) parseNewExpression() *NewExpression {
 	p.expect(ttLeftParen)
 	if !p.follow(ttRightParen) {
 		for {
-			arg := p.parseExpression(ttQuestion)
+			arg := p.parseExpression(precConditional)
 			ne.Args.PutArgument(arg)
 			sep := p.next()
 			if sep.typ == ttComma {
@@ -613,25 +712,25 @@ func (p *Parser) tryParseLambdaExpression(must bool) (expr *FunctionExpression) 
 	p.leave(false)
 	p.next()
 
-	var block *BlockStatement
+	var body *BlockStatement
 
 	if p.follow(ttLeftBrace) {
-		block = p.parseBlockStatement()
+		body = p.parseBlockStatement()
 	} else {
-		expr := p.parseExpression(ttQuestion)
+		expr := p.parseExpression(precConditional)
 		ret := NewReturnStatement(expr)
-		block = NewBlockStatement(ret)
+		body = NewBlockStatement(ret)
 	}
 
 	// a lambda expression is just an anonymous function
 	return &FunctionExpression{
 		name:   "",
 		params: params,
-		block:  block,
+		body:   body,
 	}
 }
 
-func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
+func (p *Parser) parseIndexExpression(left Expression) (expr Expression) {
 	switch token := p.next(); token.typ {
 	case ttDot:
 		key := p.next()
@@ -641,9 +740,9 @@ func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
 				key:       ValueFromString(key.str),
 			}
 		}
-		panic(NewSyntaxError("unexpected %v", key))
+		panic(NewSyntaxError("unexpected token: %v", key))
 	case ttLeftBracket:
-		keyExpr := p.parseExpression(ttQuestion)
+		keyExpr := p.parseExpression(precConditional)
 		if bracket := p.next(); bracket.typ != ttRightBracket {
 			return nil
 		}
@@ -652,25 +751,20 @@ func (p *Parser) tryParseIndexExpression(left Expression) (expr Expression) {
 			key:       keyExpr,
 		}
 	default:
-		p.undo(token)
-		return nil
+		panic("won't go here")
 	}
 }
 
-func (p *Parser) tryParseCallExpression(left Expression) Expression {
-	if paren := p.next(); paren.typ != ttLeftParen {
-		p.undo(paren)
-		return nil
-	}
-
+func (p *Parser) parseCallExpression(left Expression) Expression {
 	call := CallExpression{
 		Callable: left,
-		Args:     &Arguments{},
 	}
+
+	p.expect(ttLeftParen)
 
 	if !p.follow(ttRightParen) {
 		for {
-			arg := p.parseExpression(ttQuestion)
+			arg := p.parseExpression(precConditional)
 			call.Args.PutArgument(arg)
 			sep := p.next()
 			if sep.typ == ttComma {
@@ -690,21 +784,20 @@ func (p *Parser) tryParseCallExpression(left Expression) Expression {
 }
 
 func (p *Parser) parseFunctionExpression() *FunctionExpression {
-	var name string
-	var block *BlockStatement
-	var params Parameters
+	var fn FunctionExpression
+	fn.params = &Parameters{}
 
 	p.expect(ttFunction)
 
 	if p.follow(ttIdentifier) {
-		name = p.next().str
+		fn.name = p.next().str
 	}
 
 	p.expect(ttLeftParen)
 	if !p.follow(ttRightParen) {
 		for {
 			name := p.expect(ttIdentifier).str
-			params.PutParam(name)
+			fn.params.PutParam(name)
 			sep := p.next()
 			if sep.typ == ttComma {
 				continue
@@ -725,15 +818,11 @@ func (p *Parser) parseFunctionExpression() *FunctionExpression {
 	saveBreakCount := p.breakCount
 	p.breakCount = 0
 
-	block = p.parseBlockStatement()
+	fn.body = p.parseBlockStatement()
 
 	p.breakCount = saveBreakCount
 
-	return &FunctionExpression{
-		name:   name,
-		params: &params,
-		block:  block,
-	}
+	return &fn
 }
 
 func (p *Parser) parseObjectExpression() Expression {
@@ -760,7 +849,7 @@ func (p *Parser) parseObjectExpression() Expression {
 
 		p.expect(ttColon)
 
-		expr = p.parseExpression(ttQuestion)
+		expr = p.parseExpression(precConditional)
 		objexpr.props[key] = expr
 
 		// allow last comma
@@ -785,7 +874,7 @@ func (p *Parser) parseArrayExpression() Expression {
 			break
 		}
 
-		elem := p.parseExpression(ttQuestion)
+		elem := p.parseExpression(precConditional)
 		arrExpr.elements = append(arrExpr.elements, elem)
 		// allow last comma
 		p.skip(ttComma)
