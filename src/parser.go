@@ -237,6 +237,7 @@ func (p *Parser) parseStatement(global bool) Statement {
 				expr: expr,
 			}
 		}
+		p.expect(ttSemicolon)
 	}
 
 	panic(NewSyntaxError("unknown statement at line: %d", tk.line))

@@ -6,7 +6,6 @@ import (
 	"container/list"
 	"fmt"
 	"io"
-	"os"
 )
 
 // TokenType is the type of a token.
@@ -272,10 +271,6 @@ func (t *Tokenizer) Next() (token Token) {
 			frame := t.frames[len(t.frames)-1]
 			frame.PushBack(token)
 		}
-		if except := recover(); except != nil {
-			fmt.Printf("%v\n", except)
-			os.Exit(-1)
-		}
 	}()
 
 	// use inner buffer
@@ -540,6 +535,8 @@ func (t *Tokenizer) readString() string {
 		ch := t.read()
 		if ch == '"' {
 			break
+		} else if ch == 0 {
+			panic(NewSyntaxError("unterminated string literal at: line %d, col %d", t.line, t.col))
 		}
 		buf.WriteByte(ch)
 	}
