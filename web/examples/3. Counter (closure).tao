@@ -9,8 +9,8 @@ function createCounter() {
 function main() {
     let c1 = createCounter();
     let c2 = createCounter();
-    println(c1()); // 1
-    println(c1()); // 2
-    println(c2()); // 1
-    println(c2()); // 2
+    println(c1());
+    println(c1());
+    println(c2());
+    println(c2());
 }

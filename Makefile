@@ -4,9 +4,17 @@ nothing:
 tao: ./bin/tao
 	@cd src && go build -o ../bin/tao
 
-.PHONY: test
-test: tao
+.PHONY: web
+web:
+	@cd web/src && go build -o ../../bin/web
+
+.PHONY: tests
+tests: tao
 	@cd tests && ../tools/run_test.sh
+
+.PHONY: examples
+examples: tao
+	@cd web/examples && ../../tools/run_test.sh
 
 .PHONY: main
 main: tao
@@ -15,7 +23,3 @@ main: tao
 .PHONY: wait
 wait: tao
 	@./bin/tao --wait main.tao
-
-.PHONY: web
-web:
-	@cd web/src && go build -o ../../bin/web

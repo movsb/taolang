@@ -1,5 +1,7 @@
 #!/bin/bash
 
+root="$(dirname "$0")/.."
+
 for name in *.tao; do
-    ../bin/tao < "$name" | diff -q - "${name%%.*}.out"
+    "$root"/bin/tao < "$name" | diff -q - "${name%.*}.out"
 done

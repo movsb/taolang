@@ -1,0 +1,11 @@
+nil nil true 123 str function(<anonymous>) teststr [1,2,3,true,str,[111,222,333]]
+{a:nil,b:1,c:cc,d:true,e:function(<anonymous>),f:{xxx:this is xxx},g:function(<anonymous>),h:function(<anonymous>)}
+nil
+1
+cc
+true
+function(<anonymous>)
+this is xxx
+what
+who?
+nil

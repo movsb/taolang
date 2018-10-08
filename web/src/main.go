@@ -56,7 +56,10 @@ func main() {
 		}
 		names := make([]string, 0, len(files))
 		for _, file := range files {
-			names = append(names, file.Name())
+			ext := filepath.Ext(file.Name())
+			if ext == ".tao" {
+				names = append(names, file.Name())
+			}
 		}
 		c.JSON(http.StatusOK, names)
 	})
