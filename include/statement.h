@@ -1,5 +1,10 @@
 #pragma once
 
+#include <string>
+#include <vector>
+
+#include "expression.h"
+
 namespace taolang {
 
 class Context;
@@ -41,6 +46,8 @@ public:
     LetStatement()
         : BaseStatement(StmtType::Let)
     {}
+    std::string name;
+    BaseExpression* expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -49,6 +56,7 @@ public:
     FunctionStatement()
         : BaseStatement(StmtType::Function)
     {}
+    BaseExpression* expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -57,6 +65,7 @@ public:
     ReturnStatement()
         : BaseStatement(StmtType::Return)
     {}
+    BaseExpression* expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -65,6 +74,7 @@ public:
     BlockStatement()
         : BaseStatement(StmtType::Block)
     {}
+    std::vector<BaseStatement*> stmts;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -81,6 +91,11 @@ public:
     ForStatement()
         : BaseStatement(StmtType::For)
     {}
+    BaseStatement* init;
+    BaseExpression* test;
+    void* incr;
+    bool isExprOrStmt;
+    BlockStatement* block;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -97,6 +112,9 @@ public:
     IfStatement()
         : BaseStatement(StmtType::If)
     {}
+    BaseExpression* cond;
+    BlockStatement* ifBlock;
+    BaseStatement* elseBlock;
     virtual void Execute(Context* ctx) override;
 };
 

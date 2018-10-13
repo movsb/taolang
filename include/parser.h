@@ -53,8 +53,8 @@ public:
 
 protected:
     Token _expect(TokenType tt);
-    template<typename ...T>
-    Token _match(T&& ...args);
+    template<typename... Args>
+    Token _match(Args... args);
     Token _next();
     void _undo(Token tk);
     bool _skip(TokenType tt);

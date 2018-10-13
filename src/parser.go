@@ -334,9 +334,6 @@ func (p *Parser) parseForStatement() *ForStatement {
 	p.breakCount++
 
 	fs.block = p.parseBlockStatement()
-	if fs.block == nil {
-		panic(NewSyntaxError("for needs body"))
-	}
 
 	p.breakCount--
 
