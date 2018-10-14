@@ -20,13 +20,12 @@ enum class ExprType {
     Array,
 };
 
-class BaseExpression {
+class BaseExpression : public IExpression {
 public:
     BaseExpression(ExprType type)
         : type(type)
     {}
     ExprType type;
-    virtual Value* Evaluate(Context* ctx) = 0;
     virtual void Assign(Value* value) {
         throw NotAssignableError();
     }
@@ -58,6 +57,9 @@ public:
     BinaryExpression()
         : BaseExpression(ExprType::Binary)
     {}
+    BaseExpression* left;
+    TokenType op;
+    BaseExpression* right;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -66,6 +68,9 @@ public:
     TernaryExpression()
         : BaseExpression(ExprType::Ternary)
     {}
+    BaseExpression* cond;
+    BaseExpression* left;
+    BaseExpression* right;
     virtual Value* Evaluate(Context* ctx) override;
 };
 

@@ -31,8 +31,22 @@ class FunctionExpression;
 class Builtin;
 class Constructor;
 class KeyGetter;
+class Values;
 
-class Value {
+struct IExpression {
+    virtual Value* Evaluate(Context* ctx) = 0;
+    virtual void Assign(Context* ctx, Value* value) = 0;
+};
+
+struct ICallable {
+    virtual void Execute(Context* ctx, Values* args) = 0;
+};
+
+struct IString {
+    virtual void String() = 0;
+};
+
+class Value : public IExpression {
 public:
     ValueType::Value type;
     union {
@@ -41,7 +55,7 @@ public:
         String str;
         String var;
         KeyGetter* obj;
-        FunctionExpression* func;
+        EvaluatedFunctionExpression* func;
         Builtin* bi;
         Constructor* ctor;
     };
@@ -116,7 +130,7 @@ public:
     }
     void checkType(ValueType::Value type) {
         if(this->type != type) {
-            throw std::exception("wrong use");
+            throw Exception("wrong use");
         }
     }
 
@@ -141,6 +155,34 @@ public:
         checkType(ValueType::Object);
         return obj;
     }
+    EvaluatedFunctionExpression* function() {
+        checkType(ValueType::Function);
+        return func;
+    }
+    Builtin* builtin() {
+        checkType(ValueType::Builtin);
+        return bi;
+    }
+    Constructor* constructor() {
+        checkType(ValueType::Class);
+        return ctor;
+    }
+    ICallable* callable() {
+        // TODO
+        throw NotCallableError();
+    }
+
+public:
+    virtual Value* Evaluate(Context* ctx) override;
+    virtual void Assign(Context* ctx, Value* value) override;
+
+public:
+    std::string TypeName() {
+        return typeNames[type];
+    }
+
+    std::string String();
+    bool truth(Context* ctx);
 };
 
 }

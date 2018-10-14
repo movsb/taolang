@@ -18,6 +18,10 @@ namespace taolang {
     } while((0))
 
 struct Exception : public std::exception {
+    Exception(){}
+    Exception(const std::string& what)
+        : _what(what)
+    {}
     std::string _what;
     virtual const char* what() const throw() override {
         return _what.c_str();
