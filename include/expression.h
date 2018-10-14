@@ -27,6 +27,9 @@ public:
     {}
     ExprType type;
     virtual Value* Evaluate(Context* ctx) = 0;
+    virtual void Assign(Value* value) {
+        throw NotAssignableError();
+    }
 };
 
 class UnaryExpression : public BaseExpression {
@@ -34,6 +37,8 @@ public:
     UnaryExpression()
         : BaseExpression(ExprType::Unary)
     {}
+    TokenType op;
+    BaseExpression* expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -42,6 +47,9 @@ public:
     IncrementExpression()
         : BaseExpression(ExprType::Increment)
     {}
+    bool prefix;
+    TokenType op;
+    BaseExpression* expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
