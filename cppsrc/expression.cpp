@@ -26,6 +26,8 @@ Value* UnaryExpression::Evaluate(Context* ctx) {
             throw TypeError("^value is invalid");
         }
         return Value::fromNumber(~value->number());
+    default:
+        break;
     }
     throw SyntaxError("unknown unary operator: %s", tokenNames[op]);
 }
@@ -42,7 +44,7 @@ Value* IncrementExpression::Evaluate(Context* ctx) {
             newnum = oldval->number() - 1;
             break;
         default:
-            throw Exception();
+            throw Error();
         }
         auto newval = Value::fromNumber(newnum);
         expr->Assign(newval);
@@ -66,6 +68,8 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
             return Value::fromBoolean(true);
         case ttNotEqual:
             return Value::fromBoolean(false);
+        default:
+            break;
         }
     }
 
@@ -75,6 +79,8 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
             return Value::fromBoolean(lv->boolean() == rv->boolean());
         case ttNotEqual:
             return Value::fromBoolean(lv->boolean() != rv->boolean());
+        default:
+            break;
         }
     }
 
@@ -121,6 +127,8 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
             return Value::fromNumber(lv->number() ^ rv->number());
         case ttBitAndNot:
             return Value::fromNumber(lv->number() &~ rv->number());
+        default:
+            break;
         }
     }
 

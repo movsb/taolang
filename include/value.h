@@ -4,6 +4,8 @@
 #include <map>
 #include <exception>
 
+#include "error.h"
+
 namespace taolang {
 
 struct ValueType {
@@ -28,10 +30,13 @@ struct String {
 extern std::map<ValueType::Value, std::string> typeNames;
 
 class FunctionExpression;
+class EvaluatedFunctionExpression;
 class Builtin;
 class Constructor;
 class KeyGetter;
+class Value;
 class Values;
+class Context;
 
 struct IExpression {
     virtual Value* Evaluate(Context* ctx) = 0;
@@ -130,7 +135,7 @@ public:
     }
     void checkType(ValueType::Value type) {
         if(this->type != type) {
-            throw Exception("wrong use");
+            throw Error("wrong use");
         }
     }
 

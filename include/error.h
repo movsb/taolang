@@ -17,9 +17,9 @@ namespace taolang {
         _what = _buf;   \
     } while((0))
 
-struct Exception : public std::exception {
-    Exception(){}
-    Exception(const std::string& what)
+struct Error : public std::exception {
+    Error(){}
+    Error(const std::string& what)
         : _what(what)
     {}
     std::string _what;
@@ -28,49 +28,49 @@ struct Exception : public std::exception {
     }
 };
 
-struct SyntaxError : public Exception {
+struct SyntaxError : public Error {
     SyntaxError(const char* format, ...) {
         __fmt_args();
     }
 };
 
-struct NameError : public Exception {
+struct NameError : public Error {
     NameError(const char* format, ...) {
         __fmt_args();
     }
 };
 
-struct TypeError : public Exception {
+struct TypeError : public Error {
     TypeError(const char* format, ...) {
         __fmt_args();
     }
 };
 
-struct NotCallableError : public Exception {
+struct NotCallableError : public Error {
     NotCallableError() {
 
     }
 };
 
-struct NotIndexableError : public Exception {
+struct NotIndexableError : public Error {
     NotIndexableError() {
 
     }
 };
 
-struct NotAssignableError : public Exception {
+struct NotAssignableError : public Error {
     NotAssignableError() {
 
     }
 };
 
-struct RangeError : public Exception {
+struct RangeError : public Error {
     RangeError() {
 
     }
 };
 
-struct KeyTypeError : public Exception {
+struct KeyTypeError : public Error {
     KeyTypeError() {
 
     }

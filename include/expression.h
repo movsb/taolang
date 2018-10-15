@@ -1,7 +1,9 @@
 #pragma once
 
+#include "error.h"
 #include "context.h"
 #include "value.h"
+#include "tokenizer.h"
 
 namespace taolang {
 

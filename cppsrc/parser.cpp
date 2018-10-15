@@ -83,10 +83,10 @@ BaseStatement* Parser::_parseStatement(bool global) {
 LetStatement* Parser::_parseLetStatement() {
     auto let = new LetStatement();
     _expect(ttLet);
-    let->name = _expect(ttIdentifier).str;
+    let->_name = _expect(ttIdentifier).str;
     if(_follow(ttAssign)) {
         _next();
-        let->expr = _parseExpression(Precedence::Conditional);
+        let->_expr = _parseExpression(Precedence::Conditional);
     }
     _expect(ttSemicolon);
     return let;
@@ -95,7 +95,7 @@ LetStatement* Parser::_parseLetStatement() {
 // done
 FunctionStatement* Parser::_parseFunctionStatement() {
     auto fn = new FunctionStatement();
-    fn->expr = _parseFunctionExpression();
+    fn->_expr = _parseFunctionExpression();
     return fn;
 }
 
@@ -104,7 +104,7 @@ ReturnStatement* Parser::_parseReturnStatememt() {
     auto rtn = new ReturnStatement();
     _expect(ttReturn);
     if(!_follow(ttSemicolon)) {
-        rtn->expr = _parseExpression(Precedence::Conditional);
+        rtn->_expr = _parseExpression(Precedence::Conditional);
     }
     _expect(ttSemicolon);
     return rtn;
@@ -119,7 +119,7 @@ BlockStatement* Parser::_parseBlockStatement() {
             break;
         }
         auto stmt = _parseStatement(false);
-        block->stmts.push_back(stmt);
+        block->_stmts.push_back(stmt);
     }
     _expect(ttRightBrace);
     return block;
@@ -134,26 +134,26 @@ ForStatement* Parser::_parseForStatement() {
 
     if(_follow(ttLet)) {
         hasInit = true;
-        fs->init = _parseLetStatement();
+        fs->_init = _parseLetStatement();
     } else if(_follow(ttSemicolon)) {
         hasInit = true;
         _expect(ttSemicolon);
     } else if(!_follow(ttLeftBrace)) {
         hasInit = false;
-        fs->test = _parseExpression(Precedence::Conditional);
+        fs->_test = _parseExpression(Precedence::Conditional);
     }
 
     if(hasInit) {
         // test
         if(!_follow(ttSemicolon)) {
-            fs->test = _parseExpression(Precedence::Conditional);
+            fs->_test = _parseExpression(Precedence::Conditional);
             _expect(ttSemicolon);
         } else {
             _next();
         }
         // incr
         if(!_follow(ttLeftBrace)) {
-            fs->incr = _parseExpression(Precedence::Assignment);
+            fs->_incr = _parseExpression(Precedence::Assignment);
         }
     } else {
         if(!_follow(ttLeftBrace)) {
@@ -163,7 +163,7 @@ ForStatement* Parser::_parseForStatement() {
 
     _breakCount++;
 
-    fs->block = _parseBlockStatement();
+    fs->_block = _parseBlockStatement();
     
     _breakCount--;
 
@@ -181,16 +181,16 @@ BreakStatement* Parser::_parseBreakStatement() {
 IfStatement* Parser::_parseIfStatement() {
     auto stmt = new IfStatement();
     _expect(ttIf);
-    stmt->cond = _parseExpression(Precedence::Conditional);
-    stmt->ifBlock = _parseBlockStatement();
+    stmt->_cond = _parseExpression(Precedence::Conditional);
+    stmt->_ifBlock = _parseBlockStatement();
     if(_follow(ttElse)) {
         _next();
         switch(_peek().type) {
         case ttIf:
-            stmt->elseBlock = _parseIfStatement();
+            stmt->_elseBlock = _parseIfStatement();
             break;
         case ttLeftBrace:
-            stmt->elseBlock = _parseBlockStatement();
+            stmt->_elseBlock = _parseBlockStatement();
             break;
         default:
             throw SyntaxError("else expect if or block to follow");

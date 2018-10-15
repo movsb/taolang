@@ -36,9 +36,7 @@ public:
     EmptyStatement()
         : BaseStatement(StmtType::Empty)
     {}
-    virtual void Execute(Context* ctx) override {
-
-    }
+    virtual void Execute(Context* ctx) override;
 };
 
 class LetStatement : public BaseStatement {
@@ -46,8 +44,8 @@ public:
     LetStatement()
         : BaseStatement(StmtType::Let)
     {}
-    std::string name;
-    BaseExpression* expr;
+    std::string _name;
+    BaseExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -56,7 +54,7 @@ public:
     FunctionStatement()
         : BaseStatement(StmtType::Function)
     {}
-    BaseExpression* expr;
+    BaseExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -65,7 +63,7 @@ public:
     ReturnStatement()
         : BaseStatement(StmtType::Return)
     {}
-    BaseExpression* expr;
+    BaseExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -74,7 +72,7 @@ public:
     BlockStatement()
         : BaseStatement(StmtType::Block)
     {}
-    std::vector<BaseStatement*> stmts;
+    std::vector<BaseStatement*> _stmts;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -83,6 +81,7 @@ public:
     ExpressionStatement()
         : BaseStatement(StmtType::Expression)
     {}
+    BaseExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -91,11 +90,10 @@ public:
     ForStatement()
         : BaseStatement(StmtType::For)
     {}
-    BaseStatement* init;
-    BaseExpression* test;
-    void* incr;
-    bool isExprOrStmt;
-    BlockStatement* block;
+    BaseStatement* _init;
+    BaseExpression* _test;
+    BaseExpression* _incr;
+    BlockStatement* _block;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -112,9 +110,9 @@ public:
     IfStatement()
         : BaseStatement(StmtType::If)
     {}
-    BaseExpression* cond;
-    BlockStatement* ifBlock;
-    BaseStatement* elseBlock;
+    BaseExpression* _cond;
+    BlockStatement* _ifBlock;
+    BaseStatement* _elseBlock;
     virtual void Execute(Context* ctx) override;
 };
 
