@@ -14,6 +14,13 @@ struct Symbol {
 
 class Context {
 public:
+    Context(Context* parent)
+        : _parent(parent)
+        , _broke(false)
+        , _hasRet(false)
+        , _retVal(Value{})
+    {}
+public:
     Value* FindSymbol(const std::string& name, bool outer);
     Value* MustFind(const std::string& name, bool outer);
     Value* FromGlobal(const std::string& name);

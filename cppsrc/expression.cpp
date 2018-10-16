@@ -7,8 +7,8 @@ namespace taolang {
 
 // done
 Value* UnaryExpression::Evaluate(Context* ctx) {
-    auto value = expr->Evaluate(ctx);
-    switch(op) {
+    auto value = _expr->Evaluate(ctx);
+    switch(_op) {
     case ttLogicalNot:
         return Value::fromBoolean(!value->truth(ctx));
     case ttAddition:
@@ -29,14 +29,14 @@ Value* UnaryExpression::Evaluate(Context* ctx) {
     default:
         break;
     }
-    throw SyntaxError("unknown unary operator: %s", tokenNames[op]);
+    throw SyntaxError("unknown unary operator: %s", tokenNames[_op]);
 }
 
 Value* IncrementExpression::Evaluate(Context* ctx) {
-    auto oldval = expr->Evaluate(ctx);
+    auto oldval = _expr->Evaluate(ctx);
     if(oldval->isNumber()) {
         auto newnum = int64_t(0);
-        switch(op) {
+        switch(_op) {
         case ttIncrement:
             newnum = oldval->number() + 1;
             break;
@@ -47,23 +47,23 @@ Value* IncrementExpression::Evaluate(Context* ctx) {
             throw Error();
         }
         auto newval = Value::fromNumber(newnum);
-        expr->Assign(newval);
-        return prefix ? newval : oldval;
+        _expr->Assign(ctx, newval);
+        return _prefix ? newval : oldval;
     }
     throw NotAssignableError();
 }
 
 Value* BinaryExpression::Evaluate(Context* ctx) {
     Value *lv, *rv;
-    if(op != ttLogicalAnd && op != ttLogicalOr){
-        lv = left->Evaluate(ctx);
-        rv = right->Evaluate(ctx);
+    if(_op != ttLogicalAnd && _op != ttLogicalOr){
+        lv = _left->Evaluate(ctx);
+        rv = _right->Evaluate(ctx);
     }
 
     auto lt=lv->type, rt = rv->type;
 
     if(lt == ValueType::Nil && rt == ValueType::Nil) {
-        switch(op) {
+        switch(_op) {
         case ttEqual:
             return Value::fromBoolean(true);
         case ttNotEqual:
@@ -74,7 +74,7 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
     }
 
     if(lt == ValueType::Boolean && rt == ValueType::Boolean) {
-        switch(op) {
+        switch(_op) {
         case ttEqual:
             return Value::fromBoolean(lv->boolean() == rv->boolean());
         case ttNotEqual:
@@ -85,7 +85,7 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
     }
 
     if(lt == ValueType::Number && rt == ValueType::Number){
-        switch(op){
+        switch(_op){
         case ttAddition:
             return Value::fromNumber(lv->number() + rv->number());
         case ttSubtraction:
@@ -133,7 +133,7 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
     }
 
     if(lt == ValueType::String && rt == ValueType::String){
-        switch(op) {
+        switch(_op) {
         case ttAddition:
             return Value::fromString(lv->str.p + rv->str.p);
         case ttEqual:
@@ -145,17 +145,17 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
         }
     }
 
-    if(op == ttLogicalAnd) {
+    if(_op == ttLogicalAnd) {
         return Value::fromBoolean(
-            left->Evaluate(ctx)->truth(ctx) &&
-                right->Evaluate(ctx)->truth(ctx)
+            _left->Evaluate(ctx)->truth(ctx) &&
+                _right->Evaluate(ctx)->truth(ctx)
         );
-    } else if(op == ttLogicalOr) {
-        lv = left->Evaluate(ctx);
+    } else if(_op == ttLogicalOr) {
+        lv = _left->Evaluate(ctx);
         if(lv->truth(ctx)) {
             return lv;
         }
-        return right->Evaluate(ctx);
+        return _right->Evaluate(ctx);
     }
 
     // TODO

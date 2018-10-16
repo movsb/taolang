@@ -1,5 +1,6 @@
 #include "parser.h"
 #include "error.h"
+#include "expression.h"
 
 namespace taolang {
 
@@ -197,6 +198,135 @@ IfStatement* Parser::_parseIfStatement() {
         }
     }
     return stmt;
+}
+
+BaseExpression* Parser::_parseExpression(Precedence prec) {
+    BaseExpression* left = nullptr;
+    auto peek = _peek();
+    if(prec <= Precedence::UnaryPlus) {
+        switch(peek.type) {
+        case ttLogicalNot:
+        case ttBitXor:
+        case ttAddition:
+        case ttSubtraction: {
+            _next();
+            auto right = _parseExpression(Precedence::UnaryPlus);
+            left = new UnaryExpression(peek.type, right);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    if(prec <= Precedence::PrefixIncrement) {
+        switch(peek.type) {
+        case ttIncrement:
+        case ttDecrement: {
+            _next();
+            auto right = _parseExpression(Precedence::PrefixIncrement);
+            left = new IncrementExpression(peek.type, true, right);
+            break;
+        }
+        default:
+            break;
+        }
+    }
+    if(prec <= Precedence::New) {
+        if(peek.type == ttNew) {
+            left = _parseNewExpression();
+        }
+    }
+    if(left == nullptr) {
+        left = _parsePrimaryExpression();
+    }
+
+    while((1)) {
+        auto op = _next();
+        auto nextPrec = _getPrecedence(op.type);
+        if(nextPrec == Precedence(0) || nextPrec < prec) {
+            _undo(op);
+            break;
+        }
+
+        if(op.type >= ttAssign && op.type < ttQuestion) {
+            return _parseAssignmentExpression(left, op.type);
+        }
+
+        switch(op.type) {
+        case ttQuestion:
+            left = _parseTernaryExpression(left);
+            continue;
+        case ttIncrement:
+        case ttDecrement:
+            left = new IncrementExpression(op.type, false, left);
+            continue;
+        case ttLeftParen:
+            _undo(op);
+            left = _parseCallExpression(left);
+            continue;
+        case ttLeftBracket:
+        case ttDot:
+            _undo(op);
+            left = _parseIndexExpression(left);
+            continue;
+        default:
+            break;
+        }
+
+        BaseExpression* right = nullptr;
+
+        switch(op.type) {
+        case ttLogicalOr:
+            right = _parseExpression(Precedence::LogicalAnd);
+            break;
+        case ttLogicalAnd:
+            right = _parseExpression(Precedence::BitwiseAnd);
+            break;
+        case ttBitAnd:
+        case ttBitOr:
+        case ttBitXor:
+        case ttBitAndNot:
+            right = _parseExpression(Precedence::Equality);
+            break;
+        case ttEqual:
+        case ttNotEqual:
+            right = _parseExpression(Precedence::Comparison);
+            break;
+        case ttGreaterThan:
+        case ttGreaterThanOrEqual:
+        case ttLessThan:
+        case ttLessThanOrEqual:
+            right = _parseExpression(Precedence::BitwiseShift);
+            break;
+        case ttLeftShift:
+        case ttRightShift:
+            right = _parseExpression(Precedence::Addition);
+            break;
+        case ttAddition:
+        case ttSubtraction:
+            right = _parseExpression(Precedence::Multiplication);
+            break;
+        case ttMultiply:
+        case ttDivision:
+        case ttPercent:
+            right = _parseExpression(Precedence::Exponentiation);
+            break;
+        case ttStarStar:
+            right = _parseExpression(Precedence::Indexing);
+            break;
+        default:
+            break;
+        }
+
+        if(right != nullptr) {
+            left = new BinaryExpression(left, op.type, right);
+            continue;
+        }
+
+        throw SyntaxError("unknown operator");
+    }
+
+    return left;
 }
 
 }

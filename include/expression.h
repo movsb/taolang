@@ -28,7 +28,7 @@ public:
         : type(type)
     {}
     ExprType type;
-    virtual void Assign(Value* value) {
+    virtual void Assign(Context* ctx, Value* value) override {
         throw NotAssignableError();
     }
 };
@@ -38,8 +38,13 @@ public:
     UnaryExpression()
         : BaseExpression(ExprType::Unary)
     {}
-    TokenType op;
-    BaseExpression* expr;
+    UnaryExpression(TokenType op, BaseExpression* expr)
+        : BaseExpression(ExprType::Unary)
+        , _op(op)
+        , _expr(expr)
+    {}
+    TokenType _op;
+    BaseExpression* _expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -48,9 +53,15 @@ public:
     IncrementExpression()
         : BaseExpression(ExprType::Increment)
     {}
-    bool prefix;
-    TokenType op;
-    BaseExpression* expr;
+    IncrementExpression(TokenType op, bool prefix, BaseExpression* expr)
+        : BaseExpression(ExprType::Increment)
+        , _op(op)
+        , _prefix(prefix)
+        , _expr(expr)
+    {}
+    bool _prefix;
+    TokenType _op;
+    BaseExpression* _expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -59,9 +70,15 @@ public:
     BinaryExpression()
         : BaseExpression(ExprType::Binary)
     {}
-    BaseExpression* left;
-    TokenType op;
-    BaseExpression* right;
+    BinaryExpression(BaseExpression* left, TokenType op, BaseExpression* right)
+        : BaseExpression(ExprType::Binary)
+        , _left(left)
+        , _op(op)
+        , _right(right)
+    {}
+    BaseExpression* _left;
+    TokenType _op;
+    BaseExpression* _right;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
