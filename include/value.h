@@ -22,11 +22,6 @@ struct ValueType {
     };
 };
 
-struct String {
-    char* p;
-    int n;
-};
-
 extern std::map<ValueType::Value, std::string> typeNames;
 
 class FunctionExpression;
@@ -43,22 +38,50 @@ struct IExpression {
     virtual void Assign(Context* ctx, Value* value) = 0;
 };
 
+struct IStatement {
+    virtual void Execute(Context* ctx) = 0;
+};
+
 struct ICallable {
-    virtual void Execute(Context* ctx, Values* args) = 0;
+    virtual Value* Execute(Context* ctx, Values* args) = 0;
+};
+
+struct IObject {
+    virtual Value* GetKey(const std::string& key) = 0;
+    virtual void SetKey(const std::string& key, Value* val) = 0;
+};
+
+struct IArray {
+    virtual int Len() = 0;
+    virtual Value* GetElem(int pos) = 0;
+    virtual void SetElem(int pos, Value* val) = 0;
 };
 
 struct IString {
     virtual void String() = 0;
 };
 
+typedef Value* BuiltinFunction(IObject* that, Context* ctx, Values* args);
+
+class Builtin : public ICallable {
+public:
+    IObject* _that;
+    std::string _name;
+    BuiltinFunction* _func;
+public:
+    virtual Value* Execute(Context* ctx, Values* args) override;
+};
+
 class Value : public IExpression {
+public:
+    Value() {}
 public:
     ValueType::Value type;
     union {
         bool b;
         int64_t i;
-        String str;
-        String var;
+        std::string str;
+        std::string var;
         KeyGetter* obj;
         EvaluatedFunctionExpression* func;
         Builtin* bi;
@@ -83,10 +106,16 @@ public:
         v->i = i;
         return v;
     }
+    static Value* fromString(const std::string& s) {
+        auto v = new Value();
+        v->type = ValueType::String;
+        v->str = s;
+        return v;
+    }
     static Value* fromString(const char* s) {
         auto v = new Value();
         v->type = ValueType::String;
-        // TODO
+        v->str = s;
         return v;
     }
     static Value* fromVariable(const char* s) {
@@ -101,6 +130,7 @@ public:
         v->obj = getter;
         return v;
     }
+    static Value* fromFunction(FunctionExpression* func, Context* closure);
 
 public:
     bool isNil() {
@@ -148,11 +178,11 @@ public:
         checkType(ValueType::Number);
         return i;
     }
-    String string() {
+    std::string string() {
         checkType(ValueType::String);
         return str;
     }
-    String variable() {
+    std::string variable() {
         checkType(ValueType::Variable);
         return str;
     }

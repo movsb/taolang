@@ -135,11 +135,11 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
     if(lt == ValueType::String && rt == ValueType::String){
         switch(_op) {
         case ttAddition:
-            return Value::fromString(lv->str.p + rv->str.p);
+            return Value::fromString(lv->str + rv->str);
         case ttEqual:
-            return Value::fromBoolean(lv->str.p == rv->str.p);
+            return Value::fromBoolean(lv->str == rv->str);
         case ttNotEqual:
-            return Value::fromBoolean(lv->str.p != rv->str.p);
+            return Value::fromBoolean(lv->str != rv->str);
         default:
             throw SyntaxError("not supported operator on two strings");
         }
@@ -160,6 +160,7 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
 
     // TODO
     if(lt == ValueType::Builtin && rt == ValueType::Builtin) {
+        /*
         p1 := reflect.ValueOf(lv->builtin().fn).Pointer()
         p2 := reflect.ValueOf(rv->builtin().fn).Pointer()
         switch op {
@@ -170,6 +171,7 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
         default:
             throw SyntaxError("not supported operator on two builtins");
         }
+        */
     }
 
     throw SyntaxError("unknown binary operator and operands");
@@ -181,5 +183,32 @@ Value* TernaryExpression::Evaluate(Context* ctx) {
         : right->Evaluate(ctx)
         ;
 }
+
+Value* NewExpression::Evaluate(Context* ctx) {
+    // TODO
+}
+
+Value* AssignmentExpression::Evaluate(Context* ctx) {
+    auto val = _expr->Evaluate(ctx);
+    _left->Assign(ctx, val);
+    return val;
+}
+
+Value* EvaluatedFunctionExpression::Execute(Context* ctx, Values* args) {
+
+}
+
+Value* FunctionExpression::Evaluate(Context* ctx) {
+    auto val = Value::fromFunction(this, ctx);
+    if(!_name.empty()) {
+        ctx->AddSymbol(_name, val);
+    }
+    return val;
+}
+
+Value* FunctionExpression::Execute(Context* ctx, Values* args) {
+    // TODO
+}
+
 
 }

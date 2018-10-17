@@ -106,23 +106,30 @@ public:
     AssignmentExpression()
         : BaseExpression(ExprType::Assignment)
     {}
+    BaseExpression* _left;
+    BaseExpression* _expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
-class FunctionExpression : public BaseExpression {
+class FunctionExpression : public BaseExpression, public ICallable {
 public:
     FunctionExpression()
         : BaseExpression(ExprType::Function)
     {}
+    std::string _name;
     virtual Value* Evaluate(Context* ctx) override;
+    virtual Value* Execute(Context* ctx, Values* args) override;
 };
 
-class EvaluatedFunctionExpression : public BaseExpression {
+class EvaluatedFunctionExpression : public BaseExpression, public ICallable {
 public:
     EvaluatedFunctionExpression()
         : BaseExpression(ExprType::EvaluatedFunction)
     {}
+    Context* _closure;
+    FunctionExpression* _func;
     virtual Value* Evaluate(Context* ctx) override;
+    virtual Value* Execute(Context* ctx, Values* args) override;
 };
 
 class IndexExpression : public BaseExpression {

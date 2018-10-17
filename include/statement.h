@@ -22,7 +22,7 @@ enum class StmtType {
     Switch,
 };
 
-class BaseStatement {
+class BaseStatement : public IStatement {
 public:
     BaseStatement(StmtType type)
         : Type(type)

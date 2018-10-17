@@ -9,7 +9,7 @@ namespace taolang {
 
 struct Symbol {
     std::string name;
-    Value       value;
+    Value*      value;
 };
 
 class Context {
@@ -18,7 +18,7 @@ public:
         : _parent(parent)
         , _broke(false)
         , _hasRet(false)
-        , _retVal(Value{})
+        , _retVal(nullptr)
     {}
 public:
     Value* FindSymbol(const std::string& name, bool outer);
@@ -35,8 +35,7 @@ public:
     std::vector<Symbol> _symbols;
     bool                _broke;
     bool                _hasRet;
-    Value               _retVal;
-
+    Value               *_retVal;
 };
 
 }
