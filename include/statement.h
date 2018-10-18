@@ -45,7 +45,7 @@ public:
         : BaseStatement(StmtType::Let)
     {}
     std::string _name;
-    BaseExpression* _expr;
+    IExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -54,7 +54,7 @@ public:
     FunctionStatement()
         : BaseStatement(StmtType::Function)
     {}
-    BaseExpression* _expr;
+    IExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -63,7 +63,7 @@ public:
     ReturnStatement()
         : BaseStatement(StmtType::Return)
     {}
-    BaseExpression* _expr;
+    IExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -81,7 +81,7 @@ public:
     ExpressionStatement()
         : BaseStatement(StmtType::Expression)
     {}
-    BaseExpression* _expr;
+    IExpression* _expr;
     virtual void Execute(Context* ctx) override;
 };
 
@@ -91,8 +91,8 @@ public:
         : BaseStatement(StmtType::For)
     {}
     BaseStatement* _init;
-    BaseExpression* _test;
-    BaseExpression* _incr;
+    IExpression* _test;
+    IExpression* _incr;
     BlockStatement* _block;
     virtual void Execute(Context* ctx) override;
 };
@@ -110,7 +110,7 @@ public:
     IfStatement()
         : BaseStatement(StmtType::If)
     {}
-    BaseExpression* _cond;
+    IExpression* _cond;
     BlockStatement* _ifBlock;
     BaseStatement* _elseBlock;
     virtual void Execute(Context* ctx) override;

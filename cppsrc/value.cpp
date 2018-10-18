@@ -29,6 +29,14 @@ Value* Value::fromFunction(FunctionExpression* func, Context* closure) {
     return v;
 }
 
+Value* Value::Evaluate(Context* ctx) {
+
+}
+
+void Value::Assign(Context* ctx, Value* val) {
+
+}
+
 bool Value::truth(Context* ctx) {
     switch(type) {
     case ValueType::Nil:

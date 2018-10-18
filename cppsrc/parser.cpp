@@ -1,6 +1,7 @@
 #include "parser.h"
 #include "error.h"
 #include "expression.h"
+#include "program.h"
 
 namespace taolang {
 
@@ -34,6 +35,55 @@ std::map<TokenType,Precedence> precedenceTable = {
 	{ttNew,                Precedence::New},
 	{ttLeftParen,          Precedence::Call},
 };
+
+Program* Parser::Parse() {
+    auto program = new Program();
+    for(;!_follow(ttEOF);) {
+        auto stmt = _parseStatement(true);
+        program->_stmts.push_back(stmt);
+    }
+    if(_next().type != ttEOF) {
+        throw SyntaxError("unexpected token");
+    }
+    return program;
+}
+
+Token Parser::_expect(TokenType tt) {
+
+}
+
+template<typename... Args>
+Token Parser::_match(Args... args) {
+
+}
+
+Token Parser::_next() {
+
+}
+
+void Parser::_undo(Token tk) {
+
+}
+
+bool Parser::_skip(TokenType tt) {
+
+}
+
+Token Parser::_peek() {
+
+}
+
+bool Parser::_follow(TokenType tt) {
+
+}
+
+void Parser::_enter() {
+
+}
+
+void Parser::_leave(bool putBack) {
+
+}
 
 Precedence Parser::_getPrecedence(TokenType op) {
     if(op >= ttAssign && op <= ttAndNotAssign) {
@@ -77,7 +127,7 @@ BaseStatement* Parser::_parseStatement(bool global) {
     case ttIf:
         return _parseIfStatement();
     case ttSwitch:
-        return _parseSwitchStatement();
+        //return _parseSwitchStatement();
     default:
         break;
     }
@@ -210,8 +260,8 @@ IfStatement* Parser::_parseIfStatement() {
     return stmt;
 }
 
-BaseExpression* Parser::_parseExpression(Precedence prec) {
-    BaseExpression* left = nullptr;
+IExpression* Parser::_parseExpression(Precedence prec) {
+    IExpression* left = nullptr;
     auto peek = _peek();
     if(prec <= Precedence::UnaryPlus) {
         switch(peek.type) {
@@ -283,7 +333,7 @@ BaseExpression* Parser::_parseExpression(Precedence prec) {
             break;
         }
 
-        BaseExpression* right = nullptr;
+        IExpression* right = nullptr;
 
         switch(op.type) {
         case ttLogicalOr:
@@ -339,8 +389,8 @@ BaseExpression* Parser::_parseExpression(Precedence prec) {
     return left;
 }
 
-BaseExpression* Parser::_parsePrimaryExpression() {
-    BaseExpression* expr;
+IExpression* Parser::_parsePrimaryExpression() {
+    IExpression* expr;
     auto next = _next();
     switch(next.type) {
     case ttNil:
@@ -390,14 +440,15 @@ BaseExpression* Parser::_parsePrimaryExpression() {
     return expr;
 }
 
-TernaryExpression* Parser::_parseTernaryExpression(BaseExpression* cond) {
-    BaseExpression *left;
-    BaseExpression *right;
+TernaryExpression* Parser::_parseTernaryExpression(IExpression* cond) {
+    IExpression *left;
+    IExpression *right;
 
     left = _parseExpression(Precedence::Conditional);
     _expect(ttColon);
     right = _parseExpression(Precedence::Conditional);
 
+/*
     static const char* err = "nested `?:' is not allowed";
     if(left->type == ExprType::Ternary) {
         throw SyntaxError(err);
@@ -405,6 +456,7 @@ TernaryExpression* Parser::_parseTernaryExpression(BaseExpression* cond) {
     if(right->type == ExprType::Ternary) {
         throw SyntaxError(err);
     }
+    */
 
     auto expr = new TernaryExpression();
     expr->left = left;
@@ -414,7 +466,7 @@ TernaryExpression* Parser::_parseTernaryExpression(BaseExpression* cond) {
     return expr;
 }
 
-AssignmentExpression* Parser::_parseAssignmentExpression(BaseExpression* left, TokenType op) {
+AssignmentExpression* Parser::_parseAssignmentExpression(IExpression* left, TokenType op) {
     auto expr = new AssignmentExpression();
     expr->_left = left;
 
@@ -505,11 +557,11 @@ FunctionExpression* Parser::_tryParseLambdaExpression(bool must) {
     _enter();
 }
 
-IndexExpression* Parser::_parseIndexExpression(BaseExpression* left) {
+IndexExpression* Parser::_parseIndexExpression(IExpression* left) {
     
 }
 
-CallExpression* Parser::_parseCallExpression(BaseExpression* left) {
+CallExpression* Parser::_parseCallExpression(IExpression* left) {
     
 }
 
@@ -526,7 +578,7 @@ ObjectExpression* Parser::_parseObjectExpression() {
         }
 
         std::string key;
-        BaseExpression* val;
+        IExpression* val;
 
         auto next = _next();
         switch(next.type) {

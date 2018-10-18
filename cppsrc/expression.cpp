@@ -194,6 +194,10 @@ Value* AssignmentExpression::Evaluate(Context* ctx) {
     return val;
 }
 
+Value* EvaluatedFunctionExpression::Evaluate(Context* ctx) {
+
+}
+
 Value* EvaluatedFunctionExpression::Execute(Context* ctx, Values* args) {
 
 }
@@ -210,5 +214,12 @@ Value* FunctionExpression::Execute(Context* ctx, Values* args) {
     // TODO
 }
 
+Value* ObjectExpression::Evaluate(Context* ctx) {
+
+}
+
+Value* ArrayExpression::Evaluate(Context* ctx) {
+
+}
 
 }

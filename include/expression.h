@@ -29,14 +29,14 @@ public:
     int Size() {
         return (int)_args.size();
     }
-    void Put(BaseExpression* arg) {
+    void Put(IExpression* arg) {
         _args.emplace_back(arg);
     }
     Values* EvaluateAll(Context* ctx) {
 
     }
 private:
-    std::vector<BaseExpression*> _args;
+    std::vector<IExpression*> _args;
 };
 
 class BaseExpression : public IExpression {
@@ -55,13 +55,13 @@ public:
     UnaryExpression()
         : BaseExpression(ExprType::Unary)
     {}
-    UnaryExpression(TokenType op, BaseExpression* expr)
+    UnaryExpression(TokenType op, IExpression* expr)
         : BaseExpression(ExprType::Unary)
         , _op(op)
         , _expr(expr)
     {}
     TokenType _op;
-    BaseExpression* _expr;
+    IExpression* _expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -70,7 +70,7 @@ public:
     IncrementExpression()
         : BaseExpression(ExprType::Increment)
     {}
-    IncrementExpression(TokenType op, bool prefix, BaseExpression* expr)
+    IncrementExpression(TokenType op, bool prefix, IExpression* expr)
         : BaseExpression(ExprType::Increment)
         , _op(op)
         , _prefix(prefix)
@@ -78,7 +78,7 @@ public:
     {}
     bool _prefix;
     TokenType _op;
-    BaseExpression* _expr;
+    IExpression* _expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -87,15 +87,15 @@ public:
     BinaryExpression()
         : BaseExpression(ExprType::Binary)
     {}
-    BinaryExpression(BaseExpression* left, TokenType op, BaseExpression* right)
+    BinaryExpression(IExpression* left, TokenType op, IExpression* right)
         : BaseExpression(ExprType::Binary)
         , _left(left)
         , _op(op)
         , _right(right)
     {}
-    BaseExpression* _left;
+    IExpression* _left;
     TokenType _op;
-    BaseExpression* _right;
+    IExpression* _right;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -104,9 +104,9 @@ public:
     TernaryExpression()
         : BaseExpression(ExprType::Ternary)
     {}
-    BaseExpression* cond;
-    BaseExpression* left;
-    BaseExpression* right;
+    IExpression* cond;
+    IExpression* left;
+    IExpression* right;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -125,8 +125,8 @@ public:
     AssignmentExpression()
         : BaseExpression(ExprType::Assignment)
     {}
-    BaseExpression* _left;
-    BaseExpression* _expr;
+    IExpression* _left;
+    IExpression* _expr;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -172,7 +172,7 @@ public:
     ObjectExpression()
         : BaseExpression(ExprType::Object)
     {}
-    std::unordered_map<std::string, BaseExpression*> _props;
+    std::unordered_map<std::string, IExpression*> _props;
     virtual Value* Evaluate(Context* ctx) override;
 };
 

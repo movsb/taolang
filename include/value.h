@@ -106,22 +106,18 @@ public:
         v->i = i;
         return v;
     }
-    static Value* fromString(const std::string& s) {
+    template<typename T>
+    static Value* fromString(const T& s) {
         auto v = new Value();
         v->type = ValueType::String;
         v->str = s;
         return v;
     }
-    static Value* fromString(const char* s) {
-        auto v = new Value();
-        v->type = ValueType::String;
-        v->str = s;
-        return v;
-    }
-    static Value* fromVariable(const char* s) {
+    template<typename T>
+    static Value* fromVariable(const T& s) {
         auto v = new Value();
         v->type = ValueType::Variable;
-        // TODO
+        v->var = s;
         return v;
     }
     static Value* fromObject(KeyGetter* getter) {

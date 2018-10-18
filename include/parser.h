@@ -49,6 +49,10 @@ class Program;
 
 class Parser {
 public:
+    Parser(Tokenizer* tkz)
+        : _tkz(tkz)
+        {}
+public:
     Program* Parse();
 
 protected:
@@ -75,17 +79,17 @@ protected:
     ForStatement*       _parseForStatement();
     BreakStatement*     _parseBreakStatement();
     IfStatement*        _parseIfStatement();
-    SwitchStatement*    _parseSwitchStatement();
+    //SwitchStatement*    _parseSwitchStatement();
 
 protected:
-    BaseExpression*         _parsePrimaryExpression();
-    BaseExpression*         _parseExpression(Precedence prec);
-    TernaryExpression*      _parseTernaryExpression(BaseExpression* cond);
-    AssignmentExpression*   _parseAssignmentExpression(BaseExpression* left, TokenType op);
+    IExpression*            _parseExpression(Precedence prec);
+    IExpression*            _parsePrimaryExpression();
+    TernaryExpression*      _parseTernaryExpression(IExpression* cond);
+    AssignmentExpression*   _parseAssignmentExpression(IExpression* left, TokenType op);
     NewExpression*          _parseNewExpression();
     FunctionExpression*     _tryParseLambdaExpression(bool must);
-    IndexExpression*        _parseIndexExpression(BaseExpression* left);
-    CallExpression*         _parseCallExpression(BaseExpression* left);
+    IndexExpression*        _parseIndexExpression(IExpression* left);
+    CallExpression*         _parseCallExpression(IExpression* left);
     FunctionExpression*     _parseFunctionExpression();
     ObjectExpression*       _parseObjectExpression();
     ArrayExpression*        _parseArrayExpression();
