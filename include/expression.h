@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_map>
+
 #include "error.h"
 #include "context.h"
 #include "value.h"
@@ -20,6 +22,21 @@ enum class ExprType {
     Call,
     Object,
     Array,
+};
+
+class Arguments {
+public:
+    int Size() {
+        return (int)_args.size();
+    }
+    void Put(BaseExpression* arg) {
+        _args.emplace_back(arg);
+    }
+    Values* EvaluateAll(Context* ctx) {
+
+    }
+private:
+    std::vector<BaseExpression*> _args;
 };
 
 class BaseExpression : public IExpression {
@@ -98,6 +115,8 @@ public:
     NewExpression()
         : BaseExpression(ExprType::New)
     {}
+    std::string _name;
+    Arguments _args;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -153,6 +172,7 @@ public:
     ObjectExpression()
         : BaseExpression(ExprType::Object)
     {}
+    std::unordered_map<std::string, BaseExpression*> _props;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -161,6 +181,7 @@ public:
     ArrayExpression()
         : BaseExpression(ExprType::Array)
     {}
+    Arguments _elems;
     virtual Value* Evaluate(Context* ctx) override;
 };
 

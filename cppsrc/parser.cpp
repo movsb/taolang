@@ -35,6 +35,16 @@ std::map<TokenType,Precedence> precedenceTable = {
 	{ttLeftParen,          Precedence::Call},
 };
 
+Precedence Parser::_getPrecedence(TokenType op) {
+    if(op >= ttAssign && op <= ttAndNotAssign) {
+        return Precedence::Assignment;
+    }
+    auto iter = precedenceTable.find(op);
+    if(iter != precedenceTable.cend()) {
+        return iter->second;
+    }
+    return Precedence::_Unspecified;
+}
 
 BaseStatement* Parser::_parseStatement(bool global) {
     auto tk = _peek();
@@ -327,6 +337,243 @@ BaseExpression* Parser::_parseExpression(Precedence prec) {
     }
 
     return left;
+}
+
+BaseExpression* Parser::_parsePrimaryExpression() {
+    BaseExpression* expr;
+    auto next = _next();
+    switch(next.type) {
+    case ttNil:
+        expr = Value::fromNil();
+        break;
+    case ttBoolean:
+        expr = Value::fromBoolean(next.str == "true");
+        break;
+    case ttNumber:
+        expr = Value::fromNumber(next.num);
+        break;
+    case ttString:
+        expr = Value::fromString(next.str);
+        break;
+    case ttLeftParen:
+        _undo(next);
+        if(auto lambda = _tryParseLambdaExpression(false)) {
+            return lambda;
+        }
+        _next();
+        expr = _parseExpression(Precedence::Conditional);
+        _expect(ttRightParen);
+        break;
+    case ttIdentifier:
+        if(_follow(ttLambda)) {
+            _undo(next);
+            return _tryParseLambdaExpression(true);
+        }
+        expr = Value::fromVariable(next.str);
+        break;
+    case ttFunction:
+        _undo(next);
+        expr = _parseFunctionExpression();
+        break;
+    case ttLeftBrace:
+        _undo(next);
+        expr = _parseObjectExpression();
+        break;
+    case ttLeftBracket:
+        _undo(next);
+        expr = _parseArrayExpression();
+        break;
+    default:
+        throw SyntaxError("unexpected token");
+    }
+
+    return expr;
+}
+
+TernaryExpression* Parser::_parseTernaryExpression(BaseExpression* cond) {
+    BaseExpression *left;
+    BaseExpression *right;
+
+    left = _parseExpression(Precedence::Conditional);
+    _expect(ttColon);
+    right = _parseExpression(Precedence::Conditional);
+
+    static const char* err = "nested `?:' is not allowed";
+    if(left->type == ExprType::Ternary) {
+        throw SyntaxError(err);
+    }
+    if(right->type == ExprType::Ternary) {
+        throw SyntaxError(err);
+    }
+
+    auto expr = new TernaryExpression();
+    expr->left = left;
+    expr->cond = cond;
+    expr->right = right;
+
+    return expr;
+}
+
+AssignmentExpression* Parser::_parseAssignmentExpression(BaseExpression* left, TokenType op) {
+    auto expr = new AssignmentExpression();
+    expr->_left = left;
+
+	// ttQuestion: disable continuous assignment style
+    expr->_expr = _parseExpression(Precedence::Conditional);
+
+	if(op == ttAssign) {
+		return expr;
+	}
+
+    TokenType binOp;
+
+	switch(op) {
+	case ttStarStarAssign:
+		binOp = ttStarStar;
+        break;
+	case ttStarAssign:
+		binOp = ttMultiply;
+        break;
+	case ttDivideAssign:
+		binOp = ttDivision;
+        break;
+	case ttPercentAssign:
+		binOp = ttPercent;
+        break;
+	case ttPlusAssign:
+		binOp = ttAddition;
+        break;
+	case ttMinusAssign:
+		binOp = ttSubtraction;
+        break;
+	case ttLeftShiftAssign:
+		binOp = ttLeftShift;
+        break;
+	case ttRightShiftAssign:
+		binOp = ttRightShift;
+        break;
+	case ttAndAssign:
+		binOp = ttBitAnd;
+        break;
+	case ttOrAssign:
+		binOp = ttBitOr;
+        break;
+	case ttXorAssign:
+		binOp = ttBitXor;
+        break;
+	case ttAndNotAssign:
+		binOp = ttBitAndNot;
+        break;
+	default:
+        throw Error("won't go here");
+	}
+
+    auto bin = new BinaryExpression();
+    bin->_left = expr->_left;
+    bin->_op = binOp;
+    bin->_right = expr->_expr;
+
+    expr->_expr = bin;
+    return expr;
+}
+
+NewExpression* Parser::_parseNewExpression() {
+    auto expr = new NewExpression();
+    _expect(ttNew);
+    expr->_name = _expect(ttIdentifier).str;
+    _expect(ttLeftParen);
+    if(!_follow(ttRightParen)) {
+        for (;;) {
+            auto arg = _parseExpression(Precedence::Conditional);
+            expr->_args.Put(arg);
+            auto sep = _next();
+            if(sep.type == ttComma) {
+                continue;
+            } else if(sep.type == ttRightParen) {
+                _undo(sep);
+                break;
+            } else {
+                throw SyntaxError("unexpected token");
+            }
+        }
+    }
+    _expect(ttRightParen);
+    return expr;
+}
+
+FunctionExpression* Parser::_tryParseLambdaExpression(bool must) {
+    _enter();
+}
+
+IndexExpression* Parser::_parseIndexExpression(BaseExpression* left) {
+    
+}
+
+CallExpression* Parser::_parseCallExpression(BaseExpression* left) {
+    
+}
+
+FunctionExpression* Parser::_parseFunctionExpression() {
+    
+}
+
+ObjectExpression* Parser::_parseObjectExpression() {
+    auto obj = new ObjectExpression();
+    _expect(ttLeftBrace);
+    for(;;) {
+        if(!_follow(ttRightBrace)) {
+            break;
+        }
+
+        std::string key;
+        BaseExpression* val;
+
+        auto next = _next();
+        switch(next.type) {
+        case ttString:
+        case ttIdentifier:
+            key = next.str;
+            break;
+        default:
+            throw TypeError("unsupported key type");
+        }
+
+        _expect(ttColon);
+
+        val = _parseExpression(Precedence::Conditional);
+        auto iter = obj->_props.find(key);
+        if(iter == obj->_props.cend()) {
+            obj->_props[key] = val;
+        } else {
+            throw SyntaxError("duplicate key");
+        }
+
+        _skip(ttComma);
+        if(_follow(ttRightBrace)) {
+            break;
+        }
+    }
+
+    _expect(ttRightBrace);
+    return obj;
+}
+
+ArrayExpression* Parser::_parseArrayExpression() {
+    auto arr = new ArrayExpression();
+    _expect(ttLeftBracket);
+    for(;;) {
+        if(_follow(ttRightBracket)) {
+            break;
+        }
+        auto elem = _parseExpression(Precedence::Conditional);
+        arr->_elems.Put(elem);
+        _skip(ttComma);
+        if(_follow(ttRightBracket)) {
+            break;
+        }
+    }
+    _expect(ttRightBracket);
+    return arr;
 }
 
 }

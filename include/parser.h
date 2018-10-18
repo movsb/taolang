@@ -9,7 +9,7 @@
 namespace taolang {
 
 enum class Precedence {
-    _,
+    _Unspecified,
 	Assignment,
 	Conditional,
 	LogicalOr,

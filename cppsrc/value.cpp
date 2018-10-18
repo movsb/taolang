@@ -29,4 +29,25 @@ Value* Value::fromFunction(FunctionExpression* func, Context* closure) {
     return v;
 }
 
+bool Value::truth(Context* ctx) {
+    switch(type) {
+    case ValueType::Nil:
+        return false;
+    case ValueType::Boolean:
+        return boolean();
+    case ValueType::Number:
+        return number() != 0;
+    case ValueType::String:
+        return !str.empty();
+    case ValueType::Function:
+    case ValueType::Builtin:
+        return true;
+    case ValueType::Variable:
+        return ctx->MustFind(var, true)->truth(ctx);
+    default:
+        break;
+    }
+    throw SyntaxError("unknown truth type");
+}
+
 }
