@@ -1,9 +1,10 @@
 #include "tokenizer.h"
 #include "error.h"
 
+#include <iostream>
 namespace taolang {
 
-std::map<const char*,TokenType> keywords = {
+std::map<std::string,TokenType> keywords = {
 	{"break",    ttBreak},
 	{"case",     ttCase},
 	{"default",  ttDefault},
@@ -96,6 +97,41 @@ std::map<TokenType, const char*> tokenNames = {
 	{ttReturn,   "return"},
 	{ttNew,      "new"},
 };
+
+std::string Token::string() {
+    auto it = tokenNames.find(type);
+    if(it != tokenNames.cend()) {
+        return it->second;
+    }
+
+    std::ostringstream ss;
+
+    ss << "`";
+
+    switch(type) {
+    case ttString:
+        ss << str;
+        break;
+    case ttNumber:
+        ss << num;
+        break;
+    case ttBoolean:
+        ss << str;
+        break;
+    case ttIdentifier:
+        ss << str;
+        break;
+    default:
+        ss << "--unknown-token--";
+        break;
+    }
+
+    ss << "'";
+    if(line > 0 && col >0) {
+        ss << " (line:" << line << " col:" << col << ")";
+    }
+    return std::move(ss.str());
+}
 
 Token Tokenizer::Next() {
 	if(!_buf.empty()) {

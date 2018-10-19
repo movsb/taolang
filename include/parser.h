@@ -1,6 +1,7 @@
 #pragma once
 
 #include <map>
+#include <tuple>
 
 #include "tokenizer.h"
 #include "expression.h"
@@ -57,8 +58,26 @@ public:
 
 protected:
     Token _expect(TokenType tt);
-    template<typename... Args>
-    Token _match(Args... args);
+    std::tuple<Token, bool> __match(TokenType) {
+        return {Token{}, false};
+    }
+    template<typename First, typename... Rest>
+    std::tuple<Token, bool> __match(const Token& needle, const First& first, const Rest&... args) {
+        if(needle.type == first) {
+            return {needle, true};
+        }
+        return __match(needle, args...);
+    }
+    template<typename First, typename... Rest>
+    std::tuple<Token, bool> _match(const First& first, const Rest&... args) {
+        auto next = _next();
+        auto ret = __match(next, first, args...);
+        if(!std::get<1>(ret)) {
+            _undo(next);
+            return {Token{}, false};
+        }
+        return ret;
+    }
     Token _next();
     void _undo(Token tk);
     bool _skip(TokenType tt);

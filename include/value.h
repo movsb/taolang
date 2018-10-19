@@ -3,6 +3,7 @@
 #include <string>
 #include <map>
 #include <exception>
+#include <vector>
 
 #include "error.h"
 
@@ -214,6 +215,25 @@ public:
 
     std::string String();
     bool truth(Context* ctx);
+};
+
+class Values {
+public:
+    int Size() {
+        return (int)_values.size();
+    }
+    void Push(Value* value) {
+        _values.push_back(value);
+    }
+    Value* Get(int i) {
+        if(i<0 && i > Size() - 1) {
+            throw RangeError("Values' index out of range");
+        }
+        return _values[i];
+    }
+
+private:
+    std::vector<Value*> _values;
 };
 
 }

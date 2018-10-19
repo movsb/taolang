@@ -104,8 +104,8 @@ enum TokenType {
 	ttNew,
 };
 
-extern std::map<const char*,TokenType> keywords;
-extern std::map<TokenType, const char*> tokenNames;
+// extern std::map<const char*,TokenType> keywords;
+// extern std::map<TokenType, const char*> tokenNames;
 
 struct Token {
 	TokenType   type;
@@ -114,40 +114,16 @@ struct Token {
 	int         line;
 	int         col;
 
-	std::string string() {
-		auto it = tokenNames.find(type);
-		if(it != tokenNames.cend()) {
-			return it->second;
-		}
-
-		std::ostringstream ss;
-
-		ss << "`";
-
-		switch(type) {
-		case ttString:
-			ss << str;
-			break;
-		case ttNumber:
-			ss << num;
-			break;
-		case ttBoolean:
-			ss << str;
-			break;
-		case ttIdentifier:
-			ss << str;
-			break;
-		default:
-			ss << "--unknown-token--";
-			break;
-		}
-
-		ss << "'";
-		if(line > 0 && col >0) {
-			ss << " (line:" << line << " col:" << col << ")";
-		}
-		return std::move(ss.str());
-	}
+    Token(TokenType tt) 
+        : type(tt)
+        , num(0)
+        , line(0)
+        , col(0)
+    {}
+    Token()
+        : Token(TokenType::ttEOF)
+    {}
+    std::string string();
 };
 
 class Tokenizer {

@@ -9,6 +9,8 @@
 
 namespace taolang {
 
+class BlockStatement;
+
 enum class ExprType {
     Unary,
     Increment,
@@ -29,6 +31,9 @@ public:
     int Size() {
         return (int)_args.size();
     }
+    IExpression* Get(int i) {
+        return _args[i];
+    }
     void Put(IExpression* arg) {
         _args.emplace_back(arg);
     }
@@ -37,6 +42,28 @@ public:
     }
 private:
     std::vector<IExpression*> _args;
+};
+
+class Parameters {
+public:
+    int Size() {
+        return (int)_params.size();
+    }
+    void Put(const std::string& name) {
+        _params.emplace_back(name);
+    }
+    void BindArguments(Context* ctx, Values* args) {
+        for(size_t i = 0; i < _params.size(); i++) {
+            if(i < args->Size()) {
+                ctx->AddSymbol(_params[i], args->Get(i));
+            } else {
+                ctx->AddSymbol(_params[i], Value::fromNil());
+            }
+        }
+    }
+
+private:
+    std::vector<std::string> _params;
 };
 
 class BaseExpression : public IExpression {
@@ -136,6 +163,8 @@ public:
         : BaseExpression(ExprType::Function)
     {}
     std::string _name;
+    Parameters _params;
+    BlockStatement* _body;
     virtual Value* Evaluate(Context* ctx) override;
     virtual Value* Execute(Context* ctx, Values* args) override;
 };
@@ -156,6 +185,8 @@ public:
     IndexExpression()
         : BaseExpression(ExprType::Index)
     {}
+    IExpression* _indexable;
+    IExpression* _key;
     virtual Value* Evaluate(Context* ctx) override;
 };
 
@@ -164,8 +195,12 @@ public:
     CallExpression()
         : BaseExpression(ExprType::Call)
     {}
+    IExpression* _callable;
+    Arguments    _args;
     virtual Value* Evaluate(Context* ctx) override;
 };
+
+Value* CallFunc(Context* ctx, IExpression* callable, Arguments* args);
 
 class ObjectExpression : public BaseExpression {
 public:

@@ -65,8 +65,8 @@ struct NotAssignableError : public Error {
 };
 
 struct RangeError : public Error {
-    RangeError() {
-
+    RangeError(const std::string& e) {
+        _what = e;
     }
 };
 

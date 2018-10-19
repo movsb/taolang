@@ -1,4 +1,5 @@
 #include "expression.h"
+#include "statement.h"
 #include "value.h"
 #include "tokenizer.h"
 #include "error.h"
@@ -29,7 +30,7 @@ Value* UnaryExpression::Evaluate(Context* ctx) {
     default:
         break;
     }
-    throw SyntaxError("unknown unary operator: %s", tokenNames[_op]);
+    throw SyntaxError("unknown unary operator: %s", Token(_op).string().c_str());
 }
 
 Value* IncrementExpression::Evaluate(Context* ctx) {
@@ -211,7 +212,12 @@ Value* FunctionExpression::Evaluate(Context* ctx) {
 }
 
 Value* FunctionExpression::Execute(Context* ctx, Values* args) {
-    // TODO
+    _params.BindArguments(ctx, args);
+    _body->Execute(ctx);
+    if(ctx->_hasRet) {
+        return ctx->_retVal;
+    }
+    return Value::fromNil();
 }
 
 Value* ObjectExpression::Evaluate(Context* ctx) {
@@ -220,6 +226,34 @@ Value* ObjectExpression::Evaluate(Context* ctx) {
 
 Value* ArrayExpression::Evaluate(Context* ctx) {
 
+}
+
+Value* CallExpression::Evaluate(Context* ctx) {
+    auto callable = _callable->Evaluate(ctx);
+    if(callable->type == ValueType::Variable) {
+        callable = callable->Evaluate(ctx);
+    }
+    if(!callable->isCallable()) {
+        throw NotCallableError();
+    }
+    auto newCtx = new Context(nullptr);
+    auto args = _args.EvaluateAll(ctx);
+    return callable->callable()->Execute(newCtx, args);
+}
+
+Value* CallFunc(Context* ctx, IExpression* callable, Arguments* args) {
+    auto ce = new CallExpression();
+    ce->_callable = callable;
+    if(args != nullptr) {
+        for(int i = 0; i < args->Size(); i++) {
+            ce->_args.Put(args->Get(i));
+        }
+    }
+    return ce->Evaluate(ctx);
+}
+
+Value* IndexExpression::Evaluate(Context* ctx) {
+    
 }
 
 }

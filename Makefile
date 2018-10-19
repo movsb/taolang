@@ -26,4 +26,4 @@ wait: tao
 
 .PHONY: cctao
 cctao:
-	@cd cppsrc && g++ --std=c++11 -I../include -o ../bin/cctao *.cpp
+	@cd cppsrc && g++ --std=c++11 -g -I../include -o ../bin/cctao *.cpp

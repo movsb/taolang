@@ -49,32 +49,44 @@ Program* Parser::Parse() {
 }
 
 Token Parser::_expect(TokenType tt) {
-
-}
-
-template<typename... Args>
-Token Parser::_match(Args... args) {
-
+    auto next = _next();
+    if(next.type != tt) {
+        Token tk;
+        tk.type = tt;
+        auto exp = tk.string();
+        if(tt == ttIdentifier) {
+            exp ="`identifier'";
+        }
+        throw SyntaxError(
+            "unexpected token: %s (expect: %s)",
+            next.string().c_str(), tk.string().c_str()
+        );
+    }
+    return next;
 }
 
 Token Parser::_next() {
-
+    return _tkz->Next();
 }
 
 void Parser::_undo(Token tk) {
-
+    _tkz->Undo(tk);
 }
 
 bool Parser::_skip(TokenType tt) {
-
+    if(_follow(tt)) {
+        _next();
+        return true;
+    }
+    return false;
 }
 
 Token Parser::_peek() {
-
+    return _tkz->Peek();
 }
 
 bool Parser::_follow(TokenType tt) {
-
+    return _peek().type == tt;
 }
 
 void Parser::_enter() {
@@ -558,15 +570,91 @@ FunctionExpression* Parser::_tryParseLambdaExpression(bool must) {
 }
 
 IndexExpression* Parser::_parseIndexExpression(IExpression* left) {
-    
+    auto ie = new IndexExpression();
+    ie->_indexable = left;
+    auto next = _next();
+    if(next.type == ttDot) {
+        auto key = _next();
+        if(key.type == ttIdentifier) {
+            ie->_key = Value::fromString(key.str);
+            return ie;
+        }
+        throw SyntaxError("unexpected token: %s", key.string().c_str());
+    } else if(next.type == ttLeftBracket) {
+        auto key = _parseExpression(Precedence::Conditional);
+        _expect(ttRightBracket);
+        ie->_key = key;
+        return ie;
+    } else {
+        throw Error("won't go here");
+    }
 }
 
 CallExpression* Parser::_parseCallExpression(IExpression* left) {
-    
+    auto ce = new CallExpression();
+    ce->_callable = left;
+    _expect(ttLeftParen);
+    if(!_follow(ttRightParen)) {
+        for(;;) {
+            auto arg = _parseExpression(Precedence::Conditional);
+            ce->_args.Put(arg);
+            auto sep = _next();
+            if(sep.type == ttComma) {
+                continue;
+            } else if(sep.type == ttRightParen) {
+                _undo(sep);
+                break;
+            } else {
+                SyntaxError(
+                    "unexpected token: %s",
+                    Token(sep).string().c_str()
+                );
+            }
+        }
+    }
+    _expect(ttRightParen);
+    return ce;
 }
 
 FunctionExpression* Parser::_parseFunctionExpression() {
-    
+    auto fe = new FunctionExpression();
+
+    _expect(ttFunction);
+
+    if(_follow(ttIdentifier)) {
+        fe->_name = _next().str;
+    }
+
+    _expect(ttLeftParen);
+    if(!_follow(ttRightParen)) {
+        for(;;) {
+            auto name = _expect(ttIdentifier).str;
+            fe->_params.Put(name);
+            auto sep = _next();
+            if(sep.type == ttComma) {
+                continue;
+            } else if(sep.type == ttRightParen) {
+                _undo(sep);
+                break;
+            } else {
+                throw SyntaxError(
+                    "unexpected token: %s",
+                    Token(sep).string().c_str()
+                );
+            }
+        }
+    }
+    _expect(ttRightParen);
+
+    if(!_follow(ttLeftBrace)) {
+        throw SyntaxError("function needs a body");
+    }
+
+    auto savedBreakCount = _breakCount;
+    _breakCount = 0;
+    fe->_body = _parseBlockStatement();
+    _breakCount = savedBreakCount;
+    return fe;
 }
 
 ObjectExpression* Parser::_parseObjectExpression() {
