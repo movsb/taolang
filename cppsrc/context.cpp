@@ -32,6 +32,7 @@ Value* Context::FromGlobal(const std::string& name) {
         throw TypeError("global is not an object");
     }
     auto obj = global->object();
+    return obj->GetKey(name);
 }
 
 void Context::AddSymbol(const std::string& name, Value* value) {

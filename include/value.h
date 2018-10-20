@@ -17,6 +17,7 @@ struct ValueType {
         String,
         Variable,
         Object,
+        Array,
         Function,
         Builtin,
         Class,
@@ -29,7 +30,6 @@ class FunctionExpression;
 class EvaluatedFunctionExpression;
 class Builtin;
 class Constructor;
-class KeyGetter;
 class Value;
 class Values;
 class Context;
@@ -82,12 +82,12 @@ public:
         bool b;
         int64_t i;
         IObject* obj;
+        IArray* arr;
         EvaluatedFunctionExpression* func;
         Builtin* bi;
         Constructor* ctor;
     };
     std::string str;
-    std::string var;
 
 public:
     static Value* fromNil() {
@@ -118,13 +118,19 @@ public:
     static Value* fromVariable(const T& s) {
         auto v = new Value();
         v->type = ValueType::Variable;
-        v->var = s;
+        v->str = s;
         return v;
     }
     static Value* fromObject(IObject* obj) {
         auto v = new Value();
         v->type = ValueType::Object;
         v->obj = obj;
+        return v;
+    }
+    static Value* fromArray(IArray* arr) {
+        auto v = new Value();
+        v->type = ValueType::Array;
+        v->arr = arr;
         return v;
     }
     static Value* fromFunction(FunctionExpression* func, Context* closure);
@@ -154,6 +160,9 @@ public:
     }
     bool isObject() {
         return type == ValueType::Object;
+    }
+    bool isArray() {
+        return type == ValueType::Array;
     }
     bool isVariable() {
         return type == ValueType::Variable;
@@ -197,6 +206,10 @@ public:
         checkType(ValueType::Object);
         return obj;
     }
+    IArray* array() {
+        checkType(ValueType::Array);
+        return arr;
+    }
     EvaluatedFunctionExpression* function() {
         checkType(ValueType::Function);
         return func;
@@ -209,10 +222,7 @@ public:
         checkType(ValueType::Class);
         return ctor;
     }
-    ICallable* callable() {
-        // TODO
-        throw NotCallableError();
-    }
+    ICallable* callable();
 
 public:
     virtual Value* Evaluate(Context* ctx) override;

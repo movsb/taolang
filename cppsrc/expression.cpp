@@ -3,6 +3,7 @@
 #include "value.h"
 #include "tokenizer.h"
 #include "error.h"
+#include "object.h"
 
 namespace taolang {
 
@@ -195,12 +196,9 @@ Value* AssignmentExpression::Evaluate(Context* ctx) {
     return val;
 }
 
-Value* EvaluatedFunctionExpression::Evaluate(Context* ctx) {
-
-}
-
 Value* EvaluatedFunctionExpression::Execute(Context* ctx, Values* args) {
-
+    ctx->SetParent(_closure);
+    return _func->Execute(ctx, args);
 }
 
 Value* FunctionExpression::Evaluate(Context* ctx) {
@@ -221,11 +219,15 @@ Value* FunctionExpression::Execute(Context* ctx, Values* args) {
 }
 
 Value* ObjectExpression::Evaluate(Context* ctx) {
-
+    auto obj = new Object();
+    for(auto& prop : _props) {
+        obj->SetKey(prop.first, prop.second->Evaluate(ctx));
+    }
+    return Value::fromObject(obj);
 }
 
 Value* ArrayExpression::Evaluate(Context* ctx) {
-
+    return Value::fromNil();
 }
 
 Value* CallExpression::Evaluate(Context* ctx) {
@@ -253,7 +255,55 @@ Value* CallFunc(Context* ctx, IExpression* callable, Arguments* args) {
 }
 
 Value* IndexExpression::Evaluate(Context* ctx) {
-    
+    auto indexable = _indexable->Evaluate(ctx);
+    auto key = _key->Evaluate(ctx);
+
+    IObject* obj = nullptr;
+    IArray* arr = nullptr;
+
+    if(indexable->isObject()) {
+        obj = indexable->object();
+    }
+    if(indexable->isArray()) {
+        arr = indexable->array();
+    }
+
+    if(key->isString() && obj != nullptr) {
+        return obj->GetKey(key->string());
+    }
+    if(key->isNumber() && arr != nullptr) {
+        return arr->GetElem(key->number());
+    }
+
+    throw KeyTypeError();
+}
+
+void IndexExpression::Assign(Context* ctx, Value* value) {
+    auto indexable = _indexable->Evaluate(ctx);
+    auto key = _key->Evaluate(ctx);
+
+    IObject* obj = nullptr;
+    IArray* arr = nullptr;
+
+    if(indexable->isObject()) {
+        obj = indexable->object();
+    }
+    if(indexable->isArray()) {
+        arr = indexable->array();
+    }
+
+    if(!obj && !arr) {
+        throw NotAssignableError();
+    }
+
+    if(key->isString() && obj != nullptr) {
+        return obj->SetKey(key->string(), value);
+    }
+    if(key->isNumber() && arr != nullptr) {
+        return arr->SetElem(key->number(), value);
+    }
+
+    throw KeyTypeError();
 }
 
 }

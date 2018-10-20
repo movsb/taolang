@@ -3,6 +3,7 @@
 #include <vector>
 #include <unordered_map>
 #include <string>
+#include <iostream>
 
 #include "value.h"
 
@@ -20,18 +21,27 @@ BuiltinFunction get_mfn(T t) {
 
 class Object : public IObject {
 public:
-    Object()
-        : _array(false)
-    {}
+    Object() {}
 
 public:
     virtual Value* GetKey(const std::string& key) override;
     virtual void SetKey(const std::string& key, Value* val) override;
 
 protected:
-    std::vector<Value*> _elems;
     std::unordered_map<std::string, Value*> _props;
-    bool _array;
+};
+
+class Array : public Object, public IArray {
+public:
+    virtual int Len() override { return (int)_elems.size(); }
+    virtual Value* GetElem(int index) override;
+    virtual void SetElem(int index, Value* value) override;
+
+private:
+    void _checkIndex(int index);
+
+protected:
+    std::vector<Value*> _elems;
 };
 
 class Global : public  Object {
@@ -41,8 +51,9 @@ public:
     }
 
 private:
-    Value* __attribute__((stdcall)) println(Context* ctx, Values* args) {
-
+    Value*  println(Context* ctx, Values* args) {
+        std::cout << "println called";
+        return Value::fromNil();
     }
 };
 

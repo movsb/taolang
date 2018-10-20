@@ -38,7 +38,11 @@ public:
         _args.emplace_back(arg);
     }
     Values* EvaluateAll(Context* ctx) {
-
+        auto values = new Values();
+        for(auto& arg : _args) {
+            values->Push(arg->Evaluate(ctx));
+        }
+        return values;
     }
 private:
     std::vector<IExpression*> _args;
@@ -169,14 +173,12 @@ public:
     virtual Value* Execute(Context* ctx, Values* args) override;
 };
 
-class EvaluatedFunctionExpression : public BaseExpression, public ICallable {
+class EvaluatedFunctionExpression : public ICallable {
 public:
     EvaluatedFunctionExpression()
-        : BaseExpression(ExprType::EvaluatedFunction)
     {}
     Context* _closure;
     FunctionExpression* _func;
-    virtual Value* Evaluate(Context* ctx) override;
     virtual Value* Execute(Context* ctx, Values* args) override;
 };
 
@@ -188,6 +190,7 @@ public:
     IExpression* _indexable;
     IExpression* _key;
     virtual Value* Evaluate(Context* ctx) override;
+    virtual void Assign(Context* ctx, Value* value) override;
 };
 
 class CallExpression : public BaseExpression {

@@ -44,6 +44,17 @@ void Value::Assign(Context* ctx, Value* val) {
     throw NotAssignableError();
 }
 
+ICallable* Value::callable() {
+    switch(type) {
+    case ValueType::Function:
+        return func;
+    case ValueType::Builtin:
+        return bi;
+    default:
+        throw NotCallableError();
+    }
+}
+
 bool Value::truth(Context* ctx) {
     switch(type) {
     case ValueType::Nil:
@@ -58,7 +69,7 @@ bool Value::truth(Context* ctx) {
     case ValueType::Builtin:
         return true;
     case ValueType::Variable:
-        return ctx->MustFind(var, true)->truth(ctx);
+        return ctx->MustFind(str, true)->truth(ctx);
     default:
         break;
     }
