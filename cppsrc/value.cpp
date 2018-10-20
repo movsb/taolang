@@ -30,11 +30,18 @@ Value* Value::fromFunction(FunctionExpression* func, Context* closure) {
 }
 
 Value* Value::Evaluate(Context* ctx) {
-
+    switch(type) {
+    case ValueType::Variable:
+        return ctx->MustFind(variable(), true);
+    case ValueType::Class:
+        throw SyntaxError("%s is a constructor", "TODO");
+    default:
+        return this;
+    }
 }
 
 void Value::Assign(Context* ctx, Value* val) {
-
+    throw NotAssignableError();
 }
 
 bool Value::truth(Context* ctx) {

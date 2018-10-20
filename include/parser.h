@@ -58,7 +58,7 @@ public:
 
 protected:
     Token _expect(TokenType tt);
-    std::tuple<Token, bool> __match(TokenType) {
+    std::tuple<Token, bool> __match(const Token&) {
         return {Token{}, false};
     }
     template<typename First, typename... Rest>

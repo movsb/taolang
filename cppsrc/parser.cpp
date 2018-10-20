@@ -146,7 +146,15 @@ BaseStatement* Parser::_parseStatement(bool global) {
 
     {
         auto expr = _parseExpression(Precedence::Assignment);
-        // TODO
+        Token tk;
+        bool match;
+        std::tie(tk, match) = _match(ttSemicolon);
+        if(match) {
+            auto es = new ExpressionStatement();
+            es->_expr = expr;
+            return es;
+        }
+        _expect(ttSemicolon);
     }
 
     throw SyntaxError("unknown statement at line: %d", tk.line);

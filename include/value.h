@@ -62,13 +62,13 @@ struct IString {
     virtual void String() = 0;
 };
 
-typedef Value* BuiltinFunction(IObject* that, Context* ctx, Values* args);
+typedef Value* (*BuiltinFunction)(void* that, Context* ctx, Values* args);
 
 class Builtin : public ICallable {
 public:
-    IObject* _that;
+    void* _that;
     std::string _name;
-    BuiltinFunction* _func;
+    BuiltinFunction _func;
 public:
     virtual Value* Execute(Context* ctx, Values* args) override;
 };
@@ -81,13 +81,13 @@ public:
     union {
         bool b;
         int64_t i;
-        std::string str;
-        std::string var;
-        KeyGetter* obj;
+        IObject* obj;
         EvaluatedFunctionExpression* func;
         Builtin* bi;
         Constructor* ctor;
     };
+    std::string str;
+    std::string var;
 
 public:
     static Value* fromNil() {
@@ -121,13 +121,23 @@ public:
         v->var = s;
         return v;
     }
-    static Value* fromObject(KeyGetter* getter) {
+    static Value* fromObject(IObject* obj) {
         auto v = new Value();
         v->type = ValueType::Object;
-        v->obj = getter;
+        v->obj = obj;
         return v;
     }
     static Value* fromFunction(FunctionExpression* func, Context* closure);
+    static Value* fromBuiltin(void* that, const std::string& name, BuiltinFunction func) {
+        auto v = new Value();
+        v->type = ValueType::Builtin;
+        auto bi = new Builtin();
+        bi->_that = that;
+        bi->_name = name;
+        bi->_func = func;
+        v->bi = bi;
+        return v;
+    }
 
 public:
     bool isNil() {
@@ -183,7 +193,7 @@ public:
         checkType(ValueType::Variable);
         return str;
     }
-    KeyGetter* object() {
+    IObject* object() {
         checkType(ValueType::Object);
         return obj;
     }

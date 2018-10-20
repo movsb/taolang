@@ -25,6 +25,7 @@ public:
     Value* MustFind(const std::string& name, bool outer);
     Value* FromGlobal(const std::string& name);
     void AddSymbol(const std::string& name, Value* value);
+    void AddObject(const std::string& name, IObject* obj);
     void SetSymbol(const std::string& name, Value* value);
     void SetParent(Context* parent);
     void SetReturn(Value* value);

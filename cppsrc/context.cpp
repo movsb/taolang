@@ -41,6 +41,10 @@ void Context::AddSymbol(const std::string& name, Value* value) {
     _symbols.push_back({name, value});
 }
 
+void Context::AddObject(const std::string& name, IObject* obj) {
+    AddSymbol(name, Value::fromObject(obj));
+}
+
 void Context::SetSymbol(const std::string& name, Value* value) {
     for(auto& symbol : _symbols) {
         if(symbol.name == name) {
