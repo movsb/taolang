@@ -187,7 +187,7 @@ Value* TernaryExpression::Evaluate(Context* ctx) {
 }
 
 Value* NewExpression::Evaluate(Context* ctx) {
-    // TODO
+    throw Error("new()");
 }
 
 Value* AssignmentExpression::Evaluate(Context* ctx) {
@@ -219,7 +219,7 @@ Value* FunctionExpression::Execute(Context* ctx, Values* args) {
 }
 
 Value* ObjectExpression::Evaluate(Context* ctx) {
-    auto obj = new Object();
+    auto obj = Object::New();
     for(auto& prop : _props) {
         obj->SetKey(prop.first, prop.second->Evaluate(ctx));
     }

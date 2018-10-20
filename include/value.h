@@ -47,33 +47,34 @@ struct ICallable {
     virtual Value* Execute(Context* ctx, Values* args) = 0;
 };
 
-struct IObject {
+struct IString {
+    virtual std::string ToString() = 0;
+};
+
+struct IObject : public IString {
+    virtual std::string TypeName() = 0;
     virtual Value* GetKey(const std::string& key) = 0;
     virtual void SetKey(const std::string& key, Value* val) = 0;
 };
 
-struct IArray {
+struct IArray : public IObject {
     virtual int Len() = 0;
     virtual Value* GetElem(int pos) = 0;
     virtual void SetElem(int pos, Value* val) = 0;
 };
 
-struct IString {
-    virtual void String() = 0;
-};
-
-typedef Value* (*BuiltinFunction)(void* that, Context* ctx, Values* args);
+typedef Value* (*BuiltinFunction)(IObject* that, Context* ctx, Values* args);
 
 class Builtin : public ICallable {
 public:
-    void* _that;
+    IObject* _that;
     std::string _name;
     BuiltinFunction _func;
 public:
     virtual Value* Execute(Context* ctx, Values* args) override;
 };
 
-class Value : public IExpression {
+class Value : public IExpression, IString {
 public:
     Value() {}
 public:
@@ -134,7 +135,7 @@ public:
         return v;
     }
     static Value* fromFunction(FunctionExpression* func, Context* closure);
-    static Value* fromBuiltin(void* that, const std::string& name, BuiltinFunction func) {
+    static Value* fromBuiltin(IObject* that, const std::string& name, BuiltinFunction func) {
         auto v = new Value();
         v->type = ValueType::Builtin;
         auto bi = new Builtin();
@@ -233,7 +234,7 @@ public:
         return typeNames[type];
     }
 
-    std::string String();
+    virtual std::string ToString() override;
     bool truth(Context* ctx);
 };
 

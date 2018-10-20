@@ -55,6 +55,38 @@ ICallable* Value::callable() {
     }
 }
 
+std::string Value::ToString() {
+    switch(type) {
+    case ValueType::Nil:
+        return "nil";
+    case ValueType::Boolean:
+        return boolean() ? "true" : "false";
+    case ValueType::Number:
+        return std::to_string(number());
+    case ValueType::String:
+        return string();
+    case ValueType::Function: {
+            auto f = function()->_func->_name;
+            return "function(" + (!f.empty() ? f : "\"\"") + ")";
+        }
+    case ValueType::Builtin: {
+            auto o = builtin()->_that->TypeName();
+            auto p = builtin()->_name;
+            return "builtin(" + o + "." + p + ")";
+        }
+    case ValueType::Object:
+        return static_cast<IString*>(object())->ToString();
+    case ValueType::Array:
+        return static_cast<IString*>(array())->ToString();
+    case ValueType::Variable:
+        return variable();
+    case ValueType::Class:
+        break;
+    }
+
+    throw Error("unknown value type to stringify");
+}
+
 bool Value::truth(Context* ctx) {
     switch(type) {
     case ValueType::Nil:

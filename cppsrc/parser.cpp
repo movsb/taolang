@@ -575,6 +575,7 @@ NewExpression* Parser::_parseNewExpression() {
 
 FunctionExpression* Parser::_tryParseLambdaExpression(bool must) {
     _enter();
+    throw Error("_tryParseLambdaExpression");
 }
 
 IndexExpression* Parser::_parseIndexExpression(IExpression* left) {
