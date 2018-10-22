@@ -77,7 +77,10 @@ public:
     {}
     ExprType type;
     virtual void Assign(Context* ctx, Value* value) override {
-        throw NotAssignableError();
+        throw NotAssignableError(
+            "%s is not assignable",
+            value->ToString().c_str()
+        );
     }
 };
 

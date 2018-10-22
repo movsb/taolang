@@ -21,7 +21,7 @@ Value* Context::FindSymbol(const std::string& name, bool outer) {
 Value* Context::MustFind(const std::string& name, bool outer) {
     auto val = FindSymbol(name, outer);
     if(val == nullptr) {
-        throw NameError("name %s not defined", name.c_str());
+        throw NameError("name `%s' not defined", name.c_str());
     }
     return val;
 }
@@ -29,7 +29,7 @@ Value* Context::MustFind(const std::string& name, bool outer) {
 Value* Context::FromGlobal(const std::string& name) {
     auto global = MustFind("global", true);
     if(!global->isObject()) {
-        throw TypeError("global is not an object");
+        throw TypeError("`global' is not an object");
     }
     auto obj = global->object();
     return obj->GetKey(name);

@@ -41,7 +41,7 @@ Value* Value::Evaluate(Context* ctx) {
 }
 
 void Value::Assign(Context* ctx, Value* val) {
-    throw NotAssignableError();
+    throw NotAssignableError("");
 }
 
 ICallable* Value::callable() {
@@ -51,7 +51,11 @@ ICallable* Value::callable() {
     case ValueType::Builtin:
         return bi;
     default:
-        throw NotCallableError();
+        throw NotCallableError(
+            "`%s' (type: %s) is not callable",
+            ToString().c_str(),
+            TypeName().c_str()
+        );
     }
 }
 

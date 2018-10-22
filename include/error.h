@@ -7,14 +7,16 @@
 
 namespace taolang {
 
-#define __fmt_args() \
-    do {                        \
-        static char _buf[1024]; \
-        va_list va;             \
-        va_start(va, format);   \
-        std::vsnprintf(&_buf[0], sizeof(_buf)/sizeof(_buf[0]), format, va); \
+extern char _err_buf[];
+extern const int _err_buf_size;
+
+#define __fmt_args(prefix) \
+    do {                          \
+        va_list va;               \
+        va_start(va, format);     \
+        std::vsnprintf(&_err_buf[0], _err_buf_size, format, va); \
         va_end(va);     \
-        _what = _buf;   \
+        _what = std::string(prefix) + _err_buf; \
     } while((0))
 
 struct Error : public std::exception {
@@ -30,49 +32,43 @@ struct Error : public std::exception {
 
 struct SyntaxError : public Error {
     SyntaxError(const char* format, ...) {
-        __fmt_args();
+        __fmt_args("SyntaxError: ");
     }
 };
 
 struct NameError : public Error {
     NameError(const char* format, ...) {
-        __fmt_args();
+        __fmt_args("NameError: ");
     }
 };
 
 struct TypeError : public Error {
     TypeError(const char* format, ...) {
-        __fmt_args();
+        __fmt_args("TypeError: ");
     }
 };
 
 struct NotCallableError : public Error {
-    NotCallableError() {
-
+    NotCallableError(const char* format, ...) {
+        __fmt_args("NotCallableError: ");
     }
 };
 
 struct NotIndexableError : public Error {
-    NotIndexableError() {
-
+    NotIndexableError(const char* format, ...) {
+        __fmt_args("NotIndexableError: ");
     }
 };
 
 struct NotAssignableError : public Error {
-    NotAssignableError() {
-
+    NotAssignableError(const char* format, ...) {
+        __fmt_args("NotAssignableError: ");
     }
 };
 
 struct RangeError : public Error {
-    RangeError(const std::string& e) {
-        _what = e;
-    }
-};
-
-struct KeyTypeError : public Error {
-    KeyTypeError() {
-
+    RangeError(const char* format, ...) {
+        __fmt_args("RangeError: ");
     }
 };
 

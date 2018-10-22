@@ -52,7 +52,10 @@ Value* IncrementExpression::Evaluate(Context* ctx) {
         _expr->Assign(ctx, newval);
         return _prefix ? newval : oldval;
     }
-    throw NotAssignableError();
+    throw NotAssignableError(
+        "`%s' is not assignable",
+        oldval->ToString().c_str()
+    );
 }
 
 Value* BinaryExpression::Evaluate(Context* ctx) {
@@ -160,20 +163,17 @@ Value* BinaryExpression::Evaluate(Context* ctx) {
         return _right->Evaluate(ctx);
     }
 
-    // TODO
     if(lt == ValueType::Builtin && rt == ValueType::Builtin) {
-        /*
-        p1 := reflect.ValueOf(lv->builtin().fn).Pointer()
-        p2 := reflect.ValueOf(rv->builtin().fn).Pointer()
-        switch op {
+        auto p1 = lv->builtin()->_func;
+        auto p2 = rv->builtin()->_func;
+        switch(_op) {
         case ttEqual:
-            return Value::fromBoolean(p1 == p2)
+            return Value::fromBoolean(p1 == p2);
         case ttNotEqual:
-            return Value::fromBoolean(p1 != p2)
+            return Value::fromBoolean(p1 != p2);
         default:
             throw SyntaxError("not supported operator on two builtins");
         }
-        */
     }
 
     throw SyntaxError("unknown binary operator and operands");
@@ -236,7 +236,10 @@ Value* CallExpression::Evaluate(Context* ctx) {
         callable = callable->Evaluate(ctx);
     }
     if(!callable->isCallable()) {
-        throw NotCallableError();
+        throw NotCallableError(
+            "`%s' is not callable",
+            callable->ToString().c_str()
+        );
     }
     auto newCtx = new Context(nullptr);
     auto args = _args.EvaluateAll(ctx);
@@ -275,7 +278,11 @@ Value* IndexExpression::Evaluate(Context* ctx) {
         return arr->GetElem(key->number());
     }
 
-    throw KeyTypeError();
+    throw TypeError(
+        "cannot use `%s' (type: %s) as key",
+        key->ToString().c_str(),
+        key->TypeName().c_str()
+    );
 }
 
 void IndexExpression::Assign(Context* ctx, Value* value) {
@@ -293,7 +300,10 @@ void IndexExpression::Assign(Context* ctx, Value* value) {
     }
 
     if(!obj && !arr) {
-        throw NotAssignableError();
+        throw NotAssignableError(
+            "`%s' is not assignable",
+            indexable->ToString().c_str()
+        );
     }
 
     if(key->isString() && obj != nullptr) {
@@ -303,7 +313,11 @@ void IndexExpression::Assign(Context* ctx, Value* value) {
         return arr->SetElem(key->number(), value);
     }
 
-    throw KeyTypeError();
+    throw TypeError(
+        "cannot use `%s' (type: %s) as key",
+        key->ToString().c_str(),
+        key->TypeName().c_str()
+    );
 }
 
 }

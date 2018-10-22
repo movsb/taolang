@@ -454,7 +454,10 @@ IExpression* Parser::_parsePrimaryExpression() {
         expr = _parseArrayExpression();
         break;
     default:
-        throw SyntaxError("unexpected token");
+        throw SyntaxError(
+            "unexpected token: %s",
+            next.string().c_str()
+        );
     }
 
     return expr;
