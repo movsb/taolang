@@ -85,7 +85,7 @@ func (c *Context) AddSymbol(name string, value Value) {
 }
 
 // AddObject adds an object into context.
-func (c *Context) AddObject(name string, obj KeyGetter) {
+func (c *Context) AddObject(name string, obj IObject) {
 	c.AddSymbol(name, ValueFromObject(obj))
 }
 

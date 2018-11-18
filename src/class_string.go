@@ -15,27 +15,42 @@ func NewString(s string) *String {
 	return &String{s: s}
 }
 
-// GetKey implements KeyGetter.
-func (s *String) GetKey(key string) Value {
+// GetProp implements IObject.
+func (s *String) GetProp(key string) Value {
 	if fn, ok := _stringMethods[key]; ok {
 		return ValueFromBuiltin(s, key, fn)
 	}
 	return ValueFromNil()
 }
 
-// Len implements ElemGetter & ElemSetter.
+// SetProp implements IObject.
+func (s *String) SetProp(key string, val Value) {
+	panic(NewNotAssignableError(ValueFromString(s.s)))
+}
+
+// Len implements IArray.
 func (s *String) Len() int {
 	s.initChars()
 	return len(s.c)
 }
 
-// GetElem implements ElemGetter.
+// GetElem implements IArray.
 func (s *String) GetElem(pos int) Value {
 	s.initChars()
 	if pos < 0 || pos > len(s.c)-1 {
 		panic(NewRangeError("character index out of range"))
 	}
 	return ValueFromString(string(s.c[pos]))
+}
+
+// SetElem implements IArray.
+func (s *String) SetElem(pos int, val Value) {
+	panic(NewNotAssignableError(ValueFromString(s.s)))
+}
+
+// PushElem implements IArray.
+func (s *String) PushElem(val Value) {
+	panic(NewNotAssignableError(ValueFromString(s.s)))
 }
 
 func (s *String) initChars() {

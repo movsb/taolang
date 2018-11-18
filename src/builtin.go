@@ -27,7 +27,7 @@ func (b *Builtin) Execute(ctx *Context, args *Values) Value {
 
 // Constructable is constructable.
 type Constructable interface {
-	Construct(ctx *Context, args *Values) KeyGetter
+	Construct(ctx *Context, args *Values) IObject
 }
 
 // Constructor is a class constructor.
@@ -42,6 +42,6 @@ type BuiltinConstructor struct {
 }
 
 // Construct implements Constructable.
-func (c BuiltinConstructor) Construct(ctx *Context, args *Values) KeyGetter {
+func (c BuiltinConstructor) Construct(ctx *Context, args *Values) IObject {
 	return c.ctor(nil, ctx, args).object()
 }

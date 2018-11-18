@@ -421,27 +421,27 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 
 	// both obj.key, obj[0] are correct.
 	// so, we need to query both interfaces.
-	keyable, _ := indexable.value.(KeyGetter)
-	elemable, _ := indexable.value.(ElemGetter)
+	obj, _ := indexable.value.(IObject)
+	arr, _ := indexable.value.(IArray)
 
 	// get property
-	if key.Type == vtString && keyable != nil {
-		return keyable.GetKey(key.str().s)
+	if key.Type == vtString && obj != nil {
+		return obj.GetProp(key.str().s)
 	}
 
 	// get element
-	if key.Type == vtNumber && elemable != nil {
-		return elemable.GetElem(key.number())
+	if key.Type == vtNumber && arr != nil {
+		return arr.GetElem(key.number())
 	}
 
-	if keyable == nil && elemable == nil {
+	if obj == nil && arr == nil {
 		panic(NewNotIndexableError(indexable))
 	}
 
-	if keyable != nil && key.Type != vtString {
+	if obj != nil && key.Type != vtString {
 		panic(NewKeyTypeError(key))
 	}
-	if elemable != nil && key.Type != vtNumber {
+	if arr != nil && key.Type != vtNumber {
 		panic(NewKeyTypeError(key))
 	}
 
@@ -451,18 +451,18 @@ func (i *IndexExpression) Evaluate(ctx *Context) Value {
 // Assign implements Assigner.
 func (i *IndexExpression) Assign(ctx *Context, val Value) {
 	value := i.indexable.Evaluate(ctx)
-	keyable, ok1 := value.value.(KeyAssigner)
-	elemable, ok2 := value.value.(ElemAssigner)
+	obj, ok1 := value.value.(IObject)
+	arr, ok2 := value.value.(IArray)
 	if !ok1 && !ok2 {
 		panic(NewNotAssignableError(value))
 	}
 	key := i.key.Evaluate(ctx)
-	if key.isString() && keyable != nil {
-		keyable.KeyAssign(key.str().s, val)
+	if key.isString() && obj != nil {
+		obj.SetProp(key.str().s, val)
 		return
 	}
-	if key.isNumber() && elemable != nil {
-		elemable.ElemAssign(key.number(), val)
+	if key.isNumber() && arr != nil {
+		arr.SetElem(key.number(), val)
 		return
 	}
 	panic(NewKeyTypeError(key))

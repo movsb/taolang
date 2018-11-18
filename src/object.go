@@ -6,37 +6,18 @@ import (
 	"sort"
 )
 
-// KeyGetter is implemented by those who supports key getters.
-type KeyGetter interface {
-	GetKey(key string) Value
+// IObject is implemented by all objects.
+type IObject interface {
+	GetProp(key string) Value
+	SetProp(key string, val Value)
 }
 
-// KeySetter is implemented by those who supports key setters.
-type KeySetter interface {
-	SetKey(key string, val Value)
-}
-
-// ElemGetter is implemented by those who supports element getters.
-type ElemGetter interface {
+// IArray is implemented by all arrays.
+type IArray interface {
 	Len() int
 	GetElem(pos int) Value
-}
-
-// ElemSetter is implemented by those who supports element setters.
-type ElemSetter interface {
-	Len() int
 	SetElem(pos int, val Value)
 	PushElem(val Value)
-}
-
-// KeyAssigner is implemented by those who can be assigned.
-type KeyAssigner interface {
-	KeyAssign(key string, val Value)
-}
-
-// ElemAssigner is implemented by those who can be assigned.
-type ElemAssigner interface {
-	ElemAssign(elem int, val Value)
 }
 
 // Callable is a callable.
@@ -66,8 +47,8 @@ func NewArray(elems ...Value) *Object {
 	return o
 }
 
-// GetKey gets a value by key.
-func (o *Object) GetKey(key string) Value {
+// GetProp gets a property by key.
+func (o *Object) GetProp(key string) Value {
 	if o.array {
 		if key == "length" {
 			return ValueFromNumber(o.Len())
@@ -82,14 +63,9 @@ func (o *Object) GetKey(key string) Value {
 	return ValueFromNil()
 }
 
-// SetKey sets a value by key.
-func (o *Object) SetKey(key string, val Value) {
+// SetProp sets a property by key.
+func (o *Object) SetProp(key string, val Value) {
 	o.props[key] = val
-}
-
-// KeyAssign implements KeyAssigner.
-func (o *Object) KeyAssign(key string, val Value) {
-	o.SetKey(key, val)
 }
 
 // Len implements ElemGetter/ElemSetter.
@@ -413,7 +389,7 @@ func _arrayGroupBy(this interface{}, ctx *Context, args *Values) Value {
 	group := NewArray()
 	for _, key := range keys {
 		obj := NewArray()
-		obj.SetKey("group", key)
+		obj.SetProp("group", key)
 		obj.elems = maps[key.CmpKey()]
 		group.PushElem(ValueFromObject(obj))
 	}
