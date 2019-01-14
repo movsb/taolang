@@ -59,10 +59,10 @@ func (s *String) initChars() {
 	}
 }
 
-var _stringMethods map[string]BuiltinFunction
+var _stringMethods map[string]Method
 
 func init() {
-	_stringMethods = map[string]BuiltinFunction{
+	_stringMethods = map[string]Method{
 		"len":   _stringLen,
 		"lower": _stringLower,
 	}

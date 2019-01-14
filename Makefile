@@ -19,7 +19,3 @@ examples: tao
 .PHONY: main
 main: tao
 	@./bin/tao main.tao
-
-.PHONY: wait
-wait: tao
-	@./bin/tao --wait main.tao

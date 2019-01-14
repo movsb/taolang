@@ -98,7 +98,7 @@ func ValueFromFunction(fn *FunctionExpression, this *Context) Value {
 }
 
 // ValueFromBuiltin creates a builtin function value.
-func ValueFromBuiltin(this interface{}, name string, fn BuiltinFunction) Value {
+func ValueFromBuiltin(this interface{}, name string, fn Method) Value {
 	return Value{
 		Type: vtBuiltin,
 		value: &Builtin{

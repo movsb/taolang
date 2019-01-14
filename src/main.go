@@ -6,16 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"time"
 )
-
-// the message queue.
-var queue = make(chan func(), 16)
-
-// Async queues and calls the callback within main thread.
-func Async(callback func()) {
-	queue <- callback
-}
 
 func exec(input io.ReadCloser) {
 	defer input.Close()
@@ -35,10 +26,6 @@ func exec(input io.ReadCloser) {
 }
 
 func main() {
-	var wait bool
-	flag.BoolVar(&wait, "wait", false, "wait to exit")
-	flag.Parse()
-
 	var err error
 	var file io.ReadCloser
 
@@ -51,18 +38,5 @@ func main() {
 		}
 	}
 
-	if wait {
-		queue <- func() {
-			exec(file)
-		}
-		for {
-			select {
-			case fn := <-queue:
-				fn()
-			case <-time.After(time.Hour):
-			}
-		}
-	} else {
-		exec(file)
-	}
+	exec(file)
 }

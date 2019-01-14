@@ -1,17 +1,17 @@
 package main
 
-// BuiltinFunction is a language-supplied function.
-type BuiltinFunction func(this interface{}, ctx *Context, args *Values) Value
+// Method is a language-supplied function.
+type Method func(this interface{}, ctx *Context, args *Values) Value
 
 // Builtin is a builtin function.
 type Builtin struct {
-	this interface{}     // The owner, if one exists
-	name string          // The name of the builtin
-	fn   BuiltinFunction // The function
+	this interface{} // The owner, if one exists
+	name string      // The name of the builtin
+	fn   Method      // The function
 }
 
 // NewBuiltin news a Builtin.
-func NewBuiltin(this interface{}, name string, fn BuiltinFunction) *Builtin {
+func NewBuiltin(this interface{}, name string, fn Method) *Builtin {
 	return &Builtin{
 		this: this,
 		name: name,
@@ -38,7 +38,7 @@ type Constructor struct {
 
 // BuiltinConstructor is a builtin constructor.
 type BuiltinConstructor struct {
-	ctor BuiltinFunction
+	ctor Method
 }
 
 // Construct implements Constructable.

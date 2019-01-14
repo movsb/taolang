@@ -143,10 +143,10 @@ func (o *Object) String() string {
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
 // Javascript array methods.
 
-var _arrayMethods map[string]BuiltinFunction
+var _arrayMethods map[string]Method
 
 func init() {
-	_arrayMethods = map[string]BuiltinFunction{
+	_arrayMethods = map[string]Method{
 		"each":    _arrayEach,
 		"filter":  _arrayFilter,
 		"find":    _arrayFind,
