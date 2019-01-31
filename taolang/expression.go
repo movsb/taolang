@@ -1,4 +1,4 @@
-package main
+package taolang
 
 import (
 	"math"
@@ -268,9 +268,8 @@ func (e *NewExpression) Evaluate(ctx *Context) Value {
 	if !ctorValue.isConstructor() {
 		panic(NewSyntaxError("%s is not a constructor", e.Type))
 	}
-	ctor := ctorValue.constructor().Ctor
 	args := e.Args.EvaluateAll(ctx)
-	obj := ctor.Construct(ctx, &args)
+	obj := ctorValue.constructable().Ctor(args.values...)
 	return ValueFromObject(obj)
 }
 

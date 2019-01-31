@@ -1,4 +1,4 @@
-package main
+package taolang
 
 import (
 	"fmt"
@@ -110,10 +110,10 @@ func ValueFromBuiltin(this interface{}, name string, fn Method) Value {
 }
 
 // ValueFromClass creates a class type value.
-func ValueFromClass(name string, ctor Constructable) Value {
+func ValueFromClass(name string, ctor Constructor) Value {
 	return Value{
 		Type: vtClass,
-		value: &Constructor{
+		value: &Constructable{
 			Name: name,
 			Ctor: ctor,
 		},
@@ -201,9 +201,9 @@ func (v Value) builtin() *Builtin {
 	return v.value.(*Builtin)
 }
 
-func (v Value) constructor() *Constructor {
+func (v Value) constructable() *Constructable {
 	v.checkType(vtClass)
-	return v.value.(*Constructor)
+	return v.value.(*Constructable)
 }
 
 // callable returns a callable if value is callable.
@@ -231,7 +231,7 @@ func (v Value) Evaluate(ctx *Context) Value {
 	case vtBuiltin:
 		return v
 	case vtClass:
-		panic(NewSyntaxError("%s is a constructor", v.constructor().Name))
+		panic(NewSyntaxError("%s is a constructor", v.constructable().Name))
 	default:
 		// TODO
 		panic(NewTypeError("cannot evaluate value on type"))
@@ -288,7 +288,7 @@ func (v Value) String() string {
 	case vtObject:
 		return reflect.TypeOf(v.value).Elem().Name()
 	case vtClass:
-		return fmt.Sprintf("class(%s)", v.constructor().Name)
+		return fmt.Sprintf("class(%s)", v.constructable().Name)
 	}
 
 	return fmt.Sprintf("unknown value")

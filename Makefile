@@ -1,8 +1,8 @@
 nothing:
 
 .PHONY: tao
-tao: ./bin/tao
-	@cd src && go build -o ../bin/tao
+tao:
+	@cd main && go build -o ../bin/tao
 
 .PHONY: web
 web:
@@ -18,8 +18,11 @@ examples: tao
 
 .PHONY: main
 main: tao
-	@./bin/tao main.tao
+	@./bin/tao --main main.tao
 
 .PHONY: repl
 repl: tao
 	@./bin/tao
+
+.PHONY: all
+all: tao web tests examples

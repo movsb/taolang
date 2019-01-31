@@ -1,4 +1,4 @@
-package main
+package taolang
 
 import (
 	"bytes"
@@ -25,6 +25,40 @@ type Callable interface {
 	Execute(ctx *Context, args *Values) Value
 }
 
+// Method is a language-supplied function.
+type Method func(this interface{}, ctx *Context, args *Values) Value
+
+// Builtin is a builtin function.
+type Builtin struct {
+	this interface{} // The owner, if one exists
+	name string      // The name of the builtin
+	fn   Method      // The function
+}
+
+// NewBuiltin news a Builtin.
+func NewBuiltin(this interface{}, name string, fn Method) *Builtin {
+	return &Builtin{
+		this: this,
+		name: name,
+		fn:   fn,
+	}
+}
+
+// Execute executes the builtin.
+// It implements Callable.
+func (b *Builtin) Execute(ctx *Context, args *Values) Value {
+	return b.fn(b.this, ctx, args)
+}
+
+// Constructor is a constructable.
+type Constructor func(args ...Value) IObject
+
+// Constructable is a class constructor.
+type Constructable struct {
+	Name string
+	Ctor Constructor
+}
+
 // Object is either an object or an array.
 type Object struct {
 	elems []Value          // array elements
@@ -39,12 +73,22 @@ func NewObject() *Object {
 	return o
 }
 
+// CreateObject news an object.
+func CreateObject(args ...Value) IObject {
+	return NewObject()
+}
+
 // NewArray news an array.
 func NewArray(elems ...Value) *Object {
 	o := NewObject()
 	o.array = true
 	o.elems = elems
 	return o
+}
+
+// CreateArray news an array.
+func CreateArray(args ...Value) IObject {
+	return NewArray(args...)
 }
 
 // GetProp gets a property by key.
@@ -143,24 +187,20 @@ func (o *Object) String() string {
 // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array
 // Javascript array methods.
 
-var _arrayMethods map[string]Method
-
-func init() {
-	_arrayMethods = map[string]Method{
-		"each":    _arrayEach,
-		"filter":  _arrayFilter,
-		"find":    _arrayFind,
-		"groupBy": _arrayGroupBy,
-		"join":    _arrayJoin,
-		"map":     _arrayMap,
-		"push":    _arrayPush,
-		"pop":     _arrayPop,
-		"reduce":  _arrayReduce,
-		"select":  _arraySelect,
-		"splice":  _arraySplice,
-		"unshift": _arrayUnshift,
-		"where":   _arrayWhere,
-	}
+var _arrayMethods = map[string]Method{
+	"each":    _arrayEach,
+	"filter":  _arrayFilter,
+	"find":    _arrayFind,
+	"groupBy": _arrayGroupBy,
+	"join":    _arrayJoin,
+	"map":     _arrayMap,
+	"push":    _arrayPush,
+	"pop":     _arrayPop,
+	"reduce":  _arrayReduce,
+	"select":  _arraySelect,
+	"splice":  _arraySplice,
+	"unshift": _arrayUnshift,
+	"where":   _arrayWhere,
 }
 
 // Splice changes the contents of an array by removing existing elements and/or adding new elements.

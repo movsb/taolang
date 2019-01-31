@@ -1,4 +1,4 @@
-package main
+package taolang
 
 // Statement is implemented by those who can execute.
 type Statement interface {

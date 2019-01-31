@@ -1,4 +1,4 @@
-package main
+package taolang
 
 import (
 	"strings"
@@ -13,6 +13,14 @@ type String struct {
 // NewString news a string object.
 func NewString(s string) *String {
 	return &String{s: s}
+}
+
+// CreateString news a string object.
+func CreateString(args ...Value) IObject {
+	if len(args) >= 1 {
+		return NewString(args[0].str().s)
+	}
+	return NewString("")
 }
 
 // GetProp implements IObject.
@@ -59,13 +67,9 @@ func (s *String) initChars() {
 	}
 }
 
-var _stringMethods map[string]Method
-
-func init() {
-	_stringMethods = map[string]Method{
-		"len":   _stringLen,
-		"lower": _stringLower,
-	}
+var _stringMethods = map[string]Method{
+	"len":   _stringLen,
+	"lower": _stringLower,
 }
 
 // Len lens the string.

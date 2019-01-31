@@ -1,4 +1,4 @@
-package main
+package taolang
 
 import (
 	"io"
@@ -32,6 +32,9 @@ func NewProgram() *Program {
 	p.globalContext = NewContext("--global--", nil)
 	p.globalObject = NewGlobal()
 	p.globalContext.AddObject("global", p.globalObject)
+	p.globalContext.AddClass("Object", CreateObject)
+	p.globalContext.AddClass("Array", CreateArray)
+	p.globalContext.AddClass("String", CreateString)
 	return p
 }
 

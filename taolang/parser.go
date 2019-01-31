@@ -1,4 +1,4 @@
-package main
+package taolang
 
 // Precedence is operator precedence table.
 type Precedence uint

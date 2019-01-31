@@ -1,4 +1,4 @@
-package main
+package taolang
 
 // Symbol is a named value in the context.
 type Symbol struct {
@@ -90,7 +90,7 @@ func (c *Context) AddObject(name string, obj IObject) {
 }
 
 // AddClass adds a callable into context.
-func (c *Context) AddClass(name string, ctor Constructable) {
+func (c *Context) AddClass(name string, ctor Constructor) {
 	c.AddSymbol(name, ValueFromClass(name, ctor))
 }
 

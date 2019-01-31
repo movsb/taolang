@@ -6,6 +6,8 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+
+	"github.com/movsb/taolang/taolang"
 )
 
 func main() {
@@ -28,7 +30,7 @@ func main() {
 	}
 
 	defer file.Close()
-	program := NewProgram()
+	program := taolang.NewProgram()
 	err = program.LoadInput(file)
 	if err != nil {
 		fmt.Println(err)
