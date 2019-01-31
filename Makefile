@@ -19,3 +19,7 @@ examples: tao
 .PHONY: main
 main: tao
 	@./bin/tao main.tao
+
+.PHONY: repl
+repl: tao
+	@./bin/tao

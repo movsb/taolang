@@ -8,26 +8,15 @@ import (
 	"os"
 )
 
-func exec(input io.ReadCloser) {
-	defer input.Close()
-	tokenizer := NewTokenizer(input)
-	parser := NewParser(tokenizer)
-	program, err := parser.Parse()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	ret, err := program.Execute()
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	_ = ret
-}
-
 func main() {
 	var err error
 	var file io.ReadCloser
+
+	var doMain bool
+	flag.BoolVar(&doMain, "m", false, "run main")
+	flag.BoolVar(&doMain, "main", false, "run main")
+
+	flag.Parse()
 
 	if flag.NArg() == 0 || flag.NArg() == 1 && flag.Arg(0) == "-" {
 		file = ioutil.NopCloser(os.Stdin)
@@ -38,5 +27,18 @@ func main() {
 		}
 	}
 
-	exec(file)
+	defer file.Close()
+	program := NewProgram()
+	err = program.LoadInput(file)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(-1)
+	}
+	if doMain {
+		_, err := program.CallFunc("main")
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(-1)
+		}
+	}
 }

@@ -101,26 +101,26 @@ func NewParser(tokenizer *Tokenizer) *Parser {
 	}
 }
 
-// Parse does parse the input tokens.
-func (p *Parser) Parse() (program *Program, err interface{}) {
-	defer func() {
-		err = recover()
-	}()
+// Parse does parse the input tokens, as a chunk.
+func (p *Parser) Parse() (chunk *Chunk, err error) {
+	defer catchAsError(&err)
 
-	program = &Program{}
+	chunk = &Chunk{}
+
 	for {
 		if p.follow(ttEOF) {
 			break
 		}
-		stmt := p.parseStatement(true)
-		program.stmts = append(program.stmts, stmt)
+		stmt := p.parseStatement()
+		chunk.stmts = append(chunk.stmts, stmt)
 	}
+
 	tk := p.next()
 	if tk.typ != ttEOF {
 		panic(NewSyntaxError("unexpected token: %v", tk))
 	}
 
-	return program, nil
+	return chunk, nil
 }
 
 func (p *Parser) expect(tt TokenType) Token {
@@ -189,7 +189,7 @@ func (p *Parser) getPrecedence(op TokenType) (prec Precedence, ok bool) {
 	return
 }
 
-func (p *Parser) parseStatement(global bool) Statement {
+func (p *Parser) parseStatement() Statement {
 	tk := p.peek()
 
 	switch tk.typ {
@@ -200,10 +200,6 @@ func (p *Parser) parseStatement(global bool) Statement {
 	case ttSemicolon:
 		p.next()
 		return &EmptyStatement{}
-	}
-
-	if global {
-		panic(NewSyntaxError("non-global statement"))
 	}
 
 	switch tk.typ {
@@ -278,7 +274,7 @@ func (p *Parser) parseBlockStatement() (stmt *BlockStatement) {
 		if p.follow(ttRightBrace) {
 			break
 		}
-		stmt := p.parseStatement(false)
+		stmt := p.parseStatement()
 		block.stmts = append(block.stmts, stmt)
 	}
 	p.expect(ttRightBrace)
@@ -419,7 +415,7 @@ func (p *Parser) parseSwitchStatement() *SwitchStatement {
 				p.undo(tk)
 				break
 			}
-			stmt := p.parseStatement(false)
+			stmt := p.parseStatement()
 			group.block.stmts = append(group.block.stmts, stmt)
 		}
 		p.breakCount--

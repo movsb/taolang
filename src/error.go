@@ -4,6 +4,19 @@ import (
 	"fmt"
 )
 
+func catchAsError(p *error) {
+	e := recover()
+	if e != nil {
+		if err, ok := e.(error); ok {
+			*p = err
+			return
+		}
+		*p = fmt.Errorf("%v", e)
+	}
+	*p = nil
+	return
+}
+
 // SyntaxError is
 type SyntaxError struct {
 	err string
