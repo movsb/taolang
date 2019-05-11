@@ -39,7 +39,7 @@ func main() {
 		}
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 		defer cancel()
-		cmd := exec.CommandContext(ctx, "./bin/tao")
+		cmd := exec.CommandContext(ctx, "./bin/tao", "--main")
 		cmd.Stdin = strings.NewReader(data.Source)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
