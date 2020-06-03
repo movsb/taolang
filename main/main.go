@@ -34,13 +34,13 @@ func main() {
 	err = program.LoadInput(file)
 	if err != nil {
 		fmt.Println(err)
-		os.Exit(-1)
+		os.Exit(1)
 	}
 	if doMain {
 		_, err := program.CallFunc("main")
 		if err != nil {
 			fmt.Println(err)
-			os.Exit(-1)
+			os.Exit(1)
 		}
 	}
 }

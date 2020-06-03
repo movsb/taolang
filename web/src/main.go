@@ -43,7 +43,7 @@ func main() {
 		cmd.Stdin = strings.NewReader(data.Source)
 		output, err := cmd.CombinedOutput()
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, fmt.Sprint(err))
+			c.String(http.StatusBadRequest, "%s\n%s\n", string(output), err.Error())
 			return
 		}
 		c.String(http.StatusOK, "%s", string(output))
