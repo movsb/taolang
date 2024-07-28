@@ -2,6 +2,7 @@ package taolang
 
 import (
 	"fmt"
+	"io"
 )
 
 // Global is the global object.
@@ -32,12 +33,22 @@ func (g *Global) SetProp(key string, val Value) {
 	g.props[key] = val
 }
 
+var Stdout io.Writer
+
 func _globalPrint(this interface{}, ctx *Context, args *Values) Value {
-	fmt.Print(args.All()...)
+	if Stdout != nil {
+		fmt.Fprint(Stdout, args.All()...)
+	} else {
+		fmt.Print(args.All()...)
+	}
 	return ValueFromNil()
 }
 
 func _globalPrintln(this interface{}, ctx *Context, args *Values) Value {
-	fmt.Println(args.All()...)
+	if Stdout != nil {
+		fmt.Fprintln(Stdout, args.All()...)
+	} else {
+		fmt.Println(args.All()...)
+	}
 	return ValueFromNil()
 }

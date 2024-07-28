@@ -33,7 +33,6 @@ all: tao web tests examples
 build-image:
 	cd main && GOOS=linux GOARCH=amd64 go build -o ../docker/bin/tao
 	cd web/src && GOOS=linux GOARC=amd64 go build -o ../../docker/bin/web
-	rsync -aPvh ./web/{examples,html} docker/web
 	cd docker && docker build -t ${IMAGE} .
 
 .PHONY: push-image
